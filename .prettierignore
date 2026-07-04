@@ -1,0 +1,11 @@
+# Fichiers gérés par l'outillage (format propre par leurs outils)
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+# Générés
+node_modules/
+.next/
+.turbo/
+dist/
+coverage/
+next-env.d.ts
