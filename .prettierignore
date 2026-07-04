@@ -9,3 +9,10 @@ node_modules/
 dist/
 coverage/
 next-env.d.ts
+
+# Types Supabase générés (`supabase gen types`) — reformater serait écrasé au regen
+packages/db/src/database.types.ts
+
+# Fichiers de travail Supabase CLI (déjà git-ignorés)
+**/supabase/.temp/
+**/supabase/.branches/

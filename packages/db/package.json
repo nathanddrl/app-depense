@@ -10,9 +10,18 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "test:rls": "vitest run --config vitest.rls.config.ts",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:gen-types": "supabase gen types typescript --local --schema public > src/database.types.ts"
   },
   "dependencies": {
-    "@app/shared": "workspace:*"
+    "@supabase/supabase-js": "^2.110.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0",
+    "pg": "^8.22.0"
   }
 }

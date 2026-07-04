@@ -1,4 +1,23 @@
-// @app/db — placeholder de squelette (aucune logique métier).
-// Accueillera : schéma Supabase, migrations, client typé, types générés.
-// Couche feuille : n'importe aucun domain-*.
-export const DB_READY = true;
+// @app/db — API publique de la couche donnée feuille (archi ch.1.4 / DA3).
+// Expose le client Supabase typé et les types générés depuis le schéma.
+// N'importe aucun domain-* ni calc-engine (garde ESLint).
+
+export { createDbClient, type DbClient } from "./client";
+
+export type { Database, Json } from "./database.types";
+import type { Database } from "./database.types";
+
+/** Ligne d'une table du schéma public, ex. `Tables<"expense">`. */
+export type Tables<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Row"];
+
+/** Payload d'insertion d'une table, ex. `TablesInsert<"expense">`. */
+export type TablesInsert<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Insert"];
+
+/** Payload de mise à jour d'une table, ex. `TablesUpdate<"expense">`. */
+export type TablesUpdate<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Update"];
+
+/** Valeur d'un enum du schéma, ex. `Enums<"expense_category">`. */
+export type Enums<T extends keyof Database["public"]["Enums"]> = Database["public"]["Enums"][T];
