@@ -4,6 +4,15 @@
 // aides récurrentes existantes ne sont pas éditables via ce patch (scope limité
 // au CRUD du template — l'édition d'aides individuelles est hors périmètre de
 // cette carte, comme domain-aid sépare `addAid`/`removeAid` de l'édition dépense).
+//
+// Non-rétroactivité (D13, T-C7.3) : CORRECTE PAR CONSTRUCTION, aucune correction
+// nécessaire. `updateRecurringTemplate` ne touche QUE la ligne `recurring_template`
+// (`repo.updateRecurringTemplate`, cf. `packages/db/src/recurring-repository.ts`) ;
+// aucune cascade vers `expense`/`expense_share`/`recurring_occurrence` n'existe
+// nulle part dans ce domaine. Les parts des occurrences déjà générées sont figées
+// à la génération (`runRecurringGeneration`, via `calc-engine`) et ne sont JAMAIS
+// recalculées depuis le template — modifier `amountCents` ici n'affecte que les
+// générations futures, qui relisent le template à jour au moment de l'appel.
 
 import {
   err,

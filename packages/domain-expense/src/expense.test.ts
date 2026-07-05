@@ -259,6 +259,35 @@ describe("updateExpense — recompute & gardes (4.6 / ch.7)", () => {
     expect(res.error.code).toBe("NOT_FOUND");
   });
 
+  it("dépense générée par récurrence (source='recurring') reste éditable normalement (D14/T-C7.3)", async () => {
+    repo.seed({
+      id: "recurring-1",
+      householdId: HOUSEHOLD,
+      label: "Loyer",
+      category: "loyer",
+      grossCents: 80000,
+      payerId: "A",
+      incurredOn: "2026-07-05",
+      source: "recurring",
+      settlementId: null,
+      createdAt: "2026-07-05T10:00:00.000Z",
+      updatedAt: "2026-07-05T10:00:00.000Z",
+      shares: [
+        { memberId: "A", cents: 40000, pctSnapshot: 50 },
+        { memberId: "B", cents: 40000, pctSnapshot: 50 },
+      ],
+      aids: [],
+      deletedAt: null,
+    });
+    const res = await updateExpense(repo, ctx, {
+      expenseId: "recurring-1",
+      patch: { grossCents: 90000 },
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data.grossCents).toBe(90000);
+  });
+
   it("dépense rattachée à un settlement → EXPENSE_LOCKED", async () => {
     repo.seed({
       id: "locked-1",

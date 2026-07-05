@@ -1,7 +1,7 @@
 // @app/domain-recurrence — baril public. Orchestration des templates récurrents,
 // de leurs aides (spec ch.5.4, T-C7.1) et de la génération mensuelle des
-// occurrences (T-C7.2). Importe calc-engine + shared + db (type-only), jamais un
-// autre domain-*. Pas de route cron (T-C7.4) ni de gestion du bord de mois (T-C7.3).
+// occurrences avec bord de mois (T-C7.2/T-C7.3, D14). Importe calc-engine +
+// shared + db (type-only), jamais un autre domain-*. Pas de route cron (T-C7.4).
 
 export { createRecurringTemplate } from "./create-recurring-template";
 export { updateRecurringTemplate } from "./update-recurring-template";

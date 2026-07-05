@@ -1,7 +1,10 @@
 // @app/domain-recurrence — génération mensuelle des occurrences de templates
-// récurrents (spec ch.5.4, T-C7.2). Aucune route cron ici (T-C7.4), aucune
-// gestion du bord de mois (day_of_month invalide dans le mois, T-C7.3) : on
-// suppose `day_of_month` valide dans le mois courant.
+// récurrents (spec ch.5.4, T-C7.2/T-C7.3). Aucune route cron ici (T-C7.4).
+//
+// Bord de mois (D14) : `day_of_month` est CLAMPÉ au dernier jour du mois courant
+// (ex. 31 → 28/29 en février, 30 en avril/juin/septembre/novembre). Résolu une
+// seule fois ici (`effectiveDayOfMonth`), jamais dupliqué ailleurs — sert à la
+// fois au calcul de `incurredOn` et au test « jour pas encore atteint ».
 //
 // Opération SYSTÈME (portée cron), pas d'`RecurrenceContext` : elle traite tous
 // les foyers, jamais un scope RLS d'un seul foyer authentifié.
@@ -45,8 +48,10 @@ async function generateForTemplate(
   period: string,
   now: Date,
 ): Promise<RecurringGenerationOutcome> {
-  // Le jour du mois n'est pas encore atteint : rien à générer pour l'instant.
-  if (now.getUTCDate() < template.dayOfMonth) {
+  const effectiveDay = effectiveDayOfMonth(period, template.dayOfMonth);
+
+  // Le jour du mois (clampé, D14) n'est pas encore atteint : rien à générer pour l'instant.
+  if (now.getUTCDate() < effectiveDay) {
     return { templateId: template.id, status: "skipped", reason: "day-not-reached" };
   }
 
@@ -70,7 +75,7 @@ async function generateForTemplate(
       category: template.category,
       amountCents: template.amountCents,
       payerId: template.payerId,
-      incurredOn: incurredOnFor(period, template.dayOfMonth),
+      incurredOn: incurredOnFor(period, effectiveDay),
       shares: computed.shares.map((s) => ({
         memberId: s.memberId,
         cents: s.cents,
@@ -106,8 +111,22 @@ function firstOfMonth(now: Date): string {
   return `${year}-${month}-01`;
 }
 
-/** `"2026-07-01"` + jour 5 → `"2026-07-05"` (day_of_month supposé valide, T-C7.3). */
-function incurredOnFor(period: string, dayOfMonth: number): string {
+/** `"2026-07-01"` + jour effectif 5 → `"2026-07-05"`. */
+function incurredOnFor(period: string, effectiveDay: number): string {
   const [year, month] = period.split("-");
-  return `${year}-${month}-${String(dayOfMonth).padStart(2, "0")}`;
+  return `${year}-${month}-${String(effectiveDay).padStart(2, "0")}`;
+}
+
+/** Dernier jour du mois de `period` (`"YYYY-MM-01"`), ex. février → 28 ou 29. */
+function lastDayOfMonth(period: string): number {
+  const [year, month] = period.split("-").map(Number);
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+/**
+ * Bord de mois (D14) : `day_of_month` clampé au dernier jour du mois courant.
+ * Ex. 31 en février → 28 (ou 29 bissextile) ; 31 en avril → 30.
+ */
+function effectiveDayOfMonth(period: string, dayOfMonth: number): number {
+  return Math.min(dayOfMonth, lastDayOfMonth(period));
 }

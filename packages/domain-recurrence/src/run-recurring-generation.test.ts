@@ -169,3 +169,52 @@ describe("runRecurringGeneration (spec ch.5.4, T-C7.2)", () => {
     expect(res.data.results).toEqual([]);
   });
 });
+
+describe("runRecurringGeneration — bord de mois (D14, T-C7.3)", () => {
+  it("day_of_month=31 en février non bissextile (2026, 28 jours) → génération le 28, pas d'erreur", async () => {
+    const repo = new FakeGenerationRepository([template({ dayOfMonth: 31 })]);
+    const res = await runRecurringGeneration(repo, new Date("2026-02-28T00:00:00Z"));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data.results[0].status).toBe("generated");
+    expect(repo.generateCalls[0].period).toBe("2026-02-01");
+    expect(repo.generateCalls[0].incurredOn).toBe("2026-02-28");
+  });
+
+  it("day_of_month=31 en février bissextile (2028, 29 jours) → génération le 29", async () => {
+    const repo = new FakeGenerationRepository([template({ dayOfMonth: 31 })]);
+    const res = await runRecurringGeneration(repo, new Date("2028-02-29T00:00:00Z"));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data.results[0].status).toBe("generated");
+    expect(repo.generateCalls[0].incurredOn).toBe("2028-02-29");
+  });
+
+  it("day_of_month=31 en avril (30 jours) → génération le 30", async () => {
+    const repo = new FakeGenerationRepository([template({ dayOfMonth: 31 })]);
+    const res = await runRecurringGeneration(repo, new Date("2026-04-30T00:00:00Z"));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data.results[0].status).toBe("generated");
+    expect(repo.generateCalls[0].period).toBe("2026-04-01");
+    expect(repo.generateCalls[0].incurredOn).toBe("2026-04-30");
+  });
+
+  it("day_of_month=31 en juillet (31 jours) → aucun clamp, génération le 31", async () => {
+    const repo = new FakeGenerationRepository([template({ dayOfMonth: 31 })]);
+    const res = await runRecurringGeneration(repo, new Date("2026-07-31T00:00:00Z"));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(repo.generateCalls[0].incurredOn).toBe("2026-07-31");
+  });
+
+  it("day_of_month=31 clampé à 28 en février → avant le 28, day-not-reached (pas un skip prématuré sur 31)", async () => {
+    const repo = new FakeGenerationRepository([template({ dayOfMonth: 31 })]);
+    const res = await runRecurringGeneration(repo, new Date("2026-02-20T00:00:00Z"));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data.results).toEqual([
+      { templateId: "tpl-1", status: "skipped", reason: "day-not-reached" },
+    ]);
+  });
+});
