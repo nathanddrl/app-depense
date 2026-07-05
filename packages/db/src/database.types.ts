@@ -463,7 +463,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_expense_with_shares: {
+        Args: {
+          p_category: Database["public"]["Enums"]["expense_category"]
+          p_created_by: string
+          p_gross_amount_cents: number
+          p_household_id: string
+          p_incurred_on: string
+          p_label: string
+          p_payer_member_id: string
+          p_shares: Json
+          p_source: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       expense_category: "loyer" | "courses" | "charges" | "sorties" | "autre"

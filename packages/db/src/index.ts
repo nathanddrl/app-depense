@@ -4,6 +4,17 @@
 
 export { createDbClient, type DbClient } from "./client";
 
+export { SupabaseExpenseRepository } from "./expense-repository";
+export type {
+  Category as ExpenseCategory,
+  Expense,
+  ExpenseScalarPatch,
+  ExpenseShareDTO,
+  ListExpensesFilters,
+  NewExpense,
+  StoredExpense,
+} from "./expense-repository";
+
 export type { Database, Json } from "./database.types";
 import type { Database } from "./database.types";
 
