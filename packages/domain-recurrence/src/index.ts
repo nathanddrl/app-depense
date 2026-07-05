@@ -1,10 +1,12 @@
-// @app/domain-recurrence — baril public. Orchestration des templates récurrents
-// et de leurs aides (spec ch.5.4, T-C7.1). Importe calc-engine + shared + db
-// (type-only), jamais un autre domain-*. Ne génère aucune occurrence (T-C7.2).
+// @app/domain-recurrence — baril public. Orchestration des templates récurrents,
+// de leurs aides (spec ch.5.4, T-C7.1) et de la génération mensuelle des
+// occurrences (T-C7.2). Importe calc-engine + shared + db (type-only), jamais un
+// autre domain-*. Pas de route cron (T-C7.4) ni de gestion du bord de mois (T-C7.3).
 
 export { createRecurringTemplate } from "./create-recurring-template";
 export { updateRecurringTemplate } from "./update-recurring-template";
 export { deactivateRecurringTemplate } from "./deactivate-recurring-template";
+export { runRecurringGeneration } from "./run-recurring-generation";
 
 export type {
   RecurringTemplateRepository,
@@ -12,7 +14,16 @@ export type {
   NewRecurringAid,
   RecurringTemplateScalarPatch,
   StoredRecurringTemplate,
+  RecurringShareDTO,
+  TemplateForGeneration,
+  GenerateOccurrenceInput,
+  GeneratedOccurrence,
 } from "./repository";
+
+export type {
+  RecurringGenerationOutcome,
+  RecurringGenerationSummary,
+} from "./run-recurring-generation";
 
 export type {
   Category,

@@ -478,6 +478,21 @@ export type Database = {
         }
         Returns: string
       }
+      generate_recurring_occurrence: {
+        Args: {
+          p_aids: Json
+          p_category: Database["public"]["Enums"]["expense_category"]
+          p_gross_amount_cents: number
+          p_household_id: string
+          p_incurred_on: string
+          p_label: string
+          p_payer_member_id: string
+          p_period: string
+          p_shares: Json
+          p_template_id: string
+        }
+        Returns: Json
+      }
       initiate_settlement: {
         Args: {
           p_amount_cents: number

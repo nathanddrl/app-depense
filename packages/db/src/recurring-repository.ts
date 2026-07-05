@@ -1,6 +1,13 @@
 // SupabaseRecurringTemplateRepository — implémentation concrète du port
 // `RecurringTemplateRepository` défini par `@app/domain-recurrence` (archi ch.1.4
-// / DA4, spec ch.5.4, T-C7.1).
+// / DA4, spec ch.5.4, T-C7.1/T-C7.2).
+//
+// `generateOccurrence` passe par la RPC `generate_recurring_occurrence`
+// (atomique, même précédent que `create_expense_with_shares`) : dépense +
+// parts + aides + `recurring_occurrence` en une seule transaction. L'idempotence
+// est garantie par la contrainte unique `(template_id, period)` côté DB — un
+// retour `null` signale une génération déjà effectuée pour cette période
+// (no-op silencieux, pas une erreur).
 //
 // `db` reste une couche feuille (garde ESLint `no-restricted-imports` sur
 // `@app/domain-*`) : ce fichier n'importe RIEN de `@app/domain-recurrence`, pas
@@ -64,6 +71,37 @@ export type RecurringTemplate = {
 };
 
 export type StoredRecurringTemplate = RecurringTemplate;
+
+/** Une part figée à persister (sortie calc-engine, aligné `expense_share`). */
+export type RecurringShareDTO = { memberId: string; cents: number; pctSnapshot: number };
+
+/** Vue d'un template actif pour la génération (portée cron, T-C7.2, tous foyers). */
+export type TemplateForGeneration = {
+  id: string;
+  householdId: string;
+  label: string;
+  category: Category;
+  amountCents: number;
+  payerId: string;
+  dayOfMonth: number;
+  shares: ShareConfigInput[];
+  aids: NewRecurringAid[];
+};
+
+export type GenerateOccurrenceInput = {
+  templateId: string;
+  period: string;
+  householdId: string;
+  label: string;
+  category: Category;
+  amountCents: number;
+  payerId: string;
+  incurredOn: string;
+  shares: RecurringShareDTO[];
+  aids: NewRecurringAid[];
+};
+
+export type GeneratedOccurrence = { occurrenceId: string; expenseId: string };
 
 type RecurringTemplateRow = Tables<"recurring_template">;
 type RecurringAidRow = Tables<"recurring_aid">;
@@ -197,6 +235,73 @@ export class SupabaseRecurringTemplateRepository {
     if (error) throw error;
     if (!data) throw new Error("Modèle récurrent introuvable juste avant désactivation.");
     return { id: data.id, active: false };
+  }
+
+  async listActiveTemplatesForGeneration(): Promise<TemplateForGeneration[]> {
+    const { data: templateRows, error } = await this.supabase
+      .from("recurring_template")
+      .select("*")
+      .eq("active", true);
+    if (error) throw error;
+    if (!templateRows || templateRows.length === 0) return [];
+
+    const ids = templateRows.map((t) => t.id);
+    const { data: aidRows, error: aidsError } = await this.supabase
+      .from("recurring_aid")
+      .select("*")
+      .in("template_id", ids);
+    if (aidsError) throw aidsError;
+
+    const aidsByTemplate = new Map<string, RecurringAidRow[]>();
+    for (const row of aidRows ?? []) {
+      const list = aidsByTemplate.get(row.template_id) ?? [];
+      list.push(row);
+      aidsByTemplate.set(row.template_id, list);
+    }
+
+    return templateRows.map((row) => ({
+      id: row.id,
+      householdId: row.household_id,
+      label: row.label,
+      category: row.category,
+      amountCents: row.amount_cents,
+      payerId: row.payer_member_id,
+      dayOfMonth: row.day_of_month,
+      shares: toShares(row.shares_config),
+      aids: (aidsByTemplate.get(row.id) ?? []).map((a) => ({
+        beneficiaryId: a.beneficiary_member_id,
+        label: a.label,
+        amountCents: a.amount_cents,
+      })),
+    }));
+  }
+
+  async generateOccurrence(input: GenerateOccurrenceInput): Promise<GeneratedOccurrence | null> {
+    const { data, error } = await this.supabase.rpc("generate_recurring_occurrence", {
+      p_template_id: input.templateId,
+      p_period: input.period,
+      p_household_id: input.householdId,
+      p_label: input.label,
+      p_category: input.category,
+      p_gross_amount_cents: input.amountCents,
+      p_payer_member_id: input.payerId,
+      p_incurred_on: input.incurredOn,
+      p_shares: input.shares.map((s) => ({
+        member_id: s.memberId,
+        cents: s.cents,
+        pct_snapshot: s.pctSnapshot,
+      })),
+      p_aids: input.aids.map((a) => ({
+        beneficiary_member_id: a.beneficiaryId,
+        label: a.label,
+        amount_cents: a.amountCents,
+      })),
+    });
+    if (error) throw error;
+    if (!data) return null;
+
+    const result = data as { occurrence_id: string; expense_id: string };
+    return { occurrenceId: result.occurrence_id, expenseId: result.expense_id };
   }
 
   private async getRecurringTemplateOrThrow(templateId: string): Promise<RecurringTemplate> {

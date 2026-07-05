@@ -35,6 +35,10 @@ export type {
   RecurringAidDTO,
   RecurringTemplate,
   StoredRecurringTemplate,
+  RecurringShareDTO,
+  TemplateForGeneration,
+  GenerateOccurrenceInput,
+  GeneratedOccurrence,
 } from "./recurring-repository";
 
 export type { Database, Json } from "./database.types";

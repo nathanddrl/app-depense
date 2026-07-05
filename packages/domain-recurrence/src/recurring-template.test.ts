@@ -90,6 +90,15 @@ class FakeRecurringTemplateRepository implements RecurringTemplateRepository {
     this.templates.set(templateId, { ...current, active: false });
     return { id: templateId, active: false };
   }
+
+  // Hors périmètre de ce fichier (génération, T-C7.2) : voir run-recurring-generation.test.ts.
+  async listActiveTemplatesForGeneration(): Promise<never[]> {
+    throw new Error("test: listActiveTemplatesForGeneration non exercé par ce fichier");
+  }
+
+  async generateOccurrence(): Promise<never> {
+    throw new Error("test: generateOccurrence non exercé par ce fichier");
+  }
 }
 
 const HOUSEHOLD = "H";

@@ -36,6 +36,42 @@ export type RecurringTemplateScalarPatch = Partial<{
 /** Vue de lecture d'un template stocké (scope foyer déjà appliqué par la RLS). */
 export type StoredRecurringTemplate = RecurringTemplate;
 
+/** Une part figée à persister (sortie calc-engine, aligné `expense_share`). */
+export type RecurringShareDTO = { memberId: string; cents: number; pctSnapshot: number };
+
+/**
+ * Vue d'un template actif nécessaire à la génération (portée cron, T-C7.2) :
+ * tous foyers confondus, pas de scope RLS par foyer unique ici.
+ */
+export type TemplateForGeneration = {
+  id: string;
+  householdId: string;
+  label: string;
+  category: Category;
+  amountCents: number;
+  payerId: string;
+  dayOfMonth: number;
+  shares: ShareConfigInput[];
+  aids: NewRecurringAid[];
+};
+
+/** Entrée de génération d'une occurrence (parts déjà figées par calc-engine). */
+export type GenerateOccurrenceInput = {
+  templateId: string;
+  period: string; // 1er du mois généré, `YYYY-MM-01`
+  householdId: string;
+  label: string;
+  category: Category;
+  amountCents: number;
+  payerId: string;
+  incurredOn: string; // date réelle de la charge (période + jour du mois)
+  shares: RecurringShareDTO[];
+  aids: NewRecurringAid[];
+};
+
+/** Résultat d'une génération réussie (`null` si déjà générée, idempotence). */
+export type GeneratedOccurrence = { occurrenceId: string; expenseId: string };
+
 export interface RecurringTemplateRepository {
   /** Ids des membres du foyer (validation contextuelle : payeur/parts/aides ∈ foyer). */
   getHouseholdMemberIds(householdId: string): Promise<string[]>;
@@ -57,4 +93,15 @@ export interface RecurringTemplateRepository {
 
   /** Désactivation (`active = false`), jamais de suppression (l'historique reste intact). */
   deactivateRecurringTemplate(templateId: string): Promise<{ id: string; active: false }>;
+
+  /** Templates actifs, tous foyers confondus (portée cron, T-C7.2). */
+  listActiveTemplatesForGeneration(): Promise<TemplateForGeneration[]>;
+
+  /**
+   * Génère l'occurrence (dépense + parts + aides + `recurring_occurrence`) pour
+   * ce template/période si elle n'existe pas déjà. L'idempotence est garantie par
+   * la contrainte unique `(template_id, period)` côté DB, jamais par une
+   * vérification applicative : `null` en retour = déjà générée (no-op silencieux).
+   */
+  generateOccurrence(input: GenerateOccurrenceInput): Promise<GeneratedOccurrence | null>;
 }
