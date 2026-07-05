@@ -316,6 +316,32 @@ describe("deleteExpense — soft delete (D2)", () => {
     if (res.ok) return;
     expect(res.error.code).toBe("NOT_FOUND");
   });
+
+  it("dépense rattachée à un settlement (pending ou confirmed) → EXPENSE_LOCKED", async () => {
+    repo.seed({
+      id: "locked-2",
+      householdId: HOUSEHOLD,
+      label: "Loyer",
+      category: "loyer",
+      grossCents: 80000,
+      payerId: "A",
+      incurredOn: "2026-06-04",
+      source: "manual",
+      settlementId: "settle-1",
+      createdAt: "2026-06-04T10:00:00.000Z",
+      updatedAt: "2026-06-04T10:00:00.000Z",
+      shares: [
+        { memberId: "A", cents: 40000, pctSnapshot: 50 },
+        { memberId: "B", cents: 40000, pctSnapshot: 50 },
+      ],
+      aids: [],
+      deletedAt: null,
+    });
+    const res = await deleteExpense(repo, ctx, { expenseId: "locked-2" });
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.code).toBe("EXPENSE_LOCKED");
+  });
 });
 
 describe("listExpenses — historique chronologique filtrable (6.2)", () => {

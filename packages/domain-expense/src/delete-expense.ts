@@ -17,6 +17,8 @@ export async function deleteExpense(
     return err("NOT_FOUND", "Dépense introuvable.");
   }
 
+  // Verrou de régularisation (ch.7 / D7, T-C6.4) : `pending` ou `confirmed`
+  // verrouillent identiquement, seul `settlement_id IS NOT NULL` compte.
   if (existing.settlementId !== null) {
     return err(
       "EXPENSE_LOCKED",

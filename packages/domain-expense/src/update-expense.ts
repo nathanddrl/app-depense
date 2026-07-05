@@ -2,8 +2,8 @@
 //
 // À l'édition, les parts sont RECOMPUTÉES (nouveau snapshot figé) tant que la
 // dépense est ouverte. Une dépense rattachée à un settlement est verrouillée
-// (`EXPENSE_LOCKED`) — garde dormante ici (settlement = C6), mais le code est figé
-// et la lecture triviale.
+// (`EXPENSE_LOCKED`), qu'il soit `pending` ou `confirmed` (T-C6.4) — seul
+// `settlement_id IS NOT NULL` compte, jamais le statut du settlement.
 
 import { CalcPreconditionError } from "@app/calc-engine";
 import {
@@ -33,7 +33,7 @@ export async function updateExpense(
     return err("NOT_FOUND", "Dépense introuvable.");
   }
 
-  // 2) Verrou de régularisation (ch.7 / D7) — dormant tant que C6 n'existe pas.
+  // 2) Verrou de régularisation (ch.7 / D7, T-C6.4).
   if (existing.settlementId !== null) {
     return err(
       "EXPENSE_LOCKED",
