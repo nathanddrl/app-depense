@@ -24,4 +24,13 @@ export interface SettlementRepository {
 
   /** Création atomique du settlement `pending` + gel (`settlement_id`) des dépenses ouvertes du foyer. */
   createSettlementAndFreezeExpenses(newSettlement: NewSettlement): Promise<Settlement>;
+
+  /** Lecture pour confirmation/annulation (null si absente/hors périmètre RLS). */
+  getSettlementById(settlementId: string): Promise<Settlement | null>;
+
+  /** `pending → confirmed` : ne touche pas les dépenses (déjà gelées, désormais immuables). */
+  confirmSettlement(settlementId: string, confirmedBy: string): Promise<Settlement>;
+
+  /** `pending → cancelled` + dé-stamp atomique (`settlement_id` → null) des dépenses concernées. */
+  cancelSettlement(settlementId: string): Promise<Settlement>;
 }

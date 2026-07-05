@@ -463,6 +463,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_settlement: { Args: { p_settlement_id: string }; Returns: string }
       create_expense_with_shares: {
         Args: {
           p_category: Database["public"]["Enums"]["expense_category"]

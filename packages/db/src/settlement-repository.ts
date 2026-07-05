@@ -6,9 +6,11 @@
 // même le type du port — deux vues (snake_case DB / camelCase domaine) du même
 // schéma, comme `expense-repository.ts`/`aid-repository.ts`.
 //
-// `createSettlementAndFreezeExpenses` passe par la RPC `initiate_settlement`
-// (insert settlement + gel des dépenses ouvertes du foyer) : atomicité native de
-// la fonction, même précédent que `create_expense_with_shares`.
+// `createSettlementAndFreezeExpenses` et `cancelSettlement` passent par des RPC
+// (`initiate_settlement`/`cancel_settlement`) pour l'atomicité multi-tables
+// (settlement + expense), même précédent que `create_expense_with_shares`.
+// `confirmSettlement` ne touche que `settlement` (dépenses déjà gelées, désormais
+// immuables) : un simple UPDATE est nativement atomique, pas besoin de RPC.
 
 import type { DbClient } from "./client";
 import type { Enums, Tables } from "./index";
@@ -86,6 +88,49 @@ export class SupabaseSettlementRepository {
       .maybeSingle();
     if (fetchError) throw fetchError;
     if (!row) throw new Error("Settlement introuvable juste après création.");
+    return toSettlement(row);
+  }
+
+  async getSettlementById(settlementId: string): Promise<Settlement | null> {
+    const { data, error } = await this.supabase
+      .from("settlement")
+      .select("*")
+      .eq("id", settlementId)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? toSettlement(data) : null;
+  }
+
+  async confirmSettlement(settlementId: string, confirmedBy: string): Promise<Settlement> {
+    const { data, error } = await this.supabase
+      .from("settlement")
+      .update({
+        status: "confirmed",
+        confirmed_by: confirmedBy,
+        confirmed_at: new Date().toISOString(),
+      })
+      .eq("id", settlementId)
+      .eq("status", "pending")
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Settlement introuvable ou déjà traité.");
+    return toSettlement(data);
+  }
+
+  async cancelSettlement(settlementId: string): Promise<Settlement> {
+    const { data: cancelledId, error } = await this.supabase.rpc("cancel_settlement", {
+      p_settlement_id: settlementId,
+    });
+    if (error) throw error;
+
+    const { data: row, error: fetchError } = await this.supabase
+      .from("settlement")
+      .select("*")
+      .eq("id", cancelledId)
+      .maybeSingle();
+    if (fetchError) throw fetchError;
+    if (!row) throw new Error("Settlement introuvable juste après annulation.");
     return toSettlement(row);
   }
 }

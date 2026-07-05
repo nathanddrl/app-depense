@@ -39,6 +39,16 @@ class FakeSettlementRepository implements SettlementRepository {
     this.pendingByHousehold.set(newSettlement.householdId, { id });
     return settlement;
   }
+
+  async getSettlementById(_settlementId: string): Promise<Settlement | null> {
+    throw new Error("non utilisé par ces tests");
+  }
+  async confirmSettlement(_settlementId: string, _confirmedBy: string): Promise<Settlement> {
+    throw new Error("non utilisé par ces tests");
+  }
+  async cancelSettlement(_settlementId: string): Promise<Settlement> {
+    throw new Error("non utilisé par ces tests");
+  }
 }
 
 const HOUSEHOLD = "H";

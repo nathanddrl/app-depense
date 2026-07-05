@@ -37,3 +37,9 @@ export type InitiateSettlementInput = {
   toMemberId: string;
   amountCents: number;
 };
+
+/** Entrée de `confirmSettlement` (T-C6.3, appelant = créancier). */
+export type ConfirmSettlementInput = { settlementId: string };
+
+/** Entrée de `cancelSettlement` (T-C6.3, appelant = initiateur ou créancier). */
+export type CancelSettlementInput = { settlementId: string };
