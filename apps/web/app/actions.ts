@@ -15,7 +15,9 @@ import type {
   Expense,
   ListExpensesFilters,
 } from "@app/domain-expense";
-import { SupabaseExpenseRepository } from "@app/db";
+import { addAid, removeAid } from "@app/domain-aid";
+import type { AddAidInput, RemoveAidInput, Expense as AidExpense } from "@app/domain-aid";
+import { SupabaseExpenseRepository, SupabaseAidRepository } from "@app/db";
 import type { ActionResult } from "@app/shared";
 
 export async function signOut(): Promise<void> {
@@ -62,4 +64,16 @@ export async function getBalanceDetailAction(): Promise<ActionResult<BalanceDeta
     { memberId: ctx.member.id, householdId: ctx.householdId },
     { householdId: ctx.householdId },
   );
+}
+
+export async function addAidAction(input: AddAidInput): Promise<ActionResult<AidExpense>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseAidRepository(ctx.supabase);
+  return addAid(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, input);
+}
+
+export async function removeAidAction(input: RemoveAidInput): Promise<ActionResult<AidExpense>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseAidRepository(ctx.supabase);
+  return removeAid(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, input);
 }

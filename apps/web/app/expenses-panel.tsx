@@ -15,6 +15,7 @@ import type { Expense } from "@app/domain-expense";
 import type { Category } from "@app/domain-expense";
 import { formatAmountEUR, formatDateFr } from "@app/shared";
 import type { MemberShare } from "../lib/household";
+import { AidSection } from "./aid-section";
 
 type Props = {
   currentMemberId: string;
@@ -35,7 +36,8 @@ function today(): string {
 }
 
 /** Dépense optimiste : montant + libellé visibles, parts absentes tant que le serveur n'a pas répondu. */
-type OptimisticExpense = Expense | { id: string; label: string; grossCents: number; incurredOn: string; pending: true };
+type OptimisticExpense =
+  Expense | { id: string; label: string; grossCents: number; incurredOn: string; pending: true };
 
 export function ExpensesPanel({ currentMemberId, initialExpenses, defaultShares }: Props) {
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
@@ -149,7 +151,8 @@ export function ExpensesPanel({ currentMemberId, initialExpenses, defaultShares 
       <ul>
         {optimisticExpenses.map((e) => (
           <li key={e.id}>
-            <strong>{e.label}</strong> — {formatAmountEUR(e.grossCents)} — {formatDateFr(new Date(e.incurredOn))}
+            <strong>{e.label}</strong> — {formatAmountEUR(e.grossCents)} —{" "}
+            {formatDateFr(new Date(e.incurredOn))}
             {"pending" in e && e.pending ? " (en attente…)" : null}
             {"shares" in e
               ? e.shares
@@ -164,6 +167,17 @@ export function ExpensesPanel({ currentMemberId, initialExpenses, defaultShares 
                     );
                   })
               : null}
+            {"shares" in e ? (
+              <AidSection
+                expenseId={e.id}
+                grossCents={e.grossCents}
+                currentMemberId={currentMemberId}
+                members={defaultShares}
+                onSharesUpdated={(shares) =>
+                  setExpenses((prev) => prev.map((x) => (x.id === e.id ? { ...x, shares } : x)))
+                }
+              />
+            ) : null}
           </li>
         ))}
       </ul>
