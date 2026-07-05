@@ -22,6 +22,9 @@ export type {
 export { SupabaseAidRepository } from "./aid-repository";
 export type { AidDTO, Expense as AidExpense, ExpenseForAid, NewAid } from "./aid-repository";
 
+export { SupabaseSettlementRepository } from "./settlement-repository";
+export type { NewSettlement, Settlement } from "./settlement-repository";
+
 export type { Database, Json } from "./database.types";
 import type { Database } from "./database.types";
 

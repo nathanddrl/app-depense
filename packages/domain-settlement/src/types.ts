@@ -17,3 +17,23 @@ export type Settlement = {
   confirmedAt: string | null;
   cancelledAt: string | null;
 };
+
+/**
+ * Identité résolue par le seam `getCurrentContext()` et injectée par
+ * `actions.ts` — même forme que `ExpenseContext`/`AidContext` (dupliquée par
+ * design, garde anti-cross-domain ch.1.4/DA4).
+ */
+export type SettlementContext = { memberId: string; householdId: string };
+
+/**
+ * Entrée de `initiateSettlement` (T-C6.2). Le solde (`fromMemberId`/`toMemberId`/
+ * `amountCents`) est calculé par l'appelant via `domain-expense.getBalance` — un
+ * domaine n'important jamais un autre domain-* (DA4), cette composition vit à la
+ * couche au-dessus (Server Action), jamais recalculée ici.
+ */
+export type InitiateSettlementInput = {
+  householdId: string;
+  fromMemberId: string;
+  toMemberId: string;
+  amountCents: number;
+};
