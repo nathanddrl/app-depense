@@ -6,6 +6,7 @@ import { getBalanceAction } from "./actions";
 import { formatAmountEUR } from "@app/shared";
 import type { MemberShare } from "../lib/household";
 import { BalanceDetailToggle } from "./balance-detail-toggle";
+import { BalanceNetworkGate } from "./balance-network-gate";
 import styles from "./balance-panel.module.css";
 
 type Props = {
@@ -25,9 +26,11 @@ export async function BalancePanel({ currentMemberId, members }: Props) {
 
   if (amountCents === 0) {
     return (
-      <div className={styles.card}>
-        <p className={styles.upToDate}>Vous êtes à jour</p>
-      </div>
+      <BalanceNetworkGate>
+        <div className={styles.card}>
+          <p className={styles.upToDate}>Vous êtes à jour</p>
+        </div>
+      </BalanceNetworkGate>
     );
   }
 
@@ -38,17 +41,19 @@ export async function BalancePanel({ currentMemberId, members }: Props) {
   const message = isCreditor ? `${otherName} te doit ${amount}` : `Tu dois ${amount} à ${otherName}`;
 
   return (
-    <div className={styles.card}>
-      <p className={styles.line}>
-        {isCreditor ? `${otherName} te doit` : "Tu dois"}{" "}
-        <span className={styles.amount}>{amount}</span>
-        {isCreditor ? "" : ` à ${otherName}`}
-      </p>
-      <BalanceDetailToggle
-        currentMemberId={currentMemberId}
-        otherDisplayName={otherName}
-        totalMessage={message}
-      />
-    </div>
+    <BalanceNetworkGate>
+      <div className={styles.card}>
+        <p className={styles.line}>
+          {isCreditor ? `${otherName} te doit` : "Tu dois"}{" "}
+          <span className={styles.amount}>{amount}</span>
+          {isCreditor ? "" : ` à ${otherName}`}
+        </p>
+        <BalanceDetailToggle
+          currentMemberId={currentMemberId}
+          otherDisplayName={otherName}
+          totalMessage={message}
+        />
+      </div>
+    </BalanceNetworkGate>
   );
 }

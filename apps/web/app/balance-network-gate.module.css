@@ -1,0 +1,11 @@
+/* Bandeau hors-ligne (PC-2) — neutre, pas de rouge alarmant (8.1), cible tactile
+   cohérente avec le reste de la carte solde (mobile-first). */
+
+.offline {
+  margin: 0;
+  padding: 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
