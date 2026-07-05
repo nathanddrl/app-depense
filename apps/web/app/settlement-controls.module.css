@@ -1,0 +1,30 @@
+/* Parcours « Solder » (spec 8.1/5.3, T-C6.6) — mobile-first, mêmes règles que
+   balance-panel/aid-section : cible ≥ 44 px, aucune largeur fixe, texte qui
+   s'enroule toujours dans le viewport. */
+
+.banner {
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.trigger {
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.75rem;
+}
+
+.line {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+}

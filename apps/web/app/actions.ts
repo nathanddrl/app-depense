@@ -17,7 +17,22 @@ import type {
 } from "@app/domain-expense";
 import { addAid, removeAid } from "@app/domain-aid";
 import type { AddAidInput, RemoveAidInput, Expense as AidExpense } from "@app/domain-aid";
-import { SupabaseExpenseRepository, SupabaseAidRepository } from "@app/db";
+import {
+  initiateSettlement,
+  confirmSettlement,
+  cancelSettlement,
+  getCurrentSettlement,
+} from "@app/domain-settlement";
+import type {
+  CancelSettlementInput,
+  ConfirmSettlementInput,
+  Settlement,
+} from "@app/domain-settlement";
+import {
+  SupabaseExpenseRepository,
+  SupabaseAidRepository,
+  SupabaseSettlementRepository,
+} from "@app/db";
 import type { ActionResult } from "@app/shared";
 
 export async function signOut(): Promise<void> {
@@ -76,4 +91,50 @@ export async function removeAidAction(input: RemoveAidInput): Promise<ActionResu
   const ctx = await getCurrentContext();
   const repo = new SupabaseAidRepository(ctx.supabase);
   return removeAid(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, input);
+}
+
+export async function getCurrentSettlementAction(): Promise<ActionResult<Settlement | null>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseSettlementRepository(ctx.supabase);
+  return getCurrentSettlement(
+    repo,
+    { memberId: ctx.member.id, householdId: ctx.householdId },
+    { householdId: ctx.householdId },
+  );
+}
+
+// Seul endroit légitime pour la composition getBalance (@app/domain-expense) →
+// initiateSettlement (@app/domain-settlement) : un domaine n'important jamais
+// un autre domain-* (DA4, cf. T-C6.2/T-C6.5), cette orchestration vit ici.
+export async function initiateSettlementAction(): Promise<ActionResult<Settlement>> {
+  const ctx = await getCurrentContext();
+  const domainCtx = { memberId: ctx.member.id, householdId: ctx.householdId };
+
+  const expenseRepo = new SupabaseExpenseRepository(ctx.supabase);
+  const balance = await getBalance(expenseRepo, domainCtx, { householdId: ctx.householdId });
+  if (!balance.ok) return balance;
+
+  const settlementRepo = new SupabaseSettlementRepository(ctx.supabase);
+  return initiateSettlement(settlementRepo, domainCtx, {
+    householdId: ctx.householdId,
+    fromMemberId: balance.data.from,
+    toMemberId: balance.data.to,
+    amountCents: balance.data.amountCents,
+  });
+}
+
+export async function confirmSettlementAction(
+  input: ConfirmSettlementInput,
+): Promise<ActionResult<Settlement>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseSettlementRepository(ctx.supabase);
+  return confirmSettlement(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, input);
+}
+
+export async function cancelSettlementAction(
+  input: CancelSettlementInput,
+): Promise<ActionResult<Settlement>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseSettlementRepository(ctx.supabase);
+  return cancelSettlement(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, input);
 }
