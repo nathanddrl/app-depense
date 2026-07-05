@@ -173,6 +173,7 @@ export function ExpensesPanel({ currentMemberId, initialExpenses, defaultShares 
                 grossCents={e.grossCents}
                 currentMemberId={currentMemberId}
                 members={defaultShares}
+                initialAids={e.aids}
                 onSharesUpdated={(shares) =>
                   setExpenses((prev) => prev.map((x) => (x.id === e.id ? { ...x, shares } : x)))
                 }

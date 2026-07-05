@@ -21,6 +21,12 @@ import type { Enums, Tables } from "./index";
 export type Category = Enums<"expense_category">;
 
 export type ExpenseShareDTO = { memberId: string; cents: number; pctSnapshot: number };
+export type ExpenseAidDTO = {
+  id: string;
+  beneficiaryId: string;
+  label: string;
+  amountCents: number;
+};
 
 export type NewExpense = {
   householdId: string;
@@ -54,6 +60,7 @@ export type Expense = {
   createdAt: string;
   updatedAt: string;
   shares: ExpenseShareDTO[];
+  aids: ExpenseAidDTO[];
 };
 
 export type StoredExpense = Expense & { deletedAt: string | null };
@@ -84,7 +91,20 @@ function toShareDTO(row: ExpenseShareRow): ExpenseShareDTO {
   };
 }
 
-function toStoredExpense(row: ExpenseRow, shares: ExpenseShareRow[]): StoredExpense {
+function toAidDTO(row: AidRow): ExpenseAidDTO {
+  return {
+    id: row.id,
+    beneficiaryId: row.beneficiary_member_id,
+    label: row.label,
+    amountCents: row.amount_cents,
+  };
+}
+
+function toStoredExpense(
+  row: ExpenseRow,
+  shares: ExpenseShareRow[],
+  aids: AidRow[],
+): StoredExpense {
   return {
     id: row.id,
     householdId: row.household_id,
@@ -98,6 +118,7 @@ function toStoredExpense(row: ExpenseRow, shares: ExpenseShareRow[]): StoredExpe
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     shares: shares.map(toShareDTO),
+    aids: aids.map(toAidDTO),
     deletedAt: row.deleted_at,
   };
 }
@@ -119,10 +140,7 @@ export class SupabaseExpenseRepository {
     return (data ?? []).map((m) => m.member_id);
   }
 
-  async insertExpenseWithShares(
-    expense: NewExpense,
-    shares: ExpenseShareDTO[],
-  ): Promise<Expense> {
+  async insertExpenseWithShares(expense: NewExpense, shares: ExpenseShareDTO[]): Promise<Expense> {
     const { data: expenseId, error } = await this.supabase.rpc("create_expense_with_shares", {
       p_household_id: expense.householdId,
       p_label: expense.label,
@@ -154,13 +172,15 @@ export class SupabaseExpenseRepository {
     if (error) throw error;
     if (!expenseRow) return null;
 
-    const { data: shareRows, error: sharesError } = await this.supabase
-      .from("expense_share")
-      .select("*")
-      .eq("expense_id", expenseId);
+    const [{ data: shareRows, error: sharesError }, { data: aidRows, error: aidsError }] =
+      await Promise.all([
+        this.supabase.from("expense_share").select("*").eq("expense_id", expenseId),
+        this.supabase.from("aid").select("*").eq("expense_id", expenseId),
+      ]);
     if (sharesError) throw sharesError;
+    if (aidsError) throw aidsError;
 
-    return toStoredExpense(expenseRow, shareRows ?? []);
+    return toStoredExpense(expenseRow, shareRows ?? [], aidRows ?? []);
   }
 
   async updateExpenseWithShares(
@@ -228,7 +248,9 @@ export class SupabaseExpenseRepository {
 
     if (filters.category) query = query.eq("category", filters.category);
     if (filters.month) {
-      query = query.gte("incurred_on", `${filters.month}-01`).lt("incurred_on", nextMonth(filters.month));
+      query = query
+        .gte("incurred_on", `${filters.month}-01`)
+        .lt("incurred_on", nextMonth(filters.month));
     }
 
     const { data: expenseRows, error } = await query;
@@ -236,11 +258,13 @@ export class SupabaseExpenseRepository {
     if (!expenseRows || expenseRows.length === 0) return [];
 
     const ids = expenseRows.map((e) => e.id);
-    const { data: shareRows, error: sharesError } = await this.supabase
-      .from("expense_share")
-      .select("*")
-      .in("expense_id", ids);
+    const [{ data: shareRows, error: sharesError }, { data: aidRows, error: aidsError }] =
+      await Promise.all([
+        this.supabase.from("expense_share").select("*").in("expense_id", ids),
+        this.supabase.from("aid").select("*").in("expense_id", ids),
+      ]);
     if (sharesError) throw sharesError;
+    if (aidsError) throw aidsError;
 
     const sharesByExpense = new Map<string, ExpenseShareRow[]>();
     for (const row of shareRows ?? []) {
@@ -248,9 +272,17 @@ export class SupabaseExpenseRepository {
       list.push(row);
       sharesByExpense.set(row.expense_id, list);
     }
+    const aidsByExpense = new Map<string, AidRow[]>();
+    for (const row of aidRows ?? []) {
+      const list = aidsByExpense.get(row.expense_id) ?? [];
+      list.push(row);
+      aidsByExpense.set(row.expense_id, list);
+    }
 
     return expenseRows.map((row) =>
-      strip(toStoredExpense(row, sharesByExpense.get(row.id) ?? [])),
+      strip(
+        toStoredExpense(row, sharesByExpense.get(row.id) ?? [], aidsByExpense.get(row.id) ?? []),
+      ),
     );
   }
 
@@ -272,7 +304,9 @@ export class SupabaseExpenseRepository {
     if (sharesError) throw sharesError;
     if (aidsError) throw aidsError;
 
-    const settlementIds = [...new Set(expenseRows.map((e) => e.settlement_id).filter(Boolean))] as string[];
+    const settlementIds = [
+      ...new Set(expenseRows.map((e) => e.settlement_id).filter(Boolean)),
+    ] as string[];
     const statusById = new Map<string, SettlementStatus>();
     if (settlementIds.length > 0) {
       const { data: settlementRows, error: settlementError } = await this.supabase

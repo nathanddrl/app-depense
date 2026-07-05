@@ -15,6 +15,18 @@ export type ShareInput = { memberId: string; pct: number };
 export type ExpenseShareDTO = { memberId: string; cents: number; pctSnapshot: number };
 
 /**
+ * Une aide rattachée à une dépense (D9/D10), pour l'historique/l'UI (T-C5.5).
+ * Même forme que `@app/domain-aid.AidDTO` — dupliquée par design (garde
+ * anti-cross-domain, ch.1.4/DA4) plutôt qu'importée depuis un autre domain-*.
+ */
+export type ExpenseAidDTO = {
+  id: string;
+  beneficiaryId: string;
+  label: string;
+  amountCents: number;
+};
+
+/**
  * Identité résolue par le seam `getCurrentContext()` (construit en C2.5) et injectée
  * par `actions.ts`. Le domaine ne touche jamais aux cookies/session : il reçoit
  * l'acteur (`memberId`, pour `created_by`) et le foyer courant (scope autoritaire).
@@ -55,6 +67,7 @@ export type Expense = {
   createdAt: string;
   updatedAt: string;
   shares: ExpenseShareDTO[];
+  aids: ExpenseAidDTO[];
 };
 
 /** Statut d'un settlement (D-double approbation, ch.5.3). */

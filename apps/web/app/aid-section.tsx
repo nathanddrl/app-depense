@@ -24,6 +24,7 @@ type Props = {
   grossCents: number;
   currentMemberId: string;
   members: MemberShare[];
+  initialAids: AidDTO[];
   onSharesUpdated: (shares: ShareDTO[]) => void;
 };
 
@@ -62,9 +63,12 @@ export function AidSection({
   grossCents,
   currentMemberId,
   members,
+  initialAids,
   onSharesUpdated,
 }: Props) {
-  const [aids, setAids] = useState<AidDTO[]>([]);
+  // Initialisées depuis la prop (aides déjà en base, T-C5.5) — plus jamais un
+  // état qui repart vide au chargement alors que l'aide existe toujours en base.
+  const [aids, setAids] = useState<AidDTO[]>(initialAids);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();

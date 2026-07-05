@@ -47,6 +47,7 @@ class FakeExpenseRepository implements ExpenseRepository {
       createdAt: now,
       updatedAt: now,
       shares,
+      aids: [],
       deletedAt: null,
     };
     this.store.set(stored.id, stored);
@@ -275,6 +276,7 @@ describe("updateExpense — recompute & gardes (4.6 / ch.7)", () => {
         { memberId: "A", cents: 40000, pctSnapshot: 50 },
         { memberId: "B", cents: 40000, pctSnapshot: 50 },
       ],
+      aids: [],
       deletedAt: null,
     });
     const res = await updateExpense(repo, ctx, {

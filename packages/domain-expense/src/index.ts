@@ -23,6 +23,7 @@ export type {
   ListExpensesFilters,
   Expense,
   ExpenseShareDTO,
+  ExpenseAidDTO,
   ShareInput,
   ExpenseContext,
   SettlementStatus,

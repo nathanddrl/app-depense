@@ -10,6 +10,7 @@ export type {
   Expense,
   ExpenseScalarPatch,
   ExpenseShareDTO,
+  ExpenseAidDTO,
   ListExpensesFilters,
   NewExpense,
   StoredExpense,
