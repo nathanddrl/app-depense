@@ -9,6 +9,7 @@ import { useState, useTransition } from "react";
 import { getBalanceDetailAction } from "./actions";
 import { formatAmountEUR } from "@app/shared";
 import type { BalanceDetailLine } from "@app/domain-expense";
+import styles from "./balance-detail-toggle.module.css";
 
 type Props = {
   currentMemberId: string;
@@ -84,17 +85,17 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
 
   return (
     <div>
-      <button type="button" onClick={handleClick}>
+      <button type="button" className={styles.trigger} onClick={handleClick}>
         Pourquoi ?
       </button>
       {open && (
-        <div>
+        <div className={styles.detail}>
           {isPending || lines === null ? (
-            <p>Calcul en cours…</p>
+            <p className={styles.line}>Calcul en cours…</p>
           ) : (
             <>
               {lines.map((line, i) => (
-                <p key={i}>
+                <p className={styles.line} key={i}>
                   {baseLine(line, currentMemberId, otherDisplayName)}
                   {line.aidLines.map((aid, j) => (
                     <span key={j}>
@@ -104,7 +105,7 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
                   ))}
                 </p>
               ))}
-              <p>Total : {totalMessage}</p>
+              <p className={styles.total}>Total : {totalMessage}</p>
             </>
           )}
         </div>

@@ -1,0 +1,38 @@
+/* Détail dépliable — mobile-first. Cible tactile du déclencheur ≥ 44 px (règle
+   Apple HIG / Material), et contenu dépliable qui ne peut jamais déborder du
+   viewport (overflow-wrap sur des phrases longues). */
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  line-height: 1.2;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
+.detail {
+  margin-top: 0.75rem;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.line {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.total {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}

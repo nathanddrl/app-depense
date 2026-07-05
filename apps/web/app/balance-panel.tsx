@@ -6,6 +6,7 @@ import { getBalanceAction } from "./actions";
 import { formatAmountEUR } from "@app/shared";
 import type { MemberShare } from "../lib/household";
 import { BalanceDetailToggle } from "./balance-detail-toggle";
+import styles from "./balance-panel.module.css";
 
 type Props = {
   currentMemberId: string;
@@ -23,22 +24,29 @@ export async function BalancePanel({ currentMemberId, members }: Props) {
   const { from, to, amountCents } = result.data;
 
   if (amountCents === 0) {
-    return <p>Vous êtes à jour</p>;
+    return (
+      <div className={styles.card}>
+        <p className={styles.upToDate}>Vous êtes à jour</p>
+      </div>
+    );
   }
 
-  const message =
-    to === currentMemberId
-      ? `${displayNameOf(members, from)} te doit ${formatAmountEUR(amountCents)}`
-      : `Tu dois ${formatAmountEUR(amountCents)} à ${displayNameOf(members, to)}`;
-
-  const otherMemberId = to === currentMemberId ? from : to;
+  const isCreditor = to === currentMemberId;
+  const otherMemberId = isCreditor ? from : to;
+  const otherName = displayNameOf(members, otherMemberId);
+  const amount = formatAmountEUR(amountCents);
+  const message = isCreditor ? `${otherName} te doit ${amount}` : `Tu dois ${amount} à ${otherName}`;
 
   return (
-    <div>
-      <p>{message}</p>
+    <div className={styles.card}>
+      <p className={styles.line}>
+        {isCreditor ? `${otherName} te doit` : "Tu dois"}{" "}
+        <span className={styles.amount}>{amount}</span>
+        {isCreditor ? "" : ` à ${otherName}`}
+      </p>
       <BalanceDetailToggle
         currentMemberId={currentMemberId}
-        otherDisplayName={displayNameOf(members, otherMemberId)}
+        otherDisplayName={otherName}
         totalMessage={message}
       />
     </div>
