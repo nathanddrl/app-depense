@@ -13,6 +13,9 @@ export type {
   ListExpensesFilters,
   NewExpense,
   StoredExpense,
+  BalanceAid,
+  BalanceExpenseRow,
+  SettlementStatus,
 } from "./expense-repository";
 
 export type { Database, Json } from "./database.types";

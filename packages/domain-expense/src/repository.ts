@@ -7,7 +7,13 @@
 // injectent un fake en mémoire. Toutes les opérations sont déjà scopées au foyer
 // courant (le repo porte le client authentifié → la RLS s'applique au runtime).
 
-import type { Category, Expense, ExpenseShareDTO, ListExpensesFilters } from "./types";
+import type {
+  BalanceExpenseRow,
+  Category,
+  Expense,
+  ExpenseShareDTO,
+  ListExpensesFilters,
+} from "./types";
 
 /** Champs scalaires d'une dépense à insérer (les parts sont passées à part). */
 export type NewExpense = {
@@ -55,4 +61,7 @@ export interface ExpenseRepository {
 
   /** Historique chronologique décroissant, soft-deleted exclues, filtrable (6.2). */
   listExpenses(householdId: string, filters: ListExpensesFilters): Promise<Expense[]>;
+
+  /** Dépenses actives (soft-deleted exclues) avec aides + statut settlement, pour le solde (4.2). */
+  listExpensesForBalance(householdId: string): Promise<BalanceExpenseRow[]>;
 }

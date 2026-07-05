@@ -6,6 +6,7 @@ export { createExpense } from "./create-expense";
 export { updateExpense } from "./update-expense";
 export { deleteExpense } from "./delete-expense";
 export { listExpenses } from "./list-expenses";
+export { getBalance } from "./get-balance";
 
 export type {
   ExpenseRepository,
@@ -23,4 +24,8 @@ export type {
   ExpenseShareDTO,
   ShareInput,
   ExpenseContext,
+  SettlementStatus,
+  BalanceAid,
+  BalanceExpenseRow,
+  Balance,
 } from "./types";

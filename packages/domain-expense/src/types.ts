@@ -56,3 +56,30 @@ export type Expense = {
   updatedAt: string;
   shares: ExpenseShareDTO[];
 };
+
+/** Statut d'un settlement (D-double approbation, ch.5.3). */
+export type SettlementStatus = "pending" | "confirmed" | "cancelled";
+
+/** Une aide brute rattachée à une dépense (avant plafond 4.4). */
+export type BalanceAid = { beneficiaryId: string; amountCents: number };
+
+/**
+ * Vue d'une dépense active pour le calcul du solde (spec 4.2). Le statut du
+ * settlement rattaché (`null` si aucun) permet au domaine d'appliquer le filtre
+ * « seul un settlement confirmé exclut la dépense ».
+ */
+export type BalanceExpenseRow = {
+  grossCents: number;
+  payerId: string;
+  shares: { memberId: string; cents: number; pctSnapshot: number }[];
+  aids: BalanceAid[];
+  settlementStatus: SettlementStatus | null;
+};
+
+/** Solde courant réduit à deux membres (6.2 `getBalance`). */
+export type Balance = {
+  from: string;
+  to: string;
+  amountCents: number;
+  pendingSettlement?: boolean;
+};

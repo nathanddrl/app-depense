@@ -89,6 +89,10 @@ class FakeExpenseRepository implements ExpenseRepository {
       .map((e) => this.strip(e));
   }
 
+  async listExpensesForBalance(): Promise<never[]> {
+    throw new Error("non utilisé par ces tests (voir get-balance.test.ts)");
+  }
+
   private strip(e: StoredExpense): Expense {
     const { deletedAt: _deletedAt, ...rest } = e;
     return rest;

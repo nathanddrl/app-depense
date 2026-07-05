@@ -60,8 +60,20 @@ export type StoredExpense = Expense & { deletedAt: string | null };
 
 export type ListExpensesFilters = { month?: string; category?: Category };
 
+export type SettlementStatus = Enums<"settlement_status">;
+export type BalanceAid = { beneficiaryId: string; amountCents: number };
+export type BalanceExpenseRow = {
+  grossCents: number;
+  payerId: string;
+  shares: { memberId: string; cents: number; pctSnapshot: number }[];
+  aids: BalanceAid[];
+  settlementStatus: SettlementStatus | null;
+};
+
 type ExpenseRow = Tables<"expense">;
 type ExpenseShareRow = Tables<"expense_share">;
+type AidRow = Tables<"aid">;
+type SettlementRow = Tables<"settlement">;
 
 function toShareDTO(row: ExpenseShareRow): ExpenseShareDTO {
   return {
@@ -239,6 +251,62 @@ export class SupabaseExpenseRepository {
     return expenseRows.map((row) =>
       strip(toStoredExpense(row, sharesByExpense.get(row.id) ?? [])),
     );
+  }
+
+  async listExpensesForBalance(householdId: string): Promise<BalanceExpenseRow[]> {
+    const { data: expenseRows, error } = await this.supabase
+      .from("expense")
+      .select("*")
+      .eq("household_id", householdId)
+      .is("deleted_at", null);
+    if (error) throw error;
+    if (!expenseRows || expenseRows.length === 0) return [];
+
+    const ids = expenseRows.map((e) => e.id);
+    const [{ data: shareRows, error: sharesError }, { data: aidRows, error: aidsError }] =
+      await Promise.all([
+        this.supabase.from("expense_share").select("*").in("expense_id", ids),
+        this.supabase.from("aid").select("*").in("expense_id", ids),
+      ]);
+    if (sharesError) throw sharesError;
+    if (aidsError) throw aidsError;
+
+    const settlementIds = [...new Set(expenseRows.map((e) => e.settlement_id).filter(Boolean))] as string[];
+    const statusById = new Map<string, SettlementStatus>();
+    if (settlementIds.length > 0) {
+      const { data: settlementRows, error: settlementError } = await this.supabase
+        .from("settlement")
+        .select("id, status")
+        .in("id", settlementIds);
+      if (settlementError) throw settlementError;
+      for (const s of (settlementRows ?? []) as Pick<SettlementRow, "id" | "status">[]) {
+        statusById.set(s.id, s.status);
+      }
+    }
+
+    const sharesByExpense = new Map<string, ExpenseShareRow[]>();
+    for (const row of shareRows ?? []) {
+      const list = sharesByExpense.get(row.expense_id) ?? [];
+      list.push(row);
+      sharesByExpense.set(row.expense_id, list);
+    }
+    const aidsByExpense = new Map<string, AidRow[]>();
+    for (const row of aidRows ?? []) {
+      const list = aidsByExpense.get(row.expense_id) ?? [];
+      list.push(row);
+      aidsByExpense.set(row.expense_id, list);
+    }
+
+    return expenseRows.map((row) => ({
+      grossCents: row.gross_amount_cents,
+      payerId: row.payer_member_id,
+      shares: (sharesByExpense.get(row.id) ?? []).map(toShareDTO),
+      aids: (aidsByExpense.get(row.id) ?? []).map((a) => ({
+        beneficiaryId: a.beneficiary_member_id,
+        amountCents: a.amount_cents,
+      })),
+      settlementStatus: row.settlement_id ? (statusById.get(row.settlement_id) ?? null) : null,
+    }));
   }
 }
 

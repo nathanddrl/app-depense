@@ -7,8 +7,8 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "../lib/supabase/server";
 import { getCurrentContext } from "../lib/auth/context";
-import { createExpense, listExpenses } from "@app/domain-expense";
-import type { CreateExpenseInput, Expense, ListExpensesFilters } from "@app/domain-expense";
+import { createExpense, listExpenses, getBalance } from "@app/domain-expense";
+import type { Balance, CreateExpenseInput, Expense, ListExpensesFilters } from "@app/domain-expense";
 import { SupabaseExpenseRepository } from "@app/db";
 import type { ActionResult } from "@app/shared";
 
@@ -36,4 +36,14 @@ export async function listExpensesAction(
   const ctx = await getCurrentContext();
   const repo = new SupabaseExpenseRepository(ctx.supabase);
   return listExpenses(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, filters);
+}
+
+export async function getBalanceAction(): Promise<ActionResult<Balance>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseExpenseRepository(ctx.supabase);
+  return getBalance(
+    repo,
+    { memberId: ctx.member.id, householdId: ctx.householdId },
+    { householdId: ctx.householdId },
+  );
 }

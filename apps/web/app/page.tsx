@@ -2,6 +2,7 @@ import { getCurrentContext } from "../lib/auth/context";
 import { getDefaultShares } from "../lib/household";
 import { signOut, listExpensesAction } from "./actions";
 import { ExpensesPanel } from "./expenses-panel";
+import { BalancePanel } from "./balance-panel";
 
 // Le seam résout le membre + le foyer courant (via le JWT/RLS) ; le middleware
 // redirige déjà les visiteurs non authentifiés vers /login.
@@ -18,6 +19,7 @@ export default async function Home() {
       <p>
         Connecté en tant que <strong>{ctx.member.displayName}</strong>.
       </p>
+      <BalancePanel currentMemberId={ctx.member.id} members={defaultShares} />
       <ExpensesPanel
         currentMemberId={ctx.member.id}
         initialExpenses={expensesResult.ok ? expensesResult.data : []}
