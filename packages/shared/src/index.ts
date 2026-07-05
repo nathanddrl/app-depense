@@ -11,6 +11,7 @@ export {
   validateAmountCents,
   validateRatio,
   validateIncurredOn,
+  validateDayOfMonth,
   validateLabel,
   firstError,
 } from "./validation";

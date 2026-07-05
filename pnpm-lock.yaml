@@ -138,6 +138,9 @@ importers:
       '@app/calc-engine':
         specifier: workspace:*
         version: link:../calc-engine
+      '@app/db':
+        specifier: workspace:*
+        version: link:../db
       '@app/shared':
         specifier: workspace:*
         version: link:../shared

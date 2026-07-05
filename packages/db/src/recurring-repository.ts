@@ -1,0 +1,207 @@
+// SupabaseRecurringTemplateRepository — implémentation concrète du port
+// `RecurringTemplateRepository` défini par `@app/domain-recurrence` (archi ch.1.4
+// / DA4, spec ch.5.4, T-C7.1).
+//
+// `db` reste une couche feuille (garde ESLint `no-restricted-imports` sur
+// `@app/domain-*`) : ce fichier n'importe RIEN de `@app/domain-recurrence`, pas
+// même le type du port. Les types ci-dessous ont les mêmes noms de champs que le
+// port (voir `packages/domain-recurrence/src/repository.ts`) mais sont dérivés ici
+// de la connaissance que `db` a déjà de son propre schéma — deux vues (snake_case
+// DB / camelCase domaine) du même schéma, comme `expense-repository.ts`.
+//
+// Même précédent que `updateExpenseWithShares`/`addAid` (pas de RPC atomique) :
+// insert du `recurring_template` puis insert des `recurring_aid`, en 2 appels —
+// pas de contrainte inter-tables qui exigerait une transaction, et le coût d'un
+// échec partiel (template créé sans ses aides) est acceptable car recréable via
+// `updateRecurringTemplate`/retry côté UI (à documenter côté future Server Action).
+
+import type { DbClient } from "./client";
+import type { Json, Tables, TablesUpdate } from "./index";
+
+export type Category = Tables<"recurring_template">["category"];
+export type ShareConfigInput = { memberId: string; pct: number };
+
+export type NewRecurringTemplate = {
+  householdId: string;
+  label: string;
+  category: Category;
+  amountCents: number;
+  payerId: string;
+  dayOfMonth: number;
+  shares: ShareConfigInput[];
+};
+
+export type NewRecurringAid = { beneficiaryId: string; label: string; amountCents: number };
+
+export type RecurringTemplateScalarPatch = Partial<{
+  label: string;
+  category: Category;
+  amountCents: number;
+  payerId: string;
+  dayOfMonth: number;
+  shares: ShareConfigInput[];
+}>;
+
+export type RecurringAidDTO = {
+  id: string;
+  beneficiaryId: string;
+  label: string;
+  amountCents: number;
+};
+
+export type RecurringTemplate = {
+  id: string;
+  householdId: string;
+  label: string;
+  category: Category;
+  amountCents: number;
+  payerId: string;
+  dayOfMonth: number;
+  shares: ShareConfigInput[];
+  active: boolean;
+  createdAt: string;
+  aids: RecurringAidDTO[];
+};
+
+export type StoredRecurringTemplate = RecurringTemplate;
+
+type RecurringTemplateRow = Tables<"recurring_template">;
+type RecurringAidRow = Tables<"recurring_aid">;
+
+function toShares(sharesConfig: Json): ShareConfigInput[] {
+  return (sharesConfig as unknown as ShareConfigInput[]) ?? [];
+}
+
+function toRecurringAidDTO(row: RecurringAidRow): RecurringAidDTO {
+  return {
+    id: row.id,
+    beneficiaryId: row.beneficiary_member_id,
+    label: row.label,
+    amountCents: row.amount_cents,
+  };
+}
+
+function toRecurringTemplate(
+  row: RecurringTemplateRow,
+  aidRows: RecurringAidRow[],
+): RecurringTemplate {
+  return {
+    id: row.id,
+    householdId: row.household_id,
+    label: row.label,
+    category: row.category,
+    amountCents: row.amount_cents,
+    payerId: row.payer_member_id,
+    dayOfMonth: row.day_of_month,
+    shares: toShares(row.shares_config),
+    active: row.active,
+    createdAt: row.created_at,
+    aids: aidRows.map(toRecurringAidDTO),
+  };
+}
+
+export class SupabaseRecurringTemplateRepository {
+  constructor(private readonly supabase: DbClient) {}
+
+  async getHouseholdMemberIds(householdId: string): Promise<string[]> {
+    const { data, error } = await this.supabase
+      .from("membership")
+      .select("member_id")
+      .eq("household_id", householdId);
+    if (error) throw error;
+    return (data ?? []).map((m) => m.member_id);
+  }
+
+  async createRecurringTemplateWithAids(
+    template: NewRecurringTemplate,
+    aids: NewRecurringAid[],
+  ): Promise<RecurringTemplate> {
+    const { data: templateRow, error: insertError } = await this.supabase
+      .from("recurring_template")
+      .insert({
+        household_id: template.householdId,
+        label: template.label,
+        category: template.category,
+        amount_cents: template.amountCents,
+        payer_member_id: template.payerId,
+        day_of_month: template.dayOfMonth,
+        shares_config: template.shares as unknown as Json,
+      })
+      .select()
+      .single();
+    if (insertError) throw insertError;
+
+    if (aids.length > 0) {
+      const { error: aidsError } = await this.supabase.from("recurring_aid").insert(
+        aids.map((a) => ({
+          template_id: templateRow.id,
+          beneficiary_member_id: a.beneficiaryId,
+          label: a.label,
+          amount_cents: a.amountCents,
+        })),
+      );
+      if (aidsError) throw aidsError;
+    }
+
+    return this.getRecurringTemplateOrThrow(templateRow.id);
+  }
+
+  async getRecurringTemplateById(templateId: string): Promise<StoredRecurringTemplate | null> {
+    const { data: templateRow, error } = await this.supabase
+      .from("recurring_template")
+      .select("*")
+      .eq("id", templateId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!templateRow) return null;
+
+    const { data: aidRows, error: aidsError } = await this.supabase
+      .from("recurring_aid")
+      .select("*")
+      .eq("template_id", templateId);
+    if (aidsError) throw aidsError;
+
+    return toRecurringTemplate(templateRow, aidRows ?? []);
+  }
+
+  async updateRecurringTemplate(
+    templateId: string,
+    patch: RecurringTemplateScalarPatch,
+  ): Promise<RecurringTemplate> {
+    const scalarUpdate: TablesUpdate<"recurring_template"> = {};
+    if (patch.label !== undefined) scalarUpdate.label = patch.label;
+    if (patch.category !== undefined) scalarUpdate.category = patch.category;
+    if (patch.amountCents !== undefined) scalarUpdate.amount_cents = patch.amountCents;
+    if (patch.payerId !== undefined) scalarUpdate.payer_member_id = patch.payerId;
+    if (patch.dayOfMonth !== undefined) scalarUpdate.day_of_month = patch.dayOfMonth;
+    if (patch.shares !== undefined) scalarUpdate.shares_config = patch.shares as unknown as Json;
+
+    if (Object.keys(scalarUpdate).length > 0) {
+      const { error } = await this.supabase
+        .from("recurring_template")
+        .update(scalarUpdate)
+        .eq("id", templateId);
+      if (error) throw error;
+    }
+
+    return this.getRecurringTemplateOrThrow(templateId);
+  }
+
+  async deactivateRecurringTemplate(templateId: string): Promise<{ id: string; active: false }> {
+    const { data, error } = await this.supabase
+      .from("recurring_template")
+      .update({ active: false })
+      .eq("id", templateId)
+      .select("id")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Modèle récurrent introuvable juste avant désactivation.");
+    return { id: data.id, active: false };
+  }
+
+  private async getRecurringTemplateOrThrow(templateId: string): Promise<RecurringTemplate> {
+    const template = await this.getRecurringTemplateById(templateId);
+    if (!template) throw new Error("Modèle récurrent introuvable juste après écriture.");
+    return template;
+  }
+}

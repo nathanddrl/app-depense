@@ -25,6 +25,18 @@ export type { AidDTO, Expense as AidExpense, ExpenseForAid, NewAid } from "./aid
 export { SupabaseSettlementRepository } from "./settlement-repository";
 export type { NewSettlement, Settlement } from "./settlement-repository";
 
+export { SupabaseRecurringTemplateRepository } from "./recurring-repository";
+export type {
+  Category as RecurringCategory,
+  ShareConfigInput,
+  NewRecurringTemplate,
+  NewRecurringAid,
+  RecurringTemplateScalarPatch,
+  RecurringAidDTO,
+  RecurringTemplate,
+  StoredRecurringTemplate,
+} from "./recurring-repository";
+
 export type { Database, Json } from "./database.types";
 import type { Database } from "./database.types";
 

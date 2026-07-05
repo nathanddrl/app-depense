@@ -53,6 +53,14 @@ export function validateIncurredOn(value: string): AppError | null {
   return null;
 }
 
+/** Jour du mois de génération : entier entre 1 et 31 inclus (D12/D13, ch.7). */
+export function validateDayOfMonth(day: number): AppError | null {
+  if (!Number.isInteger(day) || day < 1 || day > 31) {
+    return validationError("Le jour du mois doit être un entier entre 1 et 31.", "dayOfMonth");
+  }
+  return null;
+}
+
 /** Libellé non vide (colonne `label` NOT NULL). */
 export function validateLabel(label: string): AppError | null {
   if (label.trim().length === 0) {
