@@ -61,8 +61,9 @@ export type StoredExpense = Expense & { deletedAt: string | null };
 export type ListExpensesFilters = { month?: string; category?: Category };
 
 export type SettlementStatus = Enums<"settlement_status">;
-export type BalanceAid = { beneficiaryId: string; amountCents: number };
+export type BalanceAid = { beneficiaryId: string; amountCents: number; label: string };
 export type BalanceExpenseRow = {
+  label: string;
   grossCents: number;
   payerId: string;
   shares: { memberId: string; cents: number; pctSnapshot: number }[];
@@ -298,12 +299,14 @@ export class SupabaseExpenseRepository {
     }
 
     return expenseRows.map((row) => ({
+      label: row.label,
       grossCents: row.gross_amount_cents,
       payerId: row.payer_member_id,
       shares: (sharesByExpense.get(row.id) ?? []).map(toShareDTO),
       aids: (aidsByExpense.get(row.id) ?? []).map((a) => ({
         beneficiaryId: a.beneficiary_member_id,
         amountCents: a.amount_cents,
+        label: a.label,
       })),
       settlementStatus: row.settlement_id ? (statusById.get(row.settlement_id) ?? null) : null,
     }));

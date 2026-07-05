@@ -7,6 +7,7 @@ export { updateExpense } from "./update-expense";
 export { deleteExpense } from "./delete-expense";
 export { listExpenses } from "./list-expenses";
 export { getBalance } from "./get-balance";
+export { getBalanceDetail } from "./get-balance-detail";
 
 export type {
   ExpenseRepository,
@@ -28,4 +29,6 @@ export type {
   BalanceAid,
   BalanceExpenseRow,
   Balance,
+  BalanceDetailAidLine,
+  BalanceDetailLine,
 } from "./types";

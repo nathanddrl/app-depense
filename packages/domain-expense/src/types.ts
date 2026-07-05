@@ -60,15 +60,17 @@ export type Expense = {
 /** Statut d'un settlement (D-double approbation, ch.5.3). */
 export type SettlementStatus = "pending" | "confirmed" | "cancelled";
 
-/** Une aide brute rattachée à une dépense (avant plafond 4.4). */
-export type BalanceAid = { beneficiaryId: string; amountCents: number };
+/** Une aide brute rattachée à une dépense (avant plafond 4.4), avec son libellé. */
+export type BalanceAid = { beneficiaryId: string; amountCents: number; label: string };
 
 /**
  * Vue d'une dépense active pour le calcul du solde (spec 4.2). Le statut du
  * settlement rattaché (`null` si aucun) permet au domaine d'appliquer le filtre
- * « seul un settlement confirmé exclut la dépense ».
+ * « seul un settlement confirmé exclut la dépense ». `label` sert au détail de
+ * transparence dépliable (8.3, T-C4.4).
  */
 export type BalanceExpenseRow = {
+  label: string;
   grossCents: number;
   payerId: string;
   shares: { memberId: string; cents: number; pctSnapshot: number }[];
@@ -82,4 +84,26 @@ export type Balance = {
   to: string;
   amountCents: number;
   pendingSettlement?: boolean;
+};
+
+/** Une ligne d'ajustement « aide » du détail dépliable (spec 8.3, 2e temps). */
+export type BalanceDetailAidLine = {
+  label: string;
+  beneficiaryId: string;
+  aidCents: number;
+  sharedCents: number;
+};
+
+/**
+ * Décomposition d'une dépense contributive au solde, en données brutes (aucune
+ * phrase construite ici — le langage humain vit dans la couche web, 8.1/8.3).
+ */
+export type BalanceDetailLine = {
+  label: string;
+  grossCents: number;
+  payerId: string;
+  otherId: string;
+  baseOwedCents: number;
+  aidLines: BalanceDetailAidLine[];
+  totalOwedCents: number;
 };

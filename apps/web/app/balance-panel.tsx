@@ -1,10 +1,11 @@
-// Carte de solde (spec 8.1, D-UX2) : solde nu en une phrase neutre. Le détail
-// dépliable par dépense est hors périmètre ici (T-C4.4). Vocabulaire strict :
-// jamais "solde", "dette", "créance", "retard" — juste qui doit quoi à qui.
+// Carte de solde (spec 8.1, D-UX2) : solde nu en une phrase neutre + détail
+// dépliable à la demande (8.3, T-C4.4). Vocabulaire strict : jamais "solde",
+// "dette", "créance", "retard" — juste qui doit quoi à qui.
 
 import { getBalanceAction } from "./actions";
 import { formatAmountEUR } from "@app/shared";
 import type { MemberShare } from "../lib/household";
+import { BalanceDetailToggle } from "./balance-detail-toggle";
 
 type Props = {
   currentMemberId: string;
@@ -30,5 +31,16 @@ export async function BalancePanel({ currentMemberId, members }: Props) {
       ? `${displayNameOf(members, from)} te doit ${formatAmountEUR(amountCents)}`
       : `Tu dois ${formatAmountEUR(amountCents)} à ${displayNameOf(members, to)}`;
 
-  return <p>{message}</p>;
+  const otherMemberId = to === currentMemberId ? from : to;
+
+  return (
+    <div>
+      <p>{message}</p>
+      <BalanceDetailToggle
+        currentMemberId={currentMemberId}
+        otherDisplayName={displayNameOf(members, otherMemberId)}
+        totalMessage={message}
+      />
+    </div>
+  );
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getBalance } from "./index";
+import { getBalanceDetail } from "./index";
 import type {
   ExpenseRepository,
   ExpenseScalarPatch,
@@ -14,8 +14,6 @@ import type {
   ListExpensesFilters,
 } from "./types";
 
-// ── FakeExpenseRepository : ne porte que ce dont getBalance a besoin (DA11,
-// tests légers). Les autres méthodes du port sont hors périmètre ici. ──────────
 class FakeExpenseRepository implements ExpenseRepository {
   constructor(
     private readonly memberIds: string[],
@@ -25,11 +23,9 @@ class FakeExpenseRepository implements ExpenseRepository {
   async getHouseholdMemberIds(): Promise<string[]> {
     return this.memberIds;
   }
-
   async listExpensesForBalance(): Promise<BalanceExpenseRow[]> {
     return this.rows;
   }
-
   async insertExpenseWithShares(_expense: NewExpense, _shares: ExpenseShareDTO[]): Promise<Expense> {
     throw new Error("non utilisé par ces tests");
   }
@@ -53,16 +49,13 @@ class FakeExpenseRepository implements ExpenseRepository {
 
 const HOUSEHOLD = "H";
 const ctx: ExpenseContext = { memberId: "A", householdId: HOUSEHOLD };
-
 const ratio5050Shares = (grossCents: number) => [
   { memberId: "A", cents: grossCents / 2, pctSnapshot: 50 },
   { memberId: "B", cents: grossCents / 2, pctSnapshot: 50 },
 ];
 
-describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
-  it("loyer 800€ payé A 50/50, APL 200€ perçue A → B doit 300€ à A", async () => {
-    // Parts figées reflétant le net post-aide (60000), comme le ferait le domaine
-    // au moment de la persistance : 30000/30000.
+describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)", () => {
+  it("loyer 800€ payé A 50/50, APL 200€ perçue A → 1 ligne, 1er temps 400, 2e temps 100, total 300", async () => {
     const repo = new FakeExpenseRepository(["A", "B"], [
       {
         label: "Loyer",
@@ -74,31 +67,23 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
       },
     ]);
 
-    const res = await getBalance(repo, ctx, { householdId: HOUSEHOLD });
+    const res = await getBalanceDetail(repo, ctx, { householdId: HOUSEHOLD });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.data).toEqual({ from: "B", to: "A", amountCents: 30000 });
-  });
-
-  it("même cas, APL perçue B → B doit 500€ à A", async () => {
-    const repo = new FakeExpenseRepository(["A", "B"], [
+    expect(res.data).toEqual([
       {
         label: "Loyer",
         grossCents: 80000,
         payerId: "A",
-        shares: ratio5050Shares(60000),
-        aids: [{ beneficiaryId: "B", amountCents: 20000, label: "APL" }],
-        settlementStatus: null,
+        otherId: "B",
+        baseOwedCents: 40000,
+        aidLines: [{ label: "APL", beneficiaryId: "A", aidCents: 20000, sharedCents: 10000 }],
+        totalOwedCents: 30000,
       },
     ]);
-
-    const res = await getBalance(repo, ctx, { householdId: HOUSEHOLD });
-    expect(res.ok).toBe(true);
-    if (!res.ok) return;
-    expect(res.data).toEqual({ from: "B", to: "A", amountCents: 50000 });
   });
 
-  it("plusieurs dépenses → Σ solde(A) + solde(B) = 0 (invariant, câblage)", async () => {
+  it("plusieurs dépenses → une ligne par dépense contributive", async () => {
     const repo = new FakeExpenseRepository(["A", "B"], [
       {
         label: "Loyer",
@@ -118,32 +103,14 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
       },
     ]);
 
-    const res = await getBalance(repo, ctx, { householdId: HOUSEHOLD });
+    const res = await getBalanceDetail(repo, ctx, { householdId: HOUSEHOLD });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    // 40000 (A créditeur du loyer) − 3000 (B créditeur des courses) = 37000
-    expect(res.data).toEqual({ from: "B", to: "A", amountCents: 37000 });
+    expect(res.data).toHaveLength(2);
+    expect(res.data.map((l) => l.label)).toEqual(["Loyer", "Courses"]);
   });
 
-  it("dépense rattachée à un settlement pending → compte encore, pendingSettlement: true", async () => {
-    const repo = new FakeExpenseRepository(["A", "B"], [
-      {
-        label: "Loyer",
-        grossCents: 80000,
-        payerId: "A",
-        shares: ratio5050Shares(80000),
-        aids: [],
-        settlementStatus: "pending",
-      },
-    ]);
-
-    const res = await getBalance(repo, ctx, { householdId: HOUSEHOLD });
-    expect(res.ok).toBe(true);
-    if (!res.ok) return;
-    expect(res.data).toEqual({ from: "B", to: "A", amountCents: 40000, pendingSettlement: true });
-  });
-
-  it("dépense rattachée à un settlement confirmed → exclue du solde (0)", async () => {
+  it("settlement confirmé → dépense exclue du détail", async () => {
     const repo = new FakeExpenseRepository(["A", "B"], [
       {
         label: "Loyer",
@@ -155,15 +122,33 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
       },
     ]);
 
-    const res = await getBalance(repo, ctx, { householdId: HOUSEHOLD });
+    const res = await getBalanceDetail(repo, ctx, { householdId: HOUSEHOLD });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.data).toEqual({ from: "A", to: "B", amountCents: 0 });
+    expect(res.data).toEqual([]);
+  });
+
+  it("settlement pending → dépense encore présente dans le détail", async () => {
+    const repo = new FakeExpenseRepository(["A", "B"], [
+      {
+        label: "Loyer",
+        grossCents: 80000,
+        payerId: "A",
+        shares: ratio5050Shares(80000),
+        aids: [],
+        settlementStatus: "pending",
+      },
+    ]);
+
+    const res = await getBalanceDetail(repo, ctx, { householdId: HOUSEHOLD });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data).toHaveLength(1);
   });
 
   it("foyer non autorisé (mismatch seam) → FORBIDDEN", async () => {
     const repo = new FakeExpenseRepository(["A", "B"], []);
-    const res = await getBalance(repo, ctx, { householdId: "AUTRE" });
+    const res = await getBalanceDetail(repo, ctx, { householdId: "AUTRE" });
     expect(res.ok).toBe(false);
     if (res.ok) return;
     expect(res.error.code).toBe("FORBIDDEN");

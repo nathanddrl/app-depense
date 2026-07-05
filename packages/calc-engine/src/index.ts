@@ -10,3 +10,6 @@ export { computeExpense } from "./expense";
 export type { ExpenseInput, ComputedExpense } from "./expense";
 export { contribution, computeBalance, reduceBalanceTwoMembers } from "./balance";
 export type { BalanceExpense, TwoMemberBalance } from "./balance";
+
+export { computeExpenseBreakdown } from "./balance-detail";
+export type { LabelledAidInput, AidBreakdownLine, ExpenseBreakdown } from "./balance-detail";
