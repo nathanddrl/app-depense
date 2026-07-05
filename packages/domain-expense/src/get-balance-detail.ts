@@ -26,28 +26,30 @@ export async function getBalanceDetail(
 
   const rows = await repo.listExpensesForBalance(householdId);
 
-  const lines: BalanceDetailLine[] = rows.filter((r) => countsInBalance(r.settlementStatus)).map((row) => {
-    const aids: LabelledAidInput[] = row.aids.map((a) => ({
-      beneficiaryId: a.beneficiaryId,
-      amountCents: a.amountCents,
-      label: a.label,
-    }));
-    const breakdown = computeExpenseBreakdown({
-      grossCents: row.grossCents,
-      payerId: row.payerId,
-      ratio: row.shares.map((s) => ({ memberId: s.memberId, pct: s.pctSnapshot })),
-      aids,
+  const lines: BalanceDetailLine[] = rows
+    .filter((r) => countsInBalance(r.settlementStatus))
+    .map((row) => {
+      const aids: LabelledAidInput[] = row.aids.map((a) => ({
+        beneficiaryId: a.beneficiaryId,
+        amountCents: a.amountCents,
+        label: a.label,
+      }));
+      const breakdown = computeExpenseBreakdown({
+        grossCents: row.grossCents,
+        payerId: row.payerId,
+        ratio: row.shares.map((s) => ({ memberId: s.memberId, pct: s.pctSnapshot })),
+        aids,
+      });
+      return {
+        label: row.label,
+        grossCents: row.grossCents,
+        payerId: breakdown.payerId,
+        otherId: breakdown.otherId,
+        baseOwedCents: breakdown.baseOwedCents,
+        aidLines: breakdown.aidLines,
+        totalOwedCents: breakdown.totalOwedCents,
+      };
     });
-    return {
-      label: row.label,
-      grossCents: row.grossCents,
-      payerId: breakdown.payerId,
-      otherId: breakdown.otherId,
-      baseOwedCents: breakdown.baseOwedCents,
-      aidLines: breakdown.aidLines,
-      totalOwedCents: breakdown.totalOwedCents,
-    };
-  });
 
   return ok(lines);
 }

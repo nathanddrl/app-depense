@@ -42,21 +42,22 @@ packages/
 ## Résolution cross-package — source-exports (archi ch.1.5 / DA5)
 
 Chaque package expose sa source directement : `"exports": { ".": "./src/index.ts" }`
-+ `"types": "./src/index.ts"`. **Pas de build de package, pas de `.d.ts`, pas de TS
-project references.** `moduleResolution: "bundler"` lit `exports` → jump-to-definition
-vers la vraie source. Next les transpile via `transpilePackages` (7 packages runtime,
-`config` exclu) ; Vitest via esbuild. Ne jamais ajouter de section `paths` dans un
-tsconfig — la seule source de vérité est le champ `exports`.
+
+- `"types": "./src/index.ts"`. **Pas de build de package, pas de `.d.ts`, pas de TS
+  project references.** `moduleResolution: "bundler"` lit `exports` → jump-to-definition
+  vers la vraie source. Next les transpile via `transpilePackages` (7 packages runtime,
+  `config` exclu) ; Vitest via esbuild. Ne jamais ajouter de section `paths` dans un
+  tsconfig — la seule source de vérité est le champ `exports`.
 
 ## Commandes
 
-| Commande | Effet |
-| :-- | :-- |
-| `pnpm build` | `turbo run build` → `next build` sur `apps/web` |
-| `pnpm test` | `turbo run test` → Vitest par package (`passWithNoTests`) |
-| `pnpm test --filter=@app/calc-engine` | Scope un package (via turbo) |
-| `pnpm lint` / `pnpm typecheck` | ESLint / `tsc --noEmit` par package |
-| `pnpm format` / `pnpm format:check` | Prettier |
+| Commande                              | Effet                                                     |
+| :------------------------------------ | :-------------------------------------------------------- |
+| `pnpm build`                          | `turbo run build` → `next build` sur `apps/web`           |
+| `pnpm test`                           | `turbo run test` → Vitest par package (`passWithNoTests`) |
+| `pnpm test --filter=@app/calc-engine` | Scope un package (via turbo)                              |
+| `pnpm lint` / `pnpm typecheck`        | ESLint / `tsc --noEmit` par package                       |
+| `pnpm format` / `pnpm format:check`   | Prettier                                                  |
 
 ## Contraintes de stack
 

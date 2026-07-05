@@ -85,7 +85,12 @@ export function computeExpenseBreakdown(input: {
       effective.beneficiaryId === payerId
         ? otherShareCents
         : effective.effectiveCents - otherShareCents;
-    return { label, beneficiaryId: effective.beneficiaryId, aidCents: effective.effectiveCents, sharedCents };
+    return {
+      label,
+      beneficiaryId: effective.beneficiaryId,
+      aidCents: effective.effectiveCents,
+      sharedCents,
+    };
   });
 
   const totalOwedCents = aidLines.reduce(

@@ -32,7 +32,11 @@ function pctOf(part: number, total: number): number {
 }
 
 /** 1er temps (8.3) : répartition du montant brut, comme s'il n'y avait aucune aide. */
-function baseLine(line: BalanceDetailLine, currentMemberId: string, otherDisplayName: string): string {
+function baseLine(
+  line: BalanceDetailLine,
+  currentMemberId: string,
+  otherDisplayName: string,
+): string {
   const isCurrentPayer = line.payerId === currentMemberId;
   const payerLabel = isCurrentPayer ? "toi" : otherDisplayName;
   const otherPct = pctOf(line.baseOwedCents, line.grossCents);

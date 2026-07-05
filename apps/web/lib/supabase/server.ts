@@ -25,9 +25,7 @@ export async function createSupabaseServerClient() {
       },
       setAll(cookiesToSet) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          );
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
         } catch {
           // Appelé depuis un Server Component (cookies en lecture seule) :
           // le middleware `updateSession` se charge du rafraîchissement.
