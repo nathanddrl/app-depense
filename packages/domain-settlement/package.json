@@ -13,7 +13,6 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@app/calc-engine": "workspace:*",
     "@app/shared": "workspace:*"
   }
 }

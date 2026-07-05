@@ -144,9 +144,6 @@ importers:
 
   packages/domain-settlement:
     dependencies:
-      '@app/calc-engine':
-        specifier: workspace:*
-        version: link:../calc-engine
       '@app/shared':
         specifier: workspace:*
         version: link:../shared
