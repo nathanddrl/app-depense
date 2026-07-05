@@ -26,7 +26,10 @@ class FakeExpenseRepository implements ExpenseRepository {
   async listExpensesForBalance(): Promise<BalanceExpenseRow[]> {
     return this.rows;
   }
-  async insertExpenseWithShares(_expense: NewExpense, _shares: ExpenseShareDTO[]): Promise<Expense> {
+  async insertExpenseWithShares(
+    _expense: NewExpense,
+    _shares: ExpenseShareDTO[],
+  ): Promise<Expense> {
     throw new Error("non utilisé par ces tests");
   }
   async getExpenseById(_expenseId: string): Promise<StoredExpense | null> {
@@ -56,16 +59,19 @@ const ratio5050Shares = (grossCents: number) => [
 
 describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)", () => {
   it("loyer 800€ payé A 50/50, APL 200€ perçue A → 1 ligne, 1er temps 400, 2e temps 100, total 300", async () => {
-    const repo = new FakeExpenseRepository(["A", "B"], [
-      {
-        label: "Loyer",
-        grossCents: 80000,
-        payerId: "A",
-        shares: ratio5050Shares(60000),
-        aids: [{ beneficiaryId: "A", amountCents: 20000, label: "APL" }],
-        settlementStatus: null,
-      },
-    ]);
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [
+        {
+          label: "Loyer",
+          grossCents: 80000,
+          payerId: "A",
+          shares: ratio5050Shares(60000),
+          aids: [{ beneficiaryId: "A", amountCents: 20000, label: "APL" }],
+          settlementStatus: null,
+        },
+      ],
+    );
 
     const res = await getBalanceDetail(repo, ctx, { householdId: HOUSEHOLD });
     expect(res.ok).toBe(true);
@@ -84,24 +90,27 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
   });
 
   it("plusieurs dépenses → une ligne par dépense contributive", async () => {
-    const repo = new FakeExpenseRepository(["A", "B"], [
-      {
-        label: "Loyer",
-        grossCents: 80000,
-        payerId: "A",
-        shares: ratio5050Shares(80000),
-        aids: [],
-        settlementStatus: null,
-      },
-      {
-        label: "Courses",
-        grossCents: 6000,
-        payerId: "B",
-        shares: ratio5050Shares(6000),
-        aids: [],
-        settlementStatus: null,
-      },
-    ]);
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [
+        {
+          label: "Loyer",
+          grossCents: 80000,
+          payerId: "A",
+          shares: ratio5050Shares(80000),
+          aids: [],
+          settlementStatus: null,
+        },
+        {
+          label: "Courses",
+          grossCents: 6000,
+          payerId: "B",
+          shares: ratio5050Shares(6000),
+          aids: [],
+          settlementStatus: null,
+        },
+      ],
+    );
 
     const res = await getBalanceDetail(repo, ctx, { householdId: HOUSEHOLD });
     expect(res.ok).toBe(true);
@@ -111,16 +120,19 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
   });
 
   it("settlement confirmé → dépense exclue du détail", async () => {
-    const repo = new FakeExpenseRepository(["A", "B"], [
-      {
-        label: "Loyer",
-        grossCents: 80000,
-        payerId: "A",
-        shares: ratio5050Shares(80000),
-        aids: [],
-        settlementStatus: "confirmed",
-      },
-    ]);
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [
+        {
+          label: "Loyer",
+          grossCents: 80000,
+          payerId: "A",
+          shares: ratio5050Shares(80000),
+          aids: [],
+          settlementStatus: "confirmed",
+        },
+      ],
+    );
 
     const res = await getBalanceDetail(repo, ctx, { householdId: HOUSEHOLD });
     expect(res.ok).toBe(true);
@@ -129,16 +141,19 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
   });
 
   it("settlement pending → dépense encore présente dans le détail", async () => {
-    const repo = new FakeExpenseRepository(["A", "B"], [
-      {
-        label: "Loyer",
-        grossCents: 80000,
-        payerId: "A",
-        shares: ratio5050Shares(80000),
-        aids: [],
-        settlementStatus: "pending",
-      },
-    ]);
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [
+        {
+          label: "Loyer",
+          grossCents: 80000,
+          payerId: "A",
+          shares: ratio5050Shares(80000),
+          aids: [],
+          settlementStatus: "pending",
+        },
+      ],
+    );
 
     const res = await getBalanceDetail(repo, ctx, { householdId: HOUSEHOLD });
     expect(res.ok).toBe(true);
@@ -152,5 +167,39 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
     expect(res.ok).toBe(false);
     if (res.ok) return;
     expect(res.error.code).toBe("FORBIDDEN");
+  });
+
+  it("aide 900€ sur charge 800€ (T-C5.2 / 4.4) → aide eff plafonnée à 80000, total dû 0", async () => {
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [
+        {
+          label: "Loyer",
+          grossCents: 80000,
+          payerId: "A",
+          shares: [
+            { memberId: "A", cents: 0, pctSnapshot: 50 },
+            { memberId: "B", cents: 0, pctSnapshot: 50 },
+          ],
+          aids: [{ beneficiaryId: "A", amountCents: 90000, label: "APL" }],
+          settlementStatus: null,
+        },
+      ],
+    );
+
+    const res = await getBalanceDetail(repo, ctx, { householdId: HOUSEHOLD });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data).toEqual([
+      {
+        label: "Loyer",
+        grossCents: 80000,
+        payerId: "A",
+        otherId: "B",
+        baseOwedCents: 40000,
+        aidLines: [{ label: "APL", beneficiaryId: "A", aidCents: 80000, sharedCents: 40000 }],
+        totalOwedCents: 0,
+      },
+    ]);
   });
 });
