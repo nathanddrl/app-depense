@@ -15,6 +15,7 @@ import { addAidAction, removeAidAction } from "./actions";
 import { formatAmountEUR } from "@app/shared";
 import type { AidDTO } from "@app/domain-aid";
 import type { MemberShare } from "../lib/household";
+import styles from "./aid-section.module.css";
 
 type ShareDTO = { memberId: string; cents: number; pctSnapshot: number };
 
@@ -111,49 +112,60 @@ export function AidSection({
 
   return (
     <details>
-      <summary>Aides</summary>
-      {aids.length > 0 ? (
-        <ul>
-          {aids.map((a) => (
-            <li key={a.id}>
-              {a.label} — {formatAmountEUR(a.amountCents)}{" "}
-              <button type="button" onClick={() => handleRemove(a.id)} disabled={isPending}>
-                Retirer
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      {/* Toujours replié par défaut (natif <details>) : une dépense courante
+          (resto) ne montre jamais les aides sans action explicite (T-C5.4). */}
+      <summary className={styles.trigger}>Options</summary>
+      <div className={styles.content}>
+        {aids.length > 0 ? (
+          <ul className={styles.list}>
+            {aids.map((a) => (
+              <li key={a.id} className={styles.item}>
+                <span>
+                  {a.label} — {formatAmountEUR(a.amountCents)}
+                </span>
+                <button
+                  type="button"
+                  className={styles.button}
+                  onClick={() => handleRemove(a.id)}
+                  disabled={isPending}
+                >
+                  Retirer
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
-      <form action={handleAdd}>
-        <label>
-          Libellé
-          <input type="text" name="label" required placeholder="APL" />
-        </label>
-        <label>
-          Montant (€)
-          <input type="text" name="amount" inputMode="decimal" required placeholder="200" />
-        </label>
-        <label>
-          Qui la touche ?
-          <select name="beneficiaryId" defaultValue={currentMemberId}>
-            <option value={currentMemberId}>Toi</option>
-            {members
-              .filter((m) => m.memberId !== currentMemberId)
-              .map((m) => (
-                <option key={m.memberId} value={m.memberId}>
-                  {m.displayName}
-                </option>
-              ))}
-          </select>
-        </label>
-        {error ? <p role="alert">{error}</p> : null}
-        <button type="submit" disabled={isPending}>
-          {isPending ? "Ajout…" : "Ajouter l'aide"}
-        </button>
-      </form>
+        <form action={handleAdd} className={styles.form}>
+          <label>
+            Libellé
+            <input type="text" name="label" required placeholder="APL" />
+          </label>
+          <label>
+            Montant (€)
+            <input type="text" name="amount" inputMode="decimal" required placeholder="200" />
+          </label>
+          <label>
+            Qui la touche ?
+            <select name="beneficiaryId" defaultValue={currentMemberId}>
+              <option value={currentMemberId}>Toi</option>
+              {members
+                .filter((m) => m.memberId !== currentMemberId)
+                .map((m) => (
+                  <option key={m.memberId} value={m.memberId}>
+                    {m.displayName}
+                  </option>
+                ))}
+            </select>
+          </label>
+          {error ? <p role="alert">{error}</p> : null}
+          <button type="submit" className={styles.button} disabled={isPending}>
+            {isPending ? "Ajout…" : "Ajouter l'aide"}
+          </button>
+        </form>
 
-      {message ? <p>{message}</p> : null}
+        {message ? <p className={styles.message}>{message}</p> : null}
+      </div>
     </details>
   );
 }
