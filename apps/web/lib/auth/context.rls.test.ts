@@ -92,18 +92,20 @@ afterAll(async () => {
 });
 
 describe("getCurrentContext — résolution du member + foyer (les 2 comptes)", () => {
-  it("Nathan → member 'Nathan' + son foyer", async () => {
+  it("Nathan → member 'Nathan' + son foyer + role admin", async () => {
     const ctx = await resolveContext(nathan);
     expect(ctx).not.toBeNull();
     expect(ctx?.member.displayName).toBe(NATHAN.name);
     expect(ctx?.householdId).toBe(SEED_HOUSEHOLD);
+    expect(ctx?.role).toBe("admin");
   });
 
-  it("Oksana → member 'Oksana' + le même foyer", async () => {
+  it("Oksana → member 'Oksana' + le même foyer + role member", async () => {
     const ctx = await resolveContext(oksana);
     expect(ctx).not.toBeNull();
     expect(ctx?.member.displayName).toBe(OKSANA.name);
     expect(ctx?.householdId).toBe(SEED_HOUSEHOLD);
+    expect(ctx?.role).toBe("member");
   });
 });
 

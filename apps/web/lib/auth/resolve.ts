@@ -19,6 +19,7 @@ export type Context = {
   supabase: DbClient;
   member: SessionMember;
   householdId: string;
+  role: string;
 };
 
 /** La partie résolue de `Context` (tout sauf le client, déjà en main). */
@@ -40,15 +41,17 @@ export async function resolveContext(supabase: DbClient): Promise<ResolvedContex
 
   const { data } = await supabase
     .from("member")
-    .select("id, display_name, membership(household_id)")
+    .select("id, display_name, membership(household_id, role)")
     .eq("auth_user_id", user.id)
     .single();
 
   const householdId = data?.membership[0]?.household_id;
-  if (!data || !householdId) return null;
+  const role = data?.membership[0]?.role;
+  if (!data || !householdId || !role) return null;
 
   return {
     member: { id: data.id, displayName: data.display_name },
     householdId,
+    role,
   };
 }
