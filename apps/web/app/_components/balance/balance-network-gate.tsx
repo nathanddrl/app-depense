@@ -6,7 +6,7 @@
 // bandeau REMPLACE le montant (jamais une valeur silencieusement obsolète à côté).
 
 import { useSyncExternalStore, type ReactNode } from "react";
-import styles from "./balance-network-gate.module.css";
+import { Notice } from "../design-system/feedback";
 
 function subscribe(callback: () => void): () => void {
   window.addEventListener("online", callback);
@@ -30,7 +30,7 @@ export function BalanceNetworkGate({ children }: { children: ReactNode }) {
   const online = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   if (!online) {
-    return <p className={styles.offline}>Hors ligne — solde non à jour</p>;
+    return <Notice tone="neutral">Hors ligne — solde non à jour</Notice>;
   }
 
   return <>{children}</>;

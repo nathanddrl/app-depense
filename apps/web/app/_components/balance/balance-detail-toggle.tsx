@@ -5,11 +5,13 @@
 // par défaut. Décomposition « en deux temps » par dépense contributive, en langage
 // humain uniquement : jamais "charge nette", "ratio", "contribution", ni équation.
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { getBalanceDetailAction } from "../../actions";
 import { formatAmountEUR } from "@app/shared";
 import type { BalanceDetailLine } from "@app/domain-expense";
-import styles from "./balance-detail-toggle.module.css";
+import { Button } from "../design-system/core";
+import { AmountDisplay } from "../design-system/balance";
+import { Notice } from "../design-system/feedback";
 
 type Props = {
   currentMemberId: string;
@@ -31,45 +33,58 @@ function pctOf(part: number, total: number): number {
   return total === 0 ? 0 : Math.round((part / total) * 100);
 }
 
-/** 1er temps (8.3) : répartition du montant brut, comme s'il n'y avait aucune aide. */
+/** 1er temps (8.3) : répartition du montant brut, comme s'il n'y avait aucune aide.
+ * Montants en `AmountDisplay` (T-CD2.1) — le reste de la phrase est inchangé mot pour mot. */
 function baseLine(
   line: BalanceDetailLine,
   currentMemberId: string,
   otherDisplayName: string,
-): string {
+): ReactNode {
   const isCurrentPayer = line.payerId === currentMemberId;
   const payerLabel = isCurrentPayer ? "toi" : otherDisplayName;
   const otherPct = pctOf(line.baseOwedCents, line.grossCents);
-  const result = isCurrentPayer
-    ? `${otherDisplayName} te doit ${formatAmountEUR(line.baseOwedCents)}`
-    : `Tu dois ${formatAmountEUR(line.baseOwedCents)} à ${payerLabel}`;
-  return `${line.label} ${formatAmountEUR(line.grossCents)}, payé par ${payerLabel}, ${splitWord(otherPct)} → ${result}.`;
+  const resultPrefix = isCurrentPayer ? `${otherDisplayName} te doit ` : "Tu dois ";
+  const resultSuffix = isCurrentPayer ? "" : ` à ${payerLabel}`;
+  return (
+    <>
+      {line.label} <AmountDisplay value={formatAmountEUR(line.grossCents)} size="sm" />
+      {`, payé par ${payerLabel}, ${splitWord(otherPct)} → ${resultPrefix}`}
+      <AmountDisplay value={formatAmountEUR(line.baseOwedCents)} size="sm" />
+      {resultSuffix}.
+    </>
+  );
 }
 
-/** 2e temps (8.3) : chaque aide réajuste le montant du 1er temps. */
+/** 2e temps (8.3) : chaque aide réajuste le montant du 1er temps. Montants en
+ * `AmountDisplay` (T-CD2.1) — le reste de la phrase est inchangé mot pour mot. */
 function aidLine(
   line: BalanceDetailLine,
   aid: BalanceDetailLine["aidLines"][number],
   currentMemberId: string,
   otherDisplayName: string,
-): string {
+): ReactNode {
   const isCurrentBeneficiary = aid.beneficiaryId === currentMemberId;
   const isPayerBeneficiary = aid.beneficiaryId === line.payerId;
   const toucheVerb = isCurrentBeneficiary ? "tu touches" : `${otherDisplayName} touche`;
   const frac = fractionWord(pctOf(aid.sharedCents, aid.aidCents));
-  const amount = formatAmountEUR(aid.sharedCents);
 
   // Bénéficiaire = payeur → il rend la part de l'autre (le solde diminue).
   // Bénéficiaire = non-payeur → il doit en plus sa part du bénéfice (le solde augmente).
-  const result = isPayerBeneficiary
+  const resultPrefix = isPayerBeneficiary
     ? isCurrentBeneficiary
-      ? `tu lui en rends ${frac}, ${amount}`
-      : `${otherDisplayName} t'en rend ${frac}, ${amount}`
+      ? `tu lui en rends ${frac}, `
+      : `${otherDisplayName} t'en rend ${frac}, `
     : isCurrentBeneficiary
-      ? `tu en dois ${frac} de plus, ${amount}`
-      : `${otherDisplayName} t'en doit ${frac} de plus, ${amount}`;
+      ? `tu en dois ${frac} de plus, `
+      : `${otherDisplayName} t'en doit ${frac} de plus, `;
 
-  return `${aid.label} ${formatAmountEUR(aid.aidCents)} que ${toucheVerb} → ${result}.`;
+  return (
+    <>
+      {aid.label} <AmountDisplay value={formatAmountEUR(aid.aidCents)} size="sm" />
+      {` que ${toucheVerb} → ${resultPrefix}`}
+      <AmountDisplay value={formatAmountEUR(aid.sharedCents)} size="sm" />.
+    </>
+  );
 }
 
 export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMessage }: Props) {
@@ -89,27 +104,29 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
 
   return (
     <div>
-      <button type="button" className={styles.trigger} onClick={handleClick}>
+      <Button variant="ghost" onClick={handleClick}>
         Pourquoi ?
-      </button>
+      </Button>
       {open && (
-        <div className={styles.detail}>
+        <div style={{ marginTop: "var(--space-2)" }}>
           {isPending || lines === null ? (
-            <p className={styles.line}>Calcul en cours…</p>
+            <Notice tone="neutral">Calcul en cours…</Notice>
           ) : (
             <>
               {lines.map((line, i) => (
-                <p className={styles.line} key={i}>
-                  {baseLine(line, currentMemberId, otherDisplayName)}
-                  {line.aidLines.map((aid, j) => (
-                    <span key={j}>
-                      <br />
-                      {aidLine(line, aid, currentMemberId, otherDisplayName)}
-                    </span>
-                  ))}
-                </p>
+                <div style={{ marginBottom: "var(--space-1)" }} key={i}>
+                  <Notice tone="neutral">
+                    {baseLine(line, currentMemberId, otherDisplayName)}
+                    {line.aidLines.map((aid, j) => (
+                      <span key={j}>
+                        <br />
+                        {aidLine(line, aid, currentMemberId, otherDisplayName)}
+                      </span>
+                    ))}
+                  </Notice>
+                </div>
               ))}
-              <p className={styles.total}>Total : {totalMessage}</p>
+              <Notice tone="neutral">Total : {totalMessage}</Notice>
             </>
           )}
         </div>

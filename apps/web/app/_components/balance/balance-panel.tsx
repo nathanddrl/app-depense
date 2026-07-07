@@ -10,7 +10,9 @@ import type { MemberShare } from "../../../lib/household";
 import { BalanceDetailToggle } from "./balance-detail-toggle";
 import { BalanceNetworkGate } from "./balance-network-gate";
 import { SettlementControls } from "./settlement-controls";
-import styles from "./balance-panel.module.css";
+import { waterLineMagnitude } from "./water-line-magnitude";
+import { Card } from "../design-system/core";
+import { BalanceStatement, WaterLine } from "../design-system/balance";
 
 type Props = {
   currentMemberId: string;
@@ -53,10 +55,13 @@ export async function BalancePanel({ currentMemberId, members }: Props) {
   if (amountCents === 0) {
     return (
       <BalanceNetworkGate>
-        <div className={styles.card}>
-          <p className={styles.upToDate}>Vous êtes à jour</p>
+        <Card>
+          <BalanceStatement>Vous êtes à jour</BalanceStatement>
+          <div style={{ marginTop: "var(--space-2)" }}>
+            <WaterLine magnitude={0} />
+          </div>
           {settlementControls}
-        </div>
+        </Card>
       </BalanceNetworkGate>
     );
   }
@@ -71,19 +76,18 @@ export async function BalancePanel({ currentMemberId, members }: Props) {
 
   return (
     <BalanceNetworkGate>
-      <div className={styles.card}>
-        <p className={styles.line}>
-          {isCreditor ? `${otherName} te doit` : "Tu dois"}{" "}
-          <span className={styles.amount}>{amount}</span>
-          {isCreditor ? "" : ` à ${otherName}`}
-        </p>
+      <Card>
+        <BalanceStatement>{message}</BalanceStatement>
+        <div style={{ marginTop: "var(--space-2)" }}>
+          <WaterLine magnitude={waterLineMagnitude(amountCents, isCreditor)} />
+        </div>
         <BalanceDetailToggle
           currentMemberId={currentMemberId}
           otherDisplayName={otherName}
           totalMessage={message}
         />
         {settlementControls}
-      </div>
+      </Card>
     </BalanceNetworkGate>
   );
 }

@@ -15,7 +15,12 @@ export function WaterLine({ magnitude = 0, width = 320, height = 64 }: Props) {
   const { path, colorVar } = computeWaterLine(magnitude, width, height);
 
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-hidden="true">
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      style={{ width: "100%", maxWidth: width, height: "auto" }}
+      role="img"
+      aria-hidden="true"
+    >
       <path
         className={styles.path}
         d={path}
