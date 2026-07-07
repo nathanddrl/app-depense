@@ -28,11 +28,11 @@ const ANON_KEY =
 
 // Comptes du seed de dogfooding (D17).
 const NATHAN = { email: "nathan@etale.local", password: "password-nathan", name: "Nathan" };
-const LEA = { email: "copine@etale.local", password: "password-copine", name: "Léa" };
+const OKSANA = { email: "copine@etale.local", password: "password-copine", name: "Oksana" };
 const SEED_HOUSEHOLD = "d0000000-0000-0000-0000-000000000001";
 
-// Foyer B ÉTRANGER (fixtures, préfixe f… pour un nettoyage ciblé) — Nathan/Léa n'en
-// sont pas membres : leur client authentifié ne doit voir aucune de ses lignes.
+// Foyer B ÉTRANGER (fixtures, préfixe f… pour un nettoyage ciblé) — Nathan/Oksana
+// n'en sont pas membres : leur client authentifié ne doit voir aucune de ses lignes.
 const HB = "fbbbbbbb-0000-0000-0000-00000000b0b0";
 const UB = "fbbbbbbb-1111-0000-0000-00000000b0b0"; // auth user du foyer B
 const MB = "fbbbbbbb-2222-0000-0000-00000000b0b0"; // member du foyer B
@@ -76,14 +76,14 @@ async function signIn(email: string, password: string): Promise<DbClient> {
 }
 
 let nathan: DbClient;
-let lea: DbClient;
+let oksana: DbClient;
 
 beforeAll(async () => {
   await pg.connect();
   await pg.query(cleanupSql);
   await pg.query(fixturesSql);
   nathan = await signIn(NATHAN.email, NATHAN.password);
-  lea = await signIn(LEA.email, LEA.password);
+  oksana = await signIn(OKSANA.email, OKSANA.password);
 });
 
 afterAll(async () => {
@@ -99,10 +99,10 @@ describe("getCurrentContext — résolution du member + foyer (les 2 comptes)", 
     expect(ctx?.householdId).toBe(SEED_HOUSEHOLD);
   });
 
-  it("Léa → member 'Léa' + le même foyer", async () => {
-    const ctx = await resolveContext(lea);
+  it("Oksana → member 'Oksana' + le même foyer", async () => {
+    const ctx = await resolveContext(oksana);
     expect(ctx).not.toBeNull();
-    expect(ctx?.member.displayName).toBe(LEA.name);
+    expect(ctx?.member.displayName).toBe(OKSANA.name);
     expect(ctx?.householdId).toBe(SEED_HOUSEHOLD);
   });
 });
@@ -128,8 +128,8 @@ describe("RLS sur le vrai chemin (JWT utilisateur, pas service_role)", () => {
     expect(expense.data).toHaveLength(0);
   });
 
-  it("Léa non plus ne voit le foyer B", async () => {
-    const household = await lea.from("household").select("id").eq("id", HB);
+  it("Oksana non plus ne voit le foyer B", async () => {
+    const household = await oksana.from("household").select("id").eq("id", HB);
     expect(household.error).toBeNull();
     expect(household.data).toHaveLength(0);
   });
