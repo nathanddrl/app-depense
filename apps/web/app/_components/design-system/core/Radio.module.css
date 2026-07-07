@@ -1,0 +1,50 @@
+/* Radio — core/ primitif. Sélecteur rond, même logique de remplissage que
+   Checkbox. La forme circulaire est structurelle (ce que le contrat "Sélecteur
+   rond" exige), pas un usage de l'échelle --radius-* : elle reste hors de
+   l'échelle "quasi nulle" du système (Input reste la seule surface qui en
+   consomme une valeur non nulle). */
+
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.input {
+  appearance: none;
+  position: relative;
+  margin: 0;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--motion-micro-duration) var(--motion-micro-easing);
+}
+
+.input:checked {
+  border-color: var(--text-primary);
+}
+
+/* Remplissage plein du sélecteur coché — pseudo-élément plutôt qu'un
+   box-shadow, la contrainte interdisant tout box-shadow dans ces primitifs. */
+.input:checked::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: var(--text-primary);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  color: var(--text-primary);
+}

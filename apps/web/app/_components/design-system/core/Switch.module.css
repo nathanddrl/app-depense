@@ -1,0 +1,61 @@
+/* Switch — core/ primitif. Toggle rectangulaire à coins droits : l'angle droit
+   est le signe de l'immobilité du système, aucune piste ovale/pilule ici
+   (uiuix guide/04-espacement-radius-elevation.md — Input reste la seule
+   surface à consommer --radius-subtle). */
+
+.wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  width: 40px;
+  height: 22px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.track {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  width: 40px;
+  height: 22px;
+  padding: 2px;
+  background: var(--border-strong);
+  border-radius: var(--radius-none);
+  transition: background var(--motion-micro-duration) var(--motion-micro-easing);
+}
+
+.thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--surface-base);
+  border-radius: var(--radius-none);
+  transition: transform var(--motion-micro-duration) var(--motion-micro-easing);
+}
+
+.input:checked + .track {
+  background: var(--text-primary);
+}
+
+.input:checked + .track .thumb {
+  transform: translateX(18px);
+}
+
+.input:focus-visible + .track {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  color: var(--text-primary);
+}

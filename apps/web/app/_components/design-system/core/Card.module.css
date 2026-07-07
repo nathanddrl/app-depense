@@ -1,0 +1,15 @@
+/* Card — core/ primitif. Surface plate : aucune ombre, aucun radius, jamais. La
+   différence card/raised se fait uniquement par la luminosité de surface
+   (--surface-card vs --surface-raised), jamais par une ombre portée. */
+
+.card {
+  background: var(--surface-card);
+  border-radius: var(--radius-none);
+  box-shadow: var(--elevation-shadow);
+}
+
+.raised {
+  background: var(--surface-raised);
+  border-radius: var(--radius-none);
+  box-shadow: var(--elevation-shadow);
+}

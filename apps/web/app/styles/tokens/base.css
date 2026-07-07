@@ -1,0 +1,12 @@
+/*
+ * Volontairement minimal : aucun reset global (font-family/couleur/fond sur
+ * html/body, box-sizing, etc.) — les écrans existants n'en fixent aucun et
+ * en hériteraient immédiatement, ce qui romprait la contrainte de zéro
+ * régression visuelle de cette carte. Les écrans consomment les tokens
+ * explicitement, à partir de C9.
+ */
+
+.tabular-nums {
+  font-feature-settings: var(--font-feature-amounts);
+  font-variant-numeric: tabular-nums lining-nums;
+}

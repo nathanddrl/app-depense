@@ -1,0 +1,8 @@
+/* Radius — quasi nul, une seule valeur non-zéro dans tout le système (voir uiuix guide/04-espacement-radius-elevation.md) */
+:root {
+  /* défaut — cards, boutons, dialogs, chips : jamais arrondis */
+  --radius-none: 0px;
+
+  /* exclusivement les surfaces tactiles (inputs, tap targets) */
+  --radius-subtle: 2px;
+}

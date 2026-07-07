@@ -1,0 +1,35 @@
+/* Primitives couleur — teinte constante 168-170° OKLCH (voir uiuix guide/02-couleurs.md) */
+:root {
+  /* Neutres — luminosité variable, teinte 170° constante */
+  --grey-0: oklch(0.97 0.012 170);
+  --grey-1: oklch(0.945 0.014 170);
+  --grey-2: oklch(0.92 0.016 170);
+  --grey-3: oklch(0.85 0.018 170);
+  --grey-4: oklch(0.75 0.02 170);
+  --grey-5: oklch(0.52 0.02 170);
+  --grey-6: oklch(0.24 0.02 168);
+
+  /* Neutres dark — même teinte, échelle inversée */
+  --grey-dark-0: oklch(0.2 0.02 170);
+  --grey-dark-1: oklch(0.24 0.02 170);
+  --grey-dark-2: oklch(0.28 0.022 170);
+  --grey-dark-3: oklch(0.36 0.02 170);
+  --grey-dark-4: oklch(0.46 0.02 170);
+  --grey-dark-5: oklch(0.72 0.016 170);
+  --grey-dark-6: oklch(0.95 0.01 168);
+
+  /* Accent minéral « argile » — un déclencheur par écran maximum */
+  --clay-fill: oklch(0.62 0.085 55);
+  --clay-text: oklch(0.42 0.09 50);
+  --clay-subtle: oklch(0.72 0.06 55);
+  --clay-moderate: oklch(0.66 0.075 55);
+  --clay-ceiling: oklch(0.6 0.09 55);
+  --clay-fill-dark: oklch(0.68 0.075 55);
+
+  /* Erreurs système — isolées, jamais mélangées à l'argile */
+  --brick: oklch(0.5 0.07 30);
+  --brick-subtle: oklch(0.9 0.03 30);
+
+  /* Structurel */
+  --white: oklch(1 0 0);
+}

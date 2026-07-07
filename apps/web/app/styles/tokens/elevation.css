@@ -1,0 +1,7 @@
+/* Élévation — encodée exclusivement par la luminosité de surface, jamais une ombre (voir uiuix guide/04-espacement-radius-elevation.md) */
+:root {
+  --elevation-0: var(--surface-base);
+  --elevation-1: var(--surface-card);
+  --elevation-2: var(--surface-raised);
+  --elevation-shadow: none; /* toujours, sans exception — y compris overlays/modals */
+}

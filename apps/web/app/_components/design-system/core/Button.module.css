@@ -1,0 +1,62 @@
+/* Button — core/ primitif (uiuix guide/07-composants.md). Texte seul, pas d'icône
+   par défaut. primary = fond plein sombre, secondary = contour, ghost = texte seul. */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-title);
+  border: 1px solid transparent;
+  border-radius: var(--radius-none);
+  cursor: pointer;
+  transition: all var(--motion-micro-duration) var(--motion-micro-easing);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Tailles */
+
+.md {
+  padding: 12px 20px;
+  font-size: var(--text-body);
+}
+
+.sm {
+  padding: 8px 14px;
+  font-size: var(--text-sm);
+}
+
+/* Variantes */
+
+.primary {
+  background: var(--text-primary);
+  color: var(--surface-base);
+}
+
+.primary:not(:disabled):hover {
+  background: var(--text-secondary);
+}
+
+.secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.secondary:not(:disabled):hover {
+  border-color: var(--text-primary);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.ghost:not(:disabled):hover {
+  color: var(--text-primary);
+}

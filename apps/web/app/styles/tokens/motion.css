@@ -1,0 +1,13 @@
+/* Motion — deux paliers seulement, décélération lourde, zéro overshoot (voir uiuix guide/05-motion.md) */
+:root {
+  /* le geste-signature : un solde qui se stabilise */
+  --motion-settle-duration: 600ms;
+  --motion-settle-easing: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* settle étendu — uniquement l'accent argile qui s'efface entièrement à la résorption */
+  --motion-settle-extended-duration: 1200ms;
+
+  /* feedback d'interaction ordinaire */
+  --motion-micro-duration: 300ms;
+  --motion-micro-easing: cubic-bezier(0.16, 1, 0.3, 1);
+}

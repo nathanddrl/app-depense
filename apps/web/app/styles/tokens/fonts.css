@@ -1,0 +1,7 @@
+/*
+ * Résolution des polices : next/font/local est la seule source de vérité
+ * (voir apps/web/app/fonts.ts). Pas de @font-face manuel ici — les variables
+ * --font-display / --font-body générées par Next sont injectées sur <html>
+ * via les classes `fraunces.variable` / `generalSans.variable` (layout.tsx).
+ * Les valeurs littérales dans tokens/typography.css ne servent qu'en fallback.
+ */

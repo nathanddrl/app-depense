@@ -1,0 +1,40 @@
+/* Typographie — Fraunces (display, italique only) + General Sans (voir uiuix guide/03-typographie.md) */
+
+/* :where(:root) plutôt que :root : spécificité nulle, pour que la classe
+   `variable` posée par next/font/local sur <html> (voir app/fonts.ts) gagne
+   toujours la cascade, indépendamment de l'ordre d'insertion des feuilles de
+   style. Sans ça, ce fallback littéral peut écraser la vraie police
+   next/font si sa règle est injectée après celle-ci dans le document. */
+:where(:root) {
+  /* ces valeurs littérales ne servent qu'en fallback (contexte hors Next) */
+  --font-display: "Fraunces Variable", "Fraunces", serif;
+  --font-body: "General Sans", -apple-system, sans-serif;
+}
+
+:root {
+  --weight-regular: 400;
+  --weight-medium: 500;
+
+  /* Échelle de tailles — General Sans */
+  --text-2xl: 40px;
+  --text-xl: 28px;
+  --text-lg: 22px;
+  --text-md: 17px;
+  --text-body: 15px;
+  --text-sm: 13px;
+  --text-xs: 11px;
+
+  /* Échelle display — Fraunces italique (optical size = display, jamais texte) */
+  --display-lg: 44px;
+  --display-md: 32px;
+  --display-sm: 24px;
+
+  /* Interlignage et tracking */
+  --leading-body: 1.55;
+  --leading-tight: 1.2;
+  --tracking-title: 0.01em;
+  --tracking-display: 0.015em;
+
+  /* Montants — chiffres tabulaires exclusivement */
+  --font-feature-amounts: "tnum" 1, "lnum" 1;
+}

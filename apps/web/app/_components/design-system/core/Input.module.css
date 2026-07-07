@@ -1,0 +1,50 @@
+/* Input — core/ primitif. Ligne unique, radius-subtle (2px) : la seule surface
+   arrondie de tout le système (uiuix guide/04-espacement-radius-elevation.md). */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-subtle);
+  background: var(--surface-base);
+  padding: 0 12px;
+}
+
+.field:focus-within {
+  border-color: var(--focus-ring);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  color: var(--text-primary);
+  padding: 10px 0;
+}
+
+.input::placeholder {
+  color: var(--text-secondary);
+}
+
+.suffix {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  color: var(--text-secondary);
+  padding-left: 8px;
+}

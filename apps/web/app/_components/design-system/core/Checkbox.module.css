@@ -1,0 +1,38 @@
+/* Checkbox — core/ primitif. Sélecteur carré ; l'état coché remplit en solide
+   (pas d'icône de coche). Coins droits : Input reste la seule surface arrondie
+   du système (uiuix guide/04-espacement-radius-elevation.md). */
+
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.input {
+  appearance: none;
+  margin: 0;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-none);
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--motion-micro-duration) var(--motion-micro-easing);
+}
+
+.input:checked {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  color: var(--text-primary);
+}

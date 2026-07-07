@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
+import { fraunces, generalSans } from "./fonts";
+import "./styles/styles.css";
 
 export const metadata: Metadata = {
   title: "Étale",
@@ -8,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="fr" data-theme="dark" className={`${fraunces.variable} ${generalSans.variable}`}>
       <body>{children}</body>
     </html>
   );

@@ -1,0 +1,64 @@
+/* Tokens sémantiques — seuls consommés par les composants (voir uiuix guide/02-couleurs.md) */
+:root {
+  /* Surfaces */
+  --surface-base: var(--grey-0);
+  --surface-card: var(--grey-1);
+  --surface-raised: var(--grey-2);
+  --surface-overlay: var(--grey-2);
+  --surface-scrim: oklch(0.24 0.02 168 / 0.45);
+
+  /* Bordures */
+  --border-subtle: var(--grey-3);
+  --border-strong: var(--grey-4);
+
+  /* Texte */
+  --text-primary: var(--grey-6);
+  --text-secondary: var(--grey-5);
+  --text-on-accent: var(--white);
+  --text-disabled: var(--grey-4);
+
+  /* Échelle de balance / écart — isolée de --color-system-error* */
+  --color-balance-none: var(--border-strong);
+  --color-balance-subtle: var(--clay-subtle);
+  --color-balance-moderate: var(--clay-moderate);
+  --color-balance-marked: var(--clay-fill);
+  --color-balance-ceiling: var(--clay-ceiling);
+  --color-balance-text: var(--clay-text);
+
+  /* Erreurs système — isolées de l'échelle de balance */
+  --color-system-error: var(--brick);
+  --color-system-error-surface: var(--brick-subtle);
+
+  /* Catégories (dépenses) — rotation fixe, sous-famille de gris-verts */
+  --category-1: oklch(0.62 0.035 150);
+  --category-2: oklch(0.62 0.03 190);
+  --category-3: oklch(0.6 0.035 130);
+  --category-4: oklch(0.58 0.03 205);
+  --category-5: oklch(0.64 0.032 165);
+  --category-6: oklch(0.56 0.028 220);
+
+  /* Focus */
+  --focus-ring: var(--clay-fill);
+}
+
+/* Dark theme — seuls les tokens sémantiques changent, les primitives restent identiques */
+[data-theme="dark"] {
+  --surface-base: var(--grey-dark-0);
+  --surface-card: var(--grey-dark-1);
+  --surface-raised: var(--grey-dark-2);
+  --surface-overlay: var(--grey-dark-2);
+  --surface-scrim: oklch(0.24 0.02 168 / 0.45);
+
+  --border-subtle: var(--grey-dark-3);
+  --border-strong: var(--grey-dark-4);
+
+  --text-primary: var(--grey-dark-6);
+  --text-secondary: var(--grey-dark-5);
+  --text-on-accent: var(--white);
+  --text-disabled: var(--grey-dark-4);
+
+  --color-balance-marked: var(--clay-fill-dark);
+  --color-balance-text: var(--clay-text);
+
+  --focus-ring: var(--clay-fill-dark);
+}
