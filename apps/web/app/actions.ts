@@ -13,6 +13,7 @@ import {
   getBalance,
   getBalanceDetail,
   getAdminExpenseOverview,
+  adminUpdateExpense,
 } from "@app/domain-expense";
 import type {
   AdminExpenseOverviewLine,
@@ -21,6 +22,7 @@ import type {
   CreateExpenseInput,
   Expense,
   ListExpensesFilters,
+  UpdateExpenseInput,
 } from "@app/domain-expense";
 import { addAid, removeAid } from "@app/domain-aid";
 import type { AddAidInput, RemoveAidInput, Expense as AidExpense } from "@app/domain-aid";
@@ -102,6 +104,24 @@ export async function getAdminExpenseOverviewAction(): Promise<
     repo,
     { memberId: ctx.member.id, householdId: ctx.householdId, role: ctx.role },
     { householdId: ctx.householdId },
+  );
+}
+
+// Réservée à /admin (T-C8.3, DA14) : corrige une dépense verrouillée en
+// contournant EXPENSE_LOCKED via `adminUpdateExpense` (bypass isolé au domaine,
+// `updateExpense` classique reste intact). Revérification serveur systématique.
+export async function adminUpdateExpenseAction(
+  input: UpdateExpenseInput,
+): Promise<ActionResult<Expense>> {
+  const ctx = await getCurrentContext();
+  const forbidden = requireAdmin(ctx);
+  if (forbidden) return forbidden;
+
+  const repo = new SupabaseExpenseRepository(ctx.supabase);
+  return adminUpdateExpense(
+    repo,
+    { memberId: ctx.member.id, householdId: ctx.householdId, role: ctx.role },
+    input,
   );
 }
 

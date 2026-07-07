@@ -9,6 +9,7 @@ export { listExpenses } from "./list-expenses";
 export { getBalance } from "./get-balance";
 export { getBalanceDetail } from "./get-balance-detail";
 export { getAdminExpenseOverview } from "./get-admin-expense-overview";
+export { adminUpdateExpense } from "./admin-update-expense";
 
 export type {
   ExpenseRepository,
