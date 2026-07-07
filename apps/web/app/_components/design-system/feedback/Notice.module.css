@@ -1,0 +1,20 @@
+/* Notice — message factuel inline. Aucun ton "succès/célébration" (voir le
+   type Props lui-même : seulement "neutral" | "error", DA10/09-do-dont.md).
+   tone="error" isolé de l'échelle --color-balance-* (T-CD1.1). */
+
+.notice {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  border-radius: var(--radius-none);
+}
+
+.neutral {
+  color: var(--text-secondary);
+}
+
+.error {
+  color: var(--color-system-error);
+  background: var(--color-system-error-surface);
+  padding: 8px 12px;
+}

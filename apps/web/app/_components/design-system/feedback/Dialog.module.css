@@ -1,0 +1,36 @@
+/* Dialog — overlay via --surface-scrim uniquement. Zéro box-shadow à tout
+   niveau d'élévation, y compris sur le panneau : la séparation avec la page
+   se fait exclusivement par le scrim (uiuix guide/07-composants.md,
+   09-do-dont.md). */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  background: var(--surface-scrim);
+  z-index: 100;
+}
+
+.panel {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface-overlay);
+  border-radius: var(--radius-none);
+  box-shadow: var(--elevation-shadow);
+  padding: var(--space-3);
+}
+
+.title {
+  margin: 0 0 var(--space-2) 0;
+  font-family: var(--font-body);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+}
+
+.close {
+  margin-top: var(--space-2);
+}

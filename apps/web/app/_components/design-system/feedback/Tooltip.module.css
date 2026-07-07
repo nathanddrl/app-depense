@@ -1,0 +1,31 @@
+/* Tooltip — coins carrés, pas d'ombre (uiuix guide/07-composants.md). Visible
+   au hover/focus, en CSS pur : pas de JS nécessaire pour ce comportement. */
+
+.wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.bubble {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  margin-bottom: 4px;
+  padding: 4px 8px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-none);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-micro-duration) var(--motion-micro-easing);
+}
+
+.wrapper:hover .bubble,
+.wrapper:focus-within .bubble {
+  opacity: 1;
+}

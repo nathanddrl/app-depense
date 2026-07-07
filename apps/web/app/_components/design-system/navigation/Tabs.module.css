@@ -1,0 +1,33 @@
+/* Tabs — style soulignement uniquement, jamais de pilule ni de fond plein sur
+   l'onglet actif (cohérent avec radius-none déjà pris pour Switch/Radio,
+   uiuix guide/07-composants.md). */
+
+.tabs {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tab {
+  margin: 0;
+  padding: 8px 2px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-none);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--motion-micro-duration) var(--motion-micro-easing);
+}
+
+.tab:hover {
+  color: var(--text-primary);
+}
+
+.active {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+  border-bottom-color: var(--text-primary);
+}
