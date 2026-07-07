@@ -5,6 +5,12 @@
 // `updateExpense` lui-même (qui reste intact, verrou inchangé). Mêmes validations
 // de forme et même recompute des parts par calc-engine que le chemin normal —
 // seul le verrou de régularisation est contourné, pas la validation métier.
+//
+// Traçabilité (DA-OPEN1, decisions-techniques.md, tranché 07/07/2026) : PAS de
+// log dédié pour ces corrections. `updated_at` (patché ci-dessous comme pour
+// une édition normale) suffit à tracer grossièrement à l'échelle d'un foyer à
+// 2 utilisateurs. À reprendre seulement si un vrai back-office multi-admin
+// voit le jour (qui-a-fait-quoi, audit externe).
 
 import { CalcPreconditionError } from "@app/calc-engine";
 import {
