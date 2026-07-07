@@ -1,0 +1,6 @@
+/* WaterLine — composant signature. Transition sur motion.settle : le geste
+   d'un solde qui se stabilise (uiuix guide/05-motion.md). */
+
+.path {
+  transition: all var(--motion-settle-duration) var(--motion-settle-easing);
+}

@@ -1,0 +1,25 @@
+/* BalanceStatement — Fraunces italique, réservée exclusivement aux phrases de
+   constat déclaratif ("vous êtes étale", "léa doit 42 € à nathan"). Jamais un
+   titre, un label, ou du chrome UI (uiuix guide/03-typographie.md). */
+
+.statement {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: var(--weight-regular);
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+}
+
+.sm {
+  font-size: var(--display-sm);
+}
+
+.md {
+  font-size: var(--display-md);
+}
+
+.lg {
+  font-size: var(--display-lg);
+}

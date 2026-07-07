@@ -1,0 +1,15 @@
+/* CategoryChip — aplat de couleur + initiale, jamais un pictogramme littéral
+   (uiuix guide/06-iconographie.md). Coins droits, cohérent avec l'échelle
+   radius "quasi nulle" du système (Input reste la seule surface arrondie). */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-none);
+  font-family: var(--font-body);
+  font-weight: var(--weight-medium);
+  color: var(--text-on-accent);
+  line-height: 1;
+}

@@ -1,0 +1,40 @@
+/* AmountDisplay — le montant n'est jamais le sujet visuel de l'écran :
+   différenciation par le poids uniquement, jamais par la taille pour
+   l'emphase (uiuix guide/03-typographie.md). `size` reste contextuel (aligné
+   sur le corps de texte environnant), pas un levier d'emphase. */
+
+.amount {
+  font-family: var(--font-body);
+}
+
+.sm {
+  font-size: var(--text-sm);
+}
+
+.md {
+  font-size: var(--text-body);
+}
+
+.lg {
+  font-size: var(--text-lg);
+}
+
+.regular {
+  font-weight: var(--weight-regular);
+}
+
+.medium {
+  font-weight: var(--weight-medium);
+}
+
+.primary {
+  color: var(--text-primary);
+}
+
+.secondary {
+  color: var(--text-secondary);
+}
+
+.balance {
+  color: var(--color-balance-text);
+}
