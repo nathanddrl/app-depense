@@ -107,6 +107,9 @@ class FakeExpenseRepository implements ExpenseRepository {
   async listExpenses(): Promise<Expense[]> {
     throw new Error("non utilisé par cette suite d'intégration");
   }
+  async listAllExpensesForAdmin(): Promise<StoredExpense[]> {
+    throw new Error("non utilisé par cette suite d'intégration");
+  }
 }
 
 class FakeSettlementRepository implements SettlementRepository {

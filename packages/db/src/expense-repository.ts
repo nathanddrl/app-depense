@@ -345,6 +345,42 @@ export class SupabaseExpenseRepository {
       settlementStatus: row.settlement_id ? (statusById.get(row.settlement_id) ?? null) : null,
     }));
   }
+
+  async listAllExpensesForAdmin(householdId: string): Promise<StoredExpense[]> {
+    const { data: expenseRows, error } = await this.supabase
+      .from("expense")
+      .select("*")
+      .eq("household_id", householdId)
+      .order("incurred_on", { ascending: false });
+    if (error) throw error;
+    if (!expenseRows || expenseRows.length === 0) return [];
+
+    const ids = expenseRows.map((e) => e.id);
+    const [{ data: shareRows, error: sharesError }, { data: aidRows, error: aidsError }] =
+      await Promise.all([
+        this.supabase.from("expense_share").select("*").in("expense_id", ids),
+        this.supabase.from("aid").select("*").in("expense_id", ids),
+      ]);
+    if (sharesError) throw sharesError;
+    if (aidsError) throw aidsError;
+
+    const sharesByExpense = new Map<string, ExpenseShareRow[]>();
+    for (const row of shareRows ?? []) {
+      const list = sharesByExpense.get(row.expense_id) ?? [];
+      list.push(row);
+      sharesByExpense.set(row.expense_id, list);
+    }
+    const aidsByExpense = new Map<string, AidRow[]>();
+    for (const row of aidRows ?? []) {
+      const list = aidsByExpense.get(row.expense_id) ?? [];
+      list.push(row);
+      aidsByExpense.set(row.expense_id, list);
+    }
+
+    return expenseRows.map((row) =>
+      toStoredExpense(row, sharesByExpense.get(row.id) ?? [], aidsByExpense.get(row.id) ?? []),
+    );
+  }
 }
 
 /** `"2026-07"` → `"2026-08-01"` (borne exclusive pour le filtre mensuel). */

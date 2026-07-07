@@ -64,4 +64,11 @@ export interface ExpenseRepository {
 
   /** Dépenses actives (soft-deleted exclues) avec aides + statut settlement, pour le solde (4.2). */
   listExpensesForBalance(householdId: string): Promise<BalanceExpenseRow[]>;
+
+  /**
+   * TOUTES les dépenses du foyer, sans aucun filtre `deleted_at`/`settlement_id`
+   * (T-C8.2, DA14 — vue admin brute). Ne réutilise pas `listExpenses` (qui exclut
+   * les soft-deleted) pour ne pas complexifier son filtre avec un flag.
+   */
+  listAllExpensesForAdmin(householdId: string): Promise<StoredExpense[]>;
 }

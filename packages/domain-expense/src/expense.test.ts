@@ -90,6 +90,10 @@ class FakeExpenseRepository implements ExpenseRepository {
       .map((e) => this.strip(e));
   }
 
+  async listAllExpensesForAdmin(): Promise<never[]> {
+    throw new Error("non utilisé par ces tests (voir get-admin-expense-overview.test.ts)");
+  }
+
   async listExpensesForBalance(): Promise<never[]> {
     throw new Error("non utilisé par ces tests (voir get-balance.test.ts)");
   }

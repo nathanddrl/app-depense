@@ -30,8 +30,10 @@ export type ExpenseAidDTO = {
  * Identité résolue par le seam `getCurrentContext()` (construit en C2.5) et injectée
  * par `actions.ts`. Le domaine ne touche jamais aux cookies/session : il reçoit
  * l'acteur (`memberId`, pour `created_by`) et le foyer courant (scope autoritaire).
+ * `role` (T-C8.1) est optionnel — seules les actions admin (ex. `getAdminExpenseOverview`)
+ * le lisent, pour une revérification serveur en plus du layout `/admin`.
  */
-export type ExpenseContext = { memberId: string; householdId: string };
+export type ExpenseContext = { memberId: string; householdId: string; role?: string };
 
 /** Entrée de création (signatures 6.2). Le client n'envoie JAMAIS de montant de part. */
 export type CreateExpenseInput = {
@@ -116,6 +118,29 @@ export type BalanceDetailLine = {
   grossCents: number;
   payerId: string;
   otherId: string;
+  baseOwedCents: number;
+  aidLines: BalanceDetailAidLine[];
+  totalOwedCents: number;
+};
+
+/**
+ * Ligne de la vue admin brute (T-C8.2, DA14) : TOUTES les dépenses du foyer, y
+ * compris verrouillées (`settlementId` non nul) et soft-supprimées (`deletedAt`
+ * non nul) — contrairement à `BalanceDetailLine`, aucun filtre `deleted_at`/
+ * `settlement` n'est appliqué en amont. Même décomposition calc-engine que
+ * `BalanceDetailLine` (DA4 : pas de second calcul), enrichie des champs bruts
+ * nécessaires à l'audit (id, catégorie, date, verrouillage, suppression).
+ */
+export type AdminExpenseOverviewLine = {
+  id: string;
+  label: string;
+  category: Category;
+  incurredOn: string;
+  grossCents: number;
+  payerId: string;
+  otherId: string;
+  settlementId: string | null;
+  deletedAt: string | null;
   baseOwedCents: number;
   aidLines: BalanceDetailAidLine[];
   totalOwedCents: number;

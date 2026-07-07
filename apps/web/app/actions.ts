@@ -6,9 +6,16 @@
 
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "../lib/supabase/server";
-import { getCurrentContext } from "../lib/auth/context";
-import { createExpense, listExpenses, getBalance, getBalanceDetail } from "@app/domain-expense";
+import { getCurrentContext, requireAdmin } from "../lib/auth/context";
+import {
+  createExpense,
+  listExpenses,
+  getBalance,
+  getBalanceDetail,
+  getAdminExpenseOverview,
+} from "@app/domain-expense";
 import type {
+  AdminExpenseOverviewLine,
   Balance,
   BalanceDetailLine,
   CreateExpenseInput,
@@ -77,6 +84,23 @@ export async function getBalanceDetailAction(): Promise<ActionResult<BalanceDeta
   return getBalanceDetail(
     repo,
     { memberId: ctx.member.id, householdId: ctx.householdId },
+    { householdId: ctx.householdId },
+  );
+}
+
+// Réservée à /admin (T-C8.2, DA14) : revérification serveur systématique, le
+// layout `/admin` (T-C8.1) ne suffit pas à couvrir un appel direct de l'action.
+export async function getAdminExpenseOverviewAction(): Promise<
+  ActionResult<AdminExpenseOverviewLine[]>
+> {
+  const ctx = await getCurrentContext();
+  const forbidden = requireAdmin(ctx);
+  if (forbidden) return forbidden;
+
+  const repo = new SupabaseExpenseRepository(ctx.supabase);
+  return getAdminExpenseOverview(
+    repo,
+    { memberId: ctx.member.id, householdId: ctx.householdId, role: ctx.role },
     { householdId: ctx.householdId },
   );
 }
