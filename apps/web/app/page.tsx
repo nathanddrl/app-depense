@@ -1,8 +1,8 @@
 import { getCurrentContext } from "../lib/auth/context";
 import { getDefaultShares } from "../lib/household";
 import { signOut, listExpensesAction } from "./actions";
-import { ExpensesPanel } from "./expenses-panel";
-import { BalancePanel } from "./balance-panel";
+import { ExpensesPanel } from "./_components/expenses/expenses-panel";
+import { BalancePanel } from "./_components/balance/balance-panel";
 
 // Le seam résout le membre + le foyer courant (via le JWT/RLS) ; le middleware
 // redirige déjà les visiteurs non authentifiés vers /login.

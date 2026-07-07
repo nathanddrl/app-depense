@@ -11,10 +11,10 @@
 // ici, on additionne juste les parts déjà calculées.
 
 import { useState, useTransition } from "react";
-import { addAidAction, removeAidAction } from "./actions";
+import { addAidAction, removeAidAction } from "../../actions";
 import { formatAmountEUR } from "@app/shared";
 import type { AidDTO } from "@app/domain-aid";
-import type { MemberShare } from "../lib/household";
+import type { MemberShare } from "../../../lib/household";
 import styles from "./aid-section.module.css";
 
 type ShareDTO = { memberId: string; cents: number; pctSnapshot: number };

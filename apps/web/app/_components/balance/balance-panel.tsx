@@ -4,9 +4,9 @@
 // « Solder » (8.1/5.3, T-C6.6) s'y greffe : la carte affiche aussi la
 // régularisation `pending` courante s'il y en a une.
 
-import { getBalanceAction, getCurrentSettlementAction } from "./actions";
+import { getBalanceAction, getCurrentSettlementAction } from "../../actions";
 import { formatAmountEUR } from "@app/shared";
-import type { MemberShare } from "../lib/household";
+import type { MemberShare } from "../../../lib/household";
 import { BalanceDetailToggle } from "./balance-detail-toggle";
 import { BalanceNetworkGate } from "./balance-network-gate";
 import { SettlementControls } from "./settlement-controls";

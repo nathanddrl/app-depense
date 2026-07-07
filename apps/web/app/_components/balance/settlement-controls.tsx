@@ -16,7 +16,7 @@ import {
   initiateSettlementAction,
   confirmSettlementAction,
   cancelSettlementAction,
-} from "./actions";
+} from "../../actions";
 import { formatAmountEUR } from "@app/shared";
 import type { ActionResult } from "@app/shared";
 import type { Settlement } from "@app/domain-settlement";

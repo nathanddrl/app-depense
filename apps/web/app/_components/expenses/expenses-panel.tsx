@@ -10,11 +10,11 @@
 // jamais "brut", "ratio", "payeur", "part figée".
 
 import { useOptimistic, useState, useTransition } from "react";
-import { createExpenseAction } from "./actions";
+import { createExpenseAction } from "../../actions";
 import type { Expense } from "@app/domain-expense";
 import type { Category } from "@app/domain-expense";
 import { formatAmountEUR, formatDateFr } from "@app/shared";
-import type { MemberShare } from "../lib/household";
+import type { MemberShare } from "../../../lib/household";
 import { AidSection } from "./aid-section";
 
 type Props = {

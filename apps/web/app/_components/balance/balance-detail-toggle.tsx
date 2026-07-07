@@ -6,7 +6,7 @@
 // humain uniquement : jamais "charge nette", "ratio", "contribution", ni équation.
 
 import { useState, useTransition } from "react";
-import { getBalanceDetailAction } from "./actions";
+import { getBalanceDetailAction } from "../../actions";
 import { formatAmountEUR } from "@app/shared";
 import type { BalanceDetailLine } from "@app/domain-expense";
 import styles from "./balance-detail-toggle.module.css";
