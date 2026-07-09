@@ -1,0 +1,13 @@
+/* PageTitle — layout/ primitif (T-CD3). General Sans medium, jamais Fraunces
+   (réservée aux phrases de constat déclaratif, uiuix guide/03-typographie.md) :
+   un titre de page est du chrome UI, pas un constat. */
+
+.title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-title);
+  color: var(--text-primary);
+}

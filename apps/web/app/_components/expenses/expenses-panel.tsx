@@ -19,6 +19,8 @@ import { AidSection } from "./aid-section";
 import { Button, Card, Input } from "../design-system/core";
 import { CategoryChip, AmountDisplay } from "../design-system/balance";
 import { Notice } from "../design-system/feedback";
+import { Stack } from "../design-system/layout";
+import nativeSelectStyles from "../design-system/core/native-select.module.css";
 
 type Props = {
   currentMemberId: string;
@@ -45,7 +47,14 @@ function categoryLabelOf(value: Category): string {
 /** Dépense optimiste : montant + libellé visibles, parts absentes tant que le serveur n'a pas répondu. */
 type OptimisticExpense =
   | Expense
-  | { id: string; label: string; category: Category; grossCents: number; incurredOn: string; pending: true };
+  | {
+      id: string;
+      label: string;
+      category: Category;
+      grossCents: number;
+      incurredOn: string;
+      pending: true;
+    };
 
 export function ExpensesPanel({ currentMemberId, initialExpenses, defaultShares }: Props) {
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
@@ -84,7 +93,14 @@ export function ExpensesPanel({ currentMemberId, initialExpenses, defaultShares 
     const tempId = `temp-${crypto.randomUUID()}`;
 
     startTransition(async () => {
-      addOptimistic({ id: tempId, label: trimmedLabel, category, grossCents, incurredOn, pending: true });
+      addOptimistic({
+        id: tempId,
+        label: trimmedLabel,
+        category,
+        grossCents,
+        incurredOn,
+        pending: true,
+      });
 
       const result = await createExpenseAction({
         label: trimmedLabel,
@@ -115,106 +131,120 @@ export function ExpensesPanel({ currentMemberId, initialExpenses, defaultShares 
           perdent tout contraste en thème sombre (`data-theme="dark"`, layout.tsx).
           Même solution que balance-panel.tsx (T-CD2.1). */}
       <Card>
-        <form action={handleSubmit}>
-          <Input label="Libellé" value={label} onChange={(e) => setLabel(e.target.value)} />
-          <Input
-            label="Montant"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="800"
-            suffix="€"
-          />
-          <label>
-            Catégorie
-            <select value={category} onChange={(e) => setCategory(e.target.value as Category)}>
-              {CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-            <CategoryChip name={categoryLabelOf(category)} size={24} />
-          </label>
-          <label>
-            Date
-            <input
-              type="date"
-              value={incurredOn}
-              onChange={(e) => setIncurredOn(e.target.value)}
-              required
-            />
-          </label>
-
-          <details>
-            <summary>Options</summary>
-            <p>Partage</p>
-            <label>
-              <input
-                type="checkbox"
-                checked={customShares}
-                onChange={(e) => setCustomShares(e.target.checked)}
+        <Stack gap={3}>
+          <form action={handleSubmit}>
+            <Stack gap={2}>
+              <Input label="Libellé" value={label} onChange={(e) => setLabel(e.target.value)} />
+              <Input
+                label="Montant"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="800"
+                suffix="€"
               />
-              Personnaliser le partage pour cette dépense
-            </label>
-            {customShares
-              ? defaultShares.map((m) => (
-                  <label key={m.memberId}>
-                    {m.memberId === currentMemberId ? "Toi" : m.displayName}
-                    <input
-                      type="number"
-                      name={`pct-${m.memberId}`}
-                      defaultValue={m.defaultSharePct}
-                      min={0}
-                      max={100}
-                    />
-                    %
+              <Stack direction="row" gap={2} wrap>
+                <div style={{ flex: "1 1 200px" }}>
+                  <label className={nativeSelectStyles.wrapper}>
+                    <span className={nativeSelectStyles.label}>Catégorie</span>
+                    <select
+                      className={nativeSelectStyles.select}
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value as Category)}
+                    >
+                      {CATEGORIES.map((c) => (
+                        <option key={c.value} value={c.value}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
                   </label>
-                ))
-              : null}
-          </details>
+                  <CategoryChip name={categoryLabelOf(category)} size={24} />
+                </div>
+                <div style={{ flex: "1 1 200px" }}>
+                  <Input
+                    type="date"
+                    label="Date"
+                    value={incurredOn}
+                    onChange={(e) => setIncurredOn(e.target.value)}
+                    required
+                  />
+                </div>
+              </Stack>
 
-          {error ? <Notice tone="error">{error}</Notice> : null}
-          <Button type="submit" disabled={isPending}>
-            {isPending ? "Ajout…" : "Ajouter"}
-          </Button>
-        </form>
+              <details>
+                <summary>Options</summary>
+                <Stack gap={1}>
+                  <p>Partage</p>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={customShares}
+                      onChange={(e) => setCustomShares(e.target.checked)}
+                    />
+                    Personnaliser le partage pour cette dépense
+                  </label>
+                  {customShares
+                    ? defaultShares.map((m) => (
+                        <label key={m.memberId}>
+                          {m.memberId === currentMemberId ? "Toi" : m.displayName}
+                          <input
+                            type="number"
+                            name={`pct-${m.memberId}`}
+                            defaultValue={m.defaultSharePct}
+                            min={0}
+                            max={100}
+                          />
+                          %
+                        </label>
+                      ))
+                    : null}
+                </Stack>
+              </details>
 
-        <ul>
-          {optimisticExpenses.map((e) => (
-            <li key={e.id} style={{ marginTop: "var(--space-2)" }}>
-              <CategoryChip name={categoryLabelOf(e.category)} size={20} />{" "}
-              <strong>{e.label}</strong> — <AmountDisplay value={formatAmountEUR(e.grossCents)} /> —{" "}
-              {formatDateFr(new Date(e.incurredOn))}
-              {"pending" in e && e.pending ? " (en attente…)" : null}
-              {"shares" in e
-                ? e.shares
-                    .filter((s) => s.memberId !== currentMemberId)
-                    .map((s) => {
-                      const member = otherMembers.find((m) => m.memberId === s.memberId);
-                      return (
-                        <span key={s.memberId}>
-                          {" "}
-                          — Part de {member?.displayName ?? "l'autre"} :{" "}
-                          <AmountDisplay value={formatAmountEUR(s.cents)} />
-                        </span>
-                      );
-                    })
-                : null}
-              {"shares" in e ? (
-                <AidSection
-                  expenseId={e.id}
-                  grossCents={e.grossCents}
-                  currentMemberId={currentMemberId}
-                  members={defaultShares}
-                  initialAids={e.aids}
-                  onSharesUpdated={(shares) =>
-                    setExpenses((prev) => prev.map((x) => (x.id === e.id ? { ...x, shares } : x)))
-                  }
-                />
-              ) : null}
-            </li>
-          ))}
-        </ul>
+              {error ? <Notice tone="error">{error}</Notice> : null}
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Ajout…" : "Ajouter"}
+              </Button>
+            </Stack>
+          </form>
+
+          <ul>
+            {optimisticExpenses.map((e) => (
+              <li key={e.id} style={{ marginTop: "var(--space-2)" }}>
+                <CategoryChip name={categoryLabelOf(e.category)} size={20} />{" "}
+                <strong>{e.label}</strong> — <AmountDisplay value={formatAmountEUR(e.grossCents)} />{" "}
+                — {formatDateFr(new Date(e.incurredOn))}
+                {"pending" in e && e.pending ? " (en attente…)" : null}
+                {"shares" in e
+                  ? e.shares
+                      .filter((s) => s.memberId !== currentMemberId)
+                      .map((s) => {
+                        const member = otherMembers.find((m) => m.memberId === s.memberId);
+                        return (
+                          <span key={s.memberId}>
+                            {" "}
+                            — Part de {member?.displayName ?? "l'autre"} :{" "}
+                            <AmountDisplay value={formatAmountEUR(s.cents)} />
+                          </span>
+                        );
+                      })
+                  : null}
+                {"shares" in e ? (
+                  <AidSection
+                    expenseId={e.id}
+                    grossCents={e.grossCents}
+                    currentMemberId={currentMemberId}
+                    members={defaultShares}
+                    initialAids={e.aids}
+                    onSharesUpdated={(shares) =>
+                      setExpenses((prev) => prev.map((x) => (x.id === e.id ? { ...x, shares } : x)))
+                    }
+                  />
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </Stack>
       </Card>
     </section>
   );

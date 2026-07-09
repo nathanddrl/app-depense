@@ -8,13 +8,14 @@ type Props = {
   value: string;
   onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
-  type?: "text" | "number" | "email" | "password";
+  type?: "text" | "number" | "email" | "password" | "date";
   suffix?: string;
   /** Champ contrôlé malgré tout (T-CD2.4) : nécessaire pour rester compatible avec
    * une Server Action lisant un FormData natif (ex. useActionState) sans dupliquer
    * la valeur dans un input caché. N'affecte pas le contrat contrôlé de `value`. */
   name?: string;
   autoComplete?: string;
+  required?: boolean;
 };
 
 export function Input({
@@ -26,6 +27,7 @@ export function Input({
   suffix,
   name,
   autoComplete,
+  required,
 }: Props) {
   return (
     <label className={styles.wrapper}>
@@ -39,6 +41,7 @@ export function Input({
           placeholder={placeholder}
           name={name}
           autoComplete={autoComplete}
+          required={required}
         />
         {suffix ? <span className={styles.suffix}>{suffix}</span> : null}
       </span>

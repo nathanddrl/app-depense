@@ -8,7 +8,16 @@ describe("getCategoryColorVar", () => {
   });
 
   it("reste toujours dans la sous-palette --category-1..6", () => {
-    const names = ["Loyer", "Courses", "Charges", "Sorties", "Autre", "Internet", "Assurance", "Vacances"];
+    const names = [
+      "Loyer",
+      "Courses",
+      "Charges",
+      "Sorties",
+      "Autre",
+      "Internet",
+      "Assurance",
+      "Vacances",
+    ];
     for (const name of names) {
       expect(getCategoryColorVar(name)).toMatch(/^var\(--category-[1-6]\)$/);
     }

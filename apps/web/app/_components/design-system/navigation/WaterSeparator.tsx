@@ -22,7 +22,13 @@ export function WaterSeparator({ label }: Props) {
         preserveAspectRatio="none"
         aria-hidden="true"
       >
-        <path d={path} fill="none" stroke={colorVar} strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        <path
+          d={path}
+          fill="none"
+          stroke={colorVar}
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
       </svg>
       {label ? <span className={styles.label}>{label}</span> : null}
     </div>

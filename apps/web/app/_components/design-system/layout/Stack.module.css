@@ -1,0 +1,39 @@
+/* Stack — layout/ primitif. Rythme vertical/horizontal via l'échelle
+   --space-* uniquement (uiuix guide/04-espacement-radius-elevation.md) :
+   un seul endroit choisit la valeur en px pour chaque palier de composition. */
+
+.stack {
+  display: flex;
+}
+
+.column {
+  flex-direction: column;
+}
+
+.row {
+  flex-direction: row;
+}
+
+.wrap {
+  flex-wrap: wrap;
+}
+
+.gap1 {
+  gap: var(--space-1);
+}
+
+.gap2 {
+  gap: var(--space-2);
+}
+
+.gap3 {
+  gap: var(--space-3);
+}
+
+.gap4 {
+  gap: var(--space-4);
+}
+
+.gap6 {
+  gap: var(--space-6);
+}

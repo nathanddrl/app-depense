@@ -36,10 +36,10 @@ pnpm --filter @app/db db:reset
 
 Foyer « Maison », deux membres, répartition 50/50 :
 
-| Email | Mot de passe | Membre |
-| :-- | :-- | :-- |
+| Email                | Mot de passe      | Membre         |
+| :------------------- | :---------------- | :------------- |
 | `nathan@etale.local` | `password-nathan` | Nathan (admin) |
-| `copine@etale.local` | `password-copine` | Oksana |
+| `copine@etale.local` | `password-copine` | Oksana         |
 
 Connecte-toi avec deux navigateurs (ou une fenêtre privée) pour tester les
 échanges entre les deux comptes (régularisation notamment).
@@ -84,20 +84,20 @@ console.log(await runRecurringGeneration(repo));
 
 ## Commandes
 
-| Commande | Effet |
-| :-- | :-- |
-| `pnpm build` | `turbo run build` → `next build` sur `apps/web` |
-| `pnpm test` | Tests de tout le monorepo (Vitest par package) |
-| `pnpm lint` / `pnpm typecheck` | ESLint / `tsc --noEmit` par package |
-| `pnpm format` / `pnpm format:check` | Prettier |
-| `pnpm --filter @app/db db:stop` | Arrête Supabase local |
-| `supabase status --workdir packages/db` | Réaffiche URL/clés Supabase locales |
+| Commande                                | Effet                                           |
+| :-------------------------------------- | :---------------------------------------------- |
+| `pnpm build`                            | `turbo run build` → `next build` sur `apps/web` |
+| `pnpm test`                             | Tests de tout le monorepo (Vitest par package)  |
+| `pnpm lint` / `pnpm typecheck`          | ESLint / `tsc --noEmit` par package             |
+| `pnpm format` / `pnpm format:check`     | Prettier                                        |
+| `pnpm --filter @app/db db:stop`         | Arrête Supabase local                           |
+| `supabase status --workdir packages/db` | Réaffiche URL/clés Supabase locales             |
 
 ## Ports Supabase locaux
 
-| Service | URL |
-| :-- | :-- |
-| API | `http://127.0.0.1:54521` |
+| Service                           | URL                      |
+| :-------------------------------- | :----------------------- |
+| API                               | `http://127.0.0.1:54521` |
 | Studio (interface web des tables) | `http://127.0.0.1:54523` |
 
 ## Architecture

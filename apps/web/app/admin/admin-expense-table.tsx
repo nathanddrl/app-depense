@@ -13,6 +13,7 @@ import type { MemberShare } from "../../lib/household";
 import { Button, Card, Input } from "../_components/design-system/core";
 import { AmountDisplay } from "../_components/design-system/balance";
 import { Notice } from "../_components/design-system/feedback";
+import { Stack } from "../_components/design-system/layout";
 
 type Props = {
   initialLines: AdminExpenseOverviewLine[];
@@ -57,30 +58,29 @@ function EditRow({
             e.preventDefault();
             handleSubmit();
           }}
-          style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}
         >
-          <Input label="Libellé" value={label} onChange={(e) => setLabel(e.target.value)} />
-          <Input
-            label="Montant"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            suffix="€"
-          />
-          <label>
-            Date
-            <input
+          <Stack gap={1}>
+            <Input label="Libellé" value={label} onChange={(e) => setLabel(e.target.value)} />
+            <Input
+              label="Montant"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              suffix="€"
+            />
+            <Input
               type="date"
+              label="Date"
               value={incurredOn}
               onChange={(e) => setIncurredOn(e.target.value)}
               required
             />
-          </label>
-          <Button type="submit" disabled={isPending}>
-            {isPending ? "Enregistrement…" : "Enregistrer"}
-          </Button>
-          <Button type="button" variant="secondary" onClick={onCancel} disabled={isPending}>
-            Annuler
-          </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Enregistrement…" : "Enregistrer"}
+            </Button>
+            <Button type="button" variant="secondary" onClick={onCancel} disabled={isPending}>
+              Annuler
+            </Button>
+          </Stack>
         </form>
       </td>
     </tr>
@@ -119,70 +119,75 @@ export function AdminExpenseTable({ initialLines: lines, members }: Props) {
 
   return (
     <Card>
-      {error ? <Notice tone="error">{error}</Notice> : null}
-      {/* Table large (8 colonnes) contrainte à la largeur de la Card sur mobile
-          (T-CD2.4) : scroll horizontal plutôt qu'un débordement hors carte. */}
-      <div style={{ overflowX: "auto" }}>
-        <table>
-          <thead>
-            <tr>
-              <th>Libellé</th>
-              <th>Catégorie</th>
-              <th>Date</th>
-              <th>Brut</th>
-              <th>Payeur</th>
-              <th>Statut</th>
-              <th>Décomposition</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {lines.map((line) =>
-              editingId === line.id ? (
-                <EditRow
-                  key={line.id}
-                  line={line}
-                  isPending={isPending}
-                  onCancel={() => setEditingId(null)}
-                  onSubmit={(patch) => handleSubmit(line, patch)}
-                />
-              ) : (
-                <tr key={line.id}>
-                  <td>{line.label}</td>
-                  <td>{line.category}</td>
-                  <td>{formatDateFr(new Date(line.incurredOn))}</td>
-                  <td>
-                    <AmountDisplay value={formatAmountEUR(line.grossCents)} />
-                  </td>
-                  <td>{nameOf(line.payerId)}</td>
-                  <td>{statusLabel(line.deletedAt, line.settlementId)}</td>
-                  <td>
-                    <div>
-                      base : <AmountDisplay value={formatAmountEUR(line.baseOwedCents)} /> (
-                      {nameOf(line.otherId)} → {nameOf(line.payerId)})
-                    </div>
-                    {line.aidLines.map((aid, i) => (
-                      <div key={i}>
-                        {aid.label} : <AmountDisplay value={formatAmountEUR(aid.aidCents)} /> (part{" "}
-                        <AmountDisplay value={formatAmountEUR(aid.sharedCents)} />)
+      <Stack gap={2}>
+        {error ? <Notice tone="error">{error}</Notice> : null}
+        {/* Table large (8 colonnes) contrainte à la largeur de la Card sur mobile
+            (T-CD2.4) : scroll horizontal plutôt qu'un débordement hors carte. */}
+        <div style={{ overflowX: "auto" }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Libellé</th>
+                <th>Catégorie</th>
+                <th>Date</th>
+                <th>Brut</th>
+                <th>Payeur</th>
+                <th>Statut</th>
+                <th>Décomposition</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line) =>
+                editingId === line.id ? (
+                  <EditRow
+                    key={line.id}
+                    line={line}
+                    isPending={isPending}
+                    onCancel={() => setEditingId(null)}
+                    onSubmit={(patch) => handleSubmit(line, patch)}
+                  />
+                ) : (
+                  <tr key={line.id}>
+                    <td>{line.label}</td>
+                    <td>{line.category}</td>
+                    <td>{formatDateFr(new Date(line.incurredOn))}</td>
+                    <td>
+                      <AmountDisplay value={formatAmountEUR(line.grossCents)} />
+                    </td>
+                    <td>{nameOf(line.payerId)}</td>
+                    <td>{statusLabel(line.deletedAt, line.settlementId)}</td>
+                    <td>
+                      <div>
+                        base : <AmountDisplay value={formatAmountEUR(line.baseOwedCents)} /> (
+                        {nameOf(line.otherId)} → {nameOf(line.payerId)})
                       </div>
-                    ))}
-                    <strong>
-                      total dû :{" "}
-                      <AmountDisplay value={formatAmountEUR(line.totalOwedCents)} weight="medium" />
-                    </strong>
-                  </td>
-                  <td>
-                    <Button type="button" onClick={() => setEditingId(line.id)}>
-                      Éditer
-                    </Button>
-                  </td>
-                </tr>
-              ),
-            )}
-          </tbody>
-        </table>
-      </div>
+                      {line.aidLines.map((aid, i) => (
+                        <div key={i}>
+                          {aid.label} : <AmountDisplay value={formatAmountEUR(aid.aidCents)} />{" "}
+                          (part <AmountDisplay value={formatAmountEUR(aid.sharedCents)} />)
+                        </div>
+                      ))}
+                      <strong>
+                        total dû :{" "}
+                        <AmountDisplay
+                          value={formatAmountEUR(line.totalOwedCents)}
+                          weight="medium"
+                        />
+                      </strong>
+                    </td>
+                    <td>
+                      <Button type="button" onClick={() => setEditingId(line.id)}>
+                        Éditer
+                      </Button>
+                    </td>
+                  </tr>
+                ),
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Stack>
     </Card>
   );
 }

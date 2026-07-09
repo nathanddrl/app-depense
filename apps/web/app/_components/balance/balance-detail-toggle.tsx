@@ -12,6 +12,7 @@ import type { BalanceDetailLine } from "@app/domain-expense";
 import { Button } from "../design-system/core";
 import { AmountDisplay } from "../design-system/balance";
 import { Notice } from "../design-system/feedback";
+import { Stack } from "../design-system/layout";
 
 type Props = {
   currentMemberId: string;
@@ -103,34 +104,32 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
   };
 
   return (
-    <div>
+    <Stack gap={2}>
       <Button variant="ghost" onClick={handleClick}>
         Pourquoi ?
       </Button>
       {open && (
-        <div style={{ marginTop: "var(--space-2)" }}>
+        <Stack gap={1}>
           {isPending || lines === null ? (
             <Notice tone="neutral">Calcul en cours…</Notice>
           ) : (
             <>
               {lines.map((line, i) => (
-                <div style={{ marginBottom: "var(--space-1)" }} key={i}>
-                  <Notice tone="neutral">
-                    {baseLine(line, currentMemberId, otherDisplayName)}
-                    {line.aidLines.map((aid, j) => (
-                      <span key={j}>
-                        <br />
-                        {aidLine(line, aid, currentMemberId, otherDisplayName)}
-                      </span>
-                    ))}
-                  </Notice>
-                </div>
+                <Notice tone="neutral" key={i}>
+                  {baseLine(line, currentMemberId, otherDisplayName)}
+                  {line.aidLines.map((aid, j) => (
+                    <span key={j}>
+                      <br />
+                      {aidLine(line, aid, currentMemberId, otherDisplayName)}
+                    </span>
+                  ))}
+                </Notice>
               ))}
               <Notice tone="neutral">Total : {totalMessage}</Notice>
             </>
           )}
-        </div>
+        </Stack>
       )}
-    </div>
+    </Stack>
   );
 }

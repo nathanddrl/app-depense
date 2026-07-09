@@ -43,7 +43,10 @@ class FakeExpenseRepository implements ExpenseRepository {
     return this.strip(updated);
   }
 
-  async insertExpenseWithShares(_expense: NewExpense, _shares: ExpenseShareDTO[]): Promise<Expense> {
+  async insertExpenseWithShares(
+    _expense: NewExpense,
+    _shares: ExpenseShareDTO[],
+  ): Promise<Expense> {
     throw new Error("non utilisé par ces tests");
   }
   async softDeleteExpense(_expenseId: string): Promise<{ id: string }> {
@@ -167,7 +170,11 @@ describe("adminUpdateExpense — correction admin d'une dépense verrouillée (T
   it("foyer non autorisé (mismatch seam) → NOT_FOUND", async () => {
     const repo = new FakeExpenseRepository({ [HOUSEHOLD]: ["A", "B"], AUTRE: ["C", "D"] });
     seedLockedExpense(repo);
-    const otherHouseholdCtx: ExpenseContext = { memberId: "C", householdId: "AUTRE", role: "admin" };
+    const otherHouseholdCtx: ExpenseContext = {
+      memberId: "C",
+      householdId: "AUTRE",
+      role: "admin",
+    };
 
     const res = await adminUpdateExpense(repo, otherHouseholdCtx, {
       expenseId: "locked-1",

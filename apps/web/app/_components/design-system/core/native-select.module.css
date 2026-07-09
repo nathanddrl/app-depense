@@ -1,0 +1,31 @@
+/* native-select — pas un composant : classes partagées pour les <select>
+   natifs (aucun primitif Select dans le kit, T-CD3) réutilisant exactement
+   les tokens déjà consommés par Input.module.css, pour ne pas trancher à
+   côté d'un champ Input stylé. */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.select {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-subtle);
+  background: var(--surface-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  padding: 10px 12px;
+}
+
+.select:focus-visible {
+  outline: none;
+  border-color: var(--focus-ring);
+}

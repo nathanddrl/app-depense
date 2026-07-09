@@ -1,10 +1,31 @@
 /*
- * Volontairement minimal : aucun reset global (font-family/couleur/fond sur
- * html/body, box-sizing, etc.) — les écrans existants n'en fixent aucun et
- * en hériteraient immédiatement, ce qui romprait la contrainte de zéro
- * régression visuelle de cette carte. Les écrans consomment les tokens
- * explicitement, à partir de C9.
+ * Baseline body (T-CD3) : les 4 écrans consomment maintenant les tokens de
+ * façon explicite et cohérente (composition + typographie), donc le fond/
+ * texte par défaut peut suivre le thème sans risque de régression visuelle
+ * résiduelle — avant cette carte, html/body n'avait ni fond ni police et
+ * retombait sur les défauts du navigateur (Times New Roman noir sur blanc)
+ * en dehors des composants du kit.
  */
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--surface-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+/* Colonne unique centrée (T-CD3) : le kit d'écrans de référence
+   (uiuix guide/07-composants.md, ui_kits/app/) est conçu mobile-first —
+   sans contrainte de largeur, le contenu s'étirait bord à bord sur desktop.
+   480px = une colonne mobile-app confortable, pas un token d'espacement
+   (aucune échelle --size-* dans le système). */
+main {
+  max-width: 480px;
+  margin-inline: auto;
+  padding: var(--space-3);
+}
 
 .tabular-nums {
   font-feature-settings: var(--font-feature-amounts);

@@ -19,7 +19,11 @@ function balanceColorVar(abs: number): string {
   return "var(--color-balance-ceiling)";
 }
 
-export function computeWaterLine(magnitude: number, width: number, height: number): WaterLineGeometry {
+export function computeWaterLine(
+  magnitude: number,
+  width: number,
+  height: number,
+): WaterLineGeometry {
   const abs = Math.min(Math.abs(magnitude), 1);
   const depth = abs * (height * 0.28);
   const midY = height / 2;

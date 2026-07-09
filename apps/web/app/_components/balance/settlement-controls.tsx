@@ -24,6 +24,7 @@ import type { Settlement } from "@app/domain-settlement";
 import { Button } from "../design-system/core";
 import { AmountDisplay } from "../design-system/balance";
 import { Notice } from "../design-system/feedback";
+import { Stack } from "../design-system/layout";
 
 type Props = {
   currentMemberId: string;
@@ -90,16 +91,12 @@ export function SettlementControls({
     });
   }
 
-  // Colonne flex : stretch (comportement par défaut de l'axe transverse en
+  // Stack column : stretch (comportement par défaut de l'axe transverse en
   // flex-column) donne au Button sa largeur 100 % sans toucher à son CSS —
   // Button n'a pas de `width` propre, ce qui est le bon défaut pour ses
-  // autres usages (T-CD2.3 : vérifié, pas de hack nécessaire).
-  const layoutStyle = {
-    marginTop: "var(--space-2)",
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "var(--space-1)",
-  };
+  // autres usages (T-CD2.3 : vérifié, pas de hack nécessaire). L'espacement
+  // avec le contenu au-dessus (BalanceStatement/WaterLine) vient du `Stack`
+  // parent dans balance-panel.tsx, pas d'ici (T-CD3).
 
   if (settlement && settlement.status === "pending") {
     const isInitiator = currentMemberId === settlement.initiatedBy;
@@ -107,7 +104,7 @@ export function SettlementControls({
     const amount = formatAmountEUR(settlement.amountCents);
 
     return (
-      <div style={layoutStyle}>
+      <Stack gap={1}>
         <Notice tone="neutral">
           {bannerMessage(isInitiator, isCreditor, debtorName, creditorName, amount)}
         </Notice>
@@ -128,7 +125,7 @@ export function SettlementControls({
             J&apos;ai reçu
           </Button>
         ) : null}
-      </div>
+      </Stack>
     );
   }
 
@@ -137,11 +134,11 @@ export function SettlementControls({
   if (currentMemberId !== debtorId || amountCents === 0) return null;
 
   return (
-    <div style={layoutStyle}>
+    <Stack gap={1}>
       {error ? <Notice tone="error">{error}</Notice> : null}
       <Button disabled={isPending} onClick={() => run(() => initiateSettlementAction())}>
         Solder
       </Button>
-    </div>
+    </Stack>
   );
 }

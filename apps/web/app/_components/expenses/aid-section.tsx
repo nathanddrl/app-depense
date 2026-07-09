@@ -18,6 +18,8 @@ import type { MemberShare } from "../../../lib/household";
 import { Button, Input } from "../design-system/core";
 import { AmountDisplay } from "../design-system/balance";
 import { Notice } from "../design-system/feedback";
+import { Stack } from "../design-system/layout";
+import nativeSelectStyles from "../design-system/core/native-select.module.css";
 
 type ShareDTO = { memberId: string; cents: number; pctSnapshot: number };
 
@@ -130,7 +132,7 @@ export function AidSection({
   }
 
   return (
-    <div>
+    <Stack gap={2}>
       {/* Toujours replié par défaut : une dépense courante (resto) ne montre
           jamais les aides sans action explicite (T-C5.4). Déclencheur en
           `Button` (T-CD2.2, même pattern que BalanceDetailToggle T-CD2.1) —
@@ -139,75 +141,87 @@ export function AidSection({
         Options
       </Button>
       {open && (
-        <div style={{ marginTop: "var(--space-2)" }}>
-          {aids.length > 0 ? (
-            <ul
-              style={{
-                listStyle: "none",
-                margin: 0,
-                marginBottom: "var(--space-1)",
-                padding: 0,
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--space-1)",
-              }}
-            >
-              {aids.map((a) => (
-                <li
-                  key={a.id}
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "var(--space-1)",
-                  }}
-                >
-                  <span>
-                    {a.label} — <AmountDisplay value={formatAmountEUR(a.amountCents)} />
-                  </span>
-                  <Button variant="secondary" onClick={() => handleRemove(a.id)} disabled={isPending}>
-                    Retirer
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+        <Stack gap={2}>
+            {aids.length > 0 ? (
+              <ul
+                style={{
+                  listStyle: "none",
+                  margin: 0,
+                  padding: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--space-1)",
+                }}
+              >
+                {aids.map((a) => (
+                  <li
+                    key={a.id}
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "var(--space-1)",
+                    }}
+                  >
+                    <span>
+                      {a.label} — <AmountDisplay value={formatAmountEUR(a.amountCents)} />
+                    </span>
+                    <Button
+                      variant="secondary"
+                      onClick={() => handleRemove(a.id)}
+                      disabled={isPending}
+                    >
+                      Retirer
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
 
-          <form
-            action={handleAdd}
-            style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
-          >
-            <Input label="Libellé" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="APL" />
-            <Input
-              label="Montant"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="200"
-              suffix="€"
-            />
-            <label>
-              Qui la touche ?
-              <select value={beneficiaryId} onChange={(e) => setBeneficiaryId(e.target.value)}>
-                <option value={currentMemberId}>Toi</option>
-                {members
-                  .filter((m) => m.memberId !== currentMemberId)
-                  .map((m) => (
-                    <option key={m.memberId} value={m.memberId}>
-                      {m.displayName}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            {error ? <Notice tone="error">{error}</Notice> : null}
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Ajout…" : "Ajouter l'aide"}
-            </Button>
-          </form>
+            <form action={handleAdd}>
+              <Stack gap={2}>
+                <Input
+                  label="Libellé"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  placeholder="APL"
+                />
+                <Input
+                  label="Montant"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="200"
+                  suffix="€"
+                />
+                <label className={nativeSelectStyles.wrapper}>
+                  <span className={nativeSelectStyles.label}>Qui la touche ?</span>
+                  <select
+                    className={nativeSelectStyles.select}
+                    value={beneficiaryId}
+                    onChange={(e) => setBeneficiaryId(e.target.value)}
+                  >
+                    <option value={currentMemberId}>Toi</option>
+                    {members
+                      .filter((m) => m.memberId !== currentMemberId)
+                      .map((m) => (
+                        <option key={m.memberId} value={m.memberId}>
+                          {m.displayName}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                {error ? <Notice tone="error">{error}</Notice> : null}
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? "Ajout…" : "Ajouter l'aide"}
+                </Button>
+              </Stack>
+            </form>
 
-          {message ? <Notice tone="neutral">{message}</Notice> : null}
-        </div>
+            {message ? <Notice tone="neutral">{message}</Notice> : null}
+          </Stack>
       )}
-    </div>
+    </Stack>
   );
 }
+

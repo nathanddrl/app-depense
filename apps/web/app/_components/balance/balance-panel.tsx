@@ -13,6 +13,7 @@ import { SettlementControls } from "./settlement-controls";
 import { waterLineMagnitude } from "./water-line-magnitude";
 import { Card } from "../design-system/core";
 import { BalanceStatement, WaterLine } from "../design-system/balance";
+import { Stack } from "../design-system/layout";
 
 type Props = {
   currentMemberId: string;
@@ -56,11 +57,11 @@ export async function BalancePanel({ currentMemberId, members }: Props) {
     return (
       <BalanceNetworkGate>
         <Card>
-          <BalanceStatement>Vous êtes à jour</BalanceStatement>
-          <div style={{ marginTop: "var(--space-2)" }}>
+          <Stack gap={2}>
+            <BalanceStatement>Vous êtes à jour</BalanceStatement>
             <WaterLine magnitude={0} />
-          </div>
-          {settlementControls}
+            {settlementControls}
+          </Stack>
         </Card>
       </BalanceNetworkGate>
     );
@@ -77,16 +78,16 @@ export async function BalancePanel({ currentMemberId, members }: Props) {
   return (
     <BalanceNetworkGate>
       <Card>
-        <BalanceStatement>{message}</BalanceStatement>
-        <div style={{ marginTop: "var(--space-2)" }}>
+        <Stack gap={2}>
+          <BalanceStatement>{message}</BalanceStatement>
           <WaterLine magnitude={waterLineMagnitude(amountCents, isCreditor)} />
-        </div>
-        <BalanceDetailToggle
-          currentMemberId={currentMemberId}
-          otherDisplayName={otherName}
-          totalMessage={message}
-        />
-        {settlementControls}
+          <BalanceDetailToggle
+            currentMemberId={currentMemberId}
+            otherDisplayName={otherName}
+            totalMessage={message}
+          />
+          {settlementControls}
+        </Stack>
       </Card>
     </BalanceNetworkGate>
   );
