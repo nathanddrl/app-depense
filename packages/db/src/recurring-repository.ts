@@ -106,8 +106,18 @@ export type GeneratedOccurrence = { occurrenceId: string; expenseId: string };
 type RecurringTemplateRow = Tables<"recurring_template">;
 type RecurringAidRow = Tables<"recurring_aid">;
 
+// `shares_config` est stocké en snake_case (spec ch.3.2 : `[{member_id, pct}]`,
+// même format que `seed.sql`) — jamais un cast direct camelCase↔JSON, qui
+// désynchronise silencieusement lecture et écriture (memberId `undefined` au
+// retour, cassant `computeExpense`/l'affichage dès que la donnée vient d'ailleurs
+// que du chemin d'écriture applicatif, ex. seed SQL).
 function toShares(sharesConfig: Json): ShareConfigInput[] {
-  return (sharesConfig as unknown as ShareConfigInput[]) ?? [];
+  const raw = (sharesConfig as unknown as { member_id: string; pct: number }[]) ?? [];
+  return raw.map((s) => ({ memberId: s.member_id, pct: s.pct }));
+}
+
+function fromShares(shares: ShareConfigInput[]): Json {
+  return shares.map((s) => ({ member_id: s.memberId, pct: s.pct })) as unknown as Json;
 }
 
 function toRecurringAidDTO(row: RecurringAidRow): RecurringAidDTO {
@@ -163,7 +173,7 @@ export class SupabaseRecurringTemplateRepository {
         amount_cents: template.amountCents,
         payer_member_id: template.payerId,
         day_of_month: template.dayOfMonth,
-        shares_config: template.shares as unknown as Json,
+        shares_config: fromShares(template.shares),
       })
       .select()
       .single();
@@ -212,7 +222,7 @@ export class SupabaseRecurringTemplateRepository {
     if (patch.amountCents !== undefined) scalarUpdate.amount_cents = patch.amountCents;
     if (patch.payerId !== undefined) scalarUpdate.payer_member_id = patch.payerId;
     if (patch.dayOfMonth !== undefined) scalarUpdate.day_of_month = patch.dayOfMonth;
-    if (patch.shares !== undefined) scalarUpdate.shares_config = patch.shares as unknown as Json;
+    if (patch.shares !== undefined) scalarUpdate.shares_config = fromShares(patch.shares);
 
     if (Object.keys(scalarUpdate).length > 0) {
       const { error } = await this.supabase
