@@ -101,6 +101,8 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
         <Input label="libellé" value={label} onChange={(e) => setLabel(e.target.value)} />
 
         <Stack direction="row" gap={2} wrap>
+          {/* 160px : largeur mini de flex-basis, pas un espacement — hors périmètre
+              de l'échelle --space-* (même exception que maxWidth 960px sur admin/page.tsx) */}
           <div style={{ flex: "1 1 160px" }}>
             <Input
               label="montant"
@@ -125,6 +127,8 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
           <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
             catégorie
           </span>
+          {/* 20px : entre --space-2 (16px) et --space-3 (32px), écart notable
+              (20-25%) des deux côtés — conservé en dur (audit T-CD3) */}
           <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
             {CATEGORIES.map((c) => (
               <button
@@ -136,6 +140,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
+                  // 6px : écart notable avec --space-1 (8px, +33%) — conservé en dur (audit T-CD3)
                   gap: "6px",
                   background: "none",
                   border: "none",
@@ -201,6 +206,8 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
             label="une aide est rattachée à cette dépense"
           />
           {aideOn ? (
+            // 28px : proche de --space-3 (32px, écart 14%) mais pas assez pour
+            // substituer sans changement visuel constaté — conservé en dur (audit T-CD3)
             <div style={{ paddingLeft: "28px" }}>
               <Input
                 label="montant de l'aide"
