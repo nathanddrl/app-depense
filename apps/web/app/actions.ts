@@ -37,9 +37,16 @@ import type {
   ConfirmSettlementInput,
   Settlement,
 } from "@app/domain-settlement";
-import { createRecurringTemplate } from "@app/domain-recurrence";
+import {
+  createRecurringTemplate,
+  updateRecurringTemplate,
+  deactivateRecurringTemplate,
+  listRecurringTemplates,
+} from "@app/domain-recurrence";
 import type {
   CreateRecurringTemplateInput,
+  UpdateRecurringTemplateInput,
+  DeactivateRecurringTemplateInput,
   RecurringTemplate,
 } from "@app/domain-recurrence";
 import {
@@ -198,5 +205,35 @@ export async function createRecurringTemplateAction(
     repo,
     { memberId: ctx.member.id, householdId: ctx.householdId },
     { ...input, householdId: ctx.householdId },
+  );
+}
+
+export async function listRecurringTemplatesAction(): Promise<ActionResult<RecurringTemplate[]>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseRecurringTemplateRepository(ctx.supabase);
+  return listRecurringTemplates(repo, { memberId: ctx.member.id, householdId: ctx.householdId });
+}
+
+export async function updateRecurringTemplateAction(
+  input: UpdateRecurringTemplateInput,
+): Promise<ActionResult<RecurringTemplate>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseRecurringTemplateRepository(ctx.supabase);
+  return updateRecurringTemplate(
+    repo,
+    { memberId: ctx.member.id, householdId: ctx.householdId },
+    input,
+  );
+}
+
+export async function deactivateRecurringTemplateAction(
+  input: DeactivateRecurringTemplateInput,
+): Promise<ActionResult<{ id: string; active: false }>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseRecurringTemplateRepository(ctx.supabase);
+  return deactivateRecurringTemplate(
+    repo,
+    { memberId: ctx.member.id, householdId: ctx.householdId },
+    input,
   );
 }

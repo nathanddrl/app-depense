@@ -6,6 +6,7 @@
 export { createRecurringTemplate } from "./create-recurring-template";
 export { updateRecurringTemplate } from "./update-recurring-template";
 export { deactivateRecurringTemplate } from "./deactivate-recurring-template";
+export { listRecurringTemplates } from "./list-recurring-templates";
 export { runRecurringGeneration } from "./run-recurring-generation";
 
 export type {

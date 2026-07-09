@@ -97,6 +97,9 @@ export interface RecurringTemplateRepository {
   /** Templates actifs, tous foyers confondus (portée cron, T-C7.2). */
   listActiveTemplatesForGeneration(): Promise<TemplateForGeneration[]>;
 
+  /** Templates actifs d'un foyer donné, pour la liste UI (T-CR2). */
+  listRecurringTemplatesForHousehold(householdId: string): Promise<RecurringTemplate[]>;
+
   /**
    * Génère l'occurrence (dépense + parts + aides + `recurring_occurrence`) pour
    * ce template/période si elle n'existe pas déjà. L'idempotence est garantie par

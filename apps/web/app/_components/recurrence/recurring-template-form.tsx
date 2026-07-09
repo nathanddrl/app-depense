@@ -14,6 +14,7 @@
 // génération d'occurrence.
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { createRecurringTemplateAction } from "../../actions";
 import type { MemberShare } from "../../../lib/household";
 import { CATEGORIES } from "../expenses/categories";
@@ -35,6 +36,7 @@ function centsFrom(raw: string): number {
 }
 
 export function RecurringTemplateForm({ currentMemberId, defaultShares }: Props) {
+  const router = useRouter();
   const otherMember = defaultShares.find((m) => m.memberId !== currentMemberId);
   const initialSharePct =
     defaultShares.find((m) => m.memberId === currentMemberId)?.defaultSharePct ?? 50;
@@ -105,6 +107,7 @@ export function RecurringTemplateForm({ currentMemberId, defaultShares }: Props)
         `Charge récurrente créée : ${result.data.label}, le ${result.data.dayOfMonth} de chaque mois.`,
       );
       resetForm();
+      router.refresh();
     });
   }
 

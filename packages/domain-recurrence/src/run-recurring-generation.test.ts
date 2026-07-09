@@ -39,6 +39,9 @@ class FakeGenerationRepository implements RecurringTemplateRepository {
   async listActiveTemplatesForGeneration(): Promise<TemplateForGeneration[]> {
     return this.templates;
   }
+  async listRecurringTemplatesForHousehold(): Promise<StoredRecurringTemplate[]> {
+    throw new Error("test: listRecurringTemplatesForHousehold non exercé par ce fichier");
+  }
 
   /** Simule la contrainte unique `(template_id, period)` : source de l'idempotence. */
   async generateOccurrence(input: GenerateOccurrenceInput): Promise<GeneratedOccurrence | null> {

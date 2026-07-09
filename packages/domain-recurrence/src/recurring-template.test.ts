@@ -96,6 +96,10 @@ class FakeRecurringTemplateRepository implements RecurringTemplateRepository {
     throw new Error("test: listActiveTemplatesForGeneration non exercé par ce fichier");
   }
 
+  async listRecurringTemplatesForHousehold(): Promise<StoredRecurringTemplate[]> {
+    throw new Error("test: listRecurringTemplatesForHousehold non exercé par ce fichier");
+  }
+
   async generateOccurrence(): Promise<never> {
     throw new Error("test: generateOccurrence non exercé par ce fichier");
   }

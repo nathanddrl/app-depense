@@ -43,6 +43,9 @@ class FakeRepository implements RecurringTemplateRepository {
   async listActiveTemplatesForGeneration(): Promise<TemplateForGeneration[]> {
     return this.templates;
   }
+  async listRecurringTemplatesForHousehold(): Promise<StoredRecurringTemplate[]> {
+    throw new Error("non exercé par cette suite");
+  }
 
   async generateOccurrence(input: GenerateOccurrenceInput): Promise<GeneratedOccurrence | null> {
     const key = `${input.templateId}:${input.period}`;

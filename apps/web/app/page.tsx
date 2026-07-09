@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getCurrentContext } from "../lib/auth/context";
 import { getDefaultShares } from "../lib/household";
 import { signOut, listExpensesAction } from "./actions";
@@ -19,19 +20,24 @@ export default async function Home() {
   return (
     <main>
       <Stack gap={4}>
-        {/* Wordmark (uiuix-guide/03-typographie.md) : Fraunces italique,
-            bas-de-casse, jamais un logo ni le composant PageTitle générique
-            (réservé aux titres d'écran, ex. /admin, /login). */}
-        <span
-          style={{
-            fontFamily: "var(--font-display)",
-            fontStyle: "italic",
-            fontSize: "var(--display-sm)",
-            color: "var(--text-primary)",
-          }}
-        >
-          étale
-        </span>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+          {/* Wordmark (uiuix-guide/03-typographie.md) : Fraunces italique,
+              bas-de-casse, jamais un logo ni le composant PageTitle générique
+              (réservé aux titres d'écran, ex. /admin, /login). */}
+          <span
+            style={{
+              fontFamily: "var(--font-display)",
+              fontStyle: "italic",
+              fontSize: "var(--display-sm)",
+              color: "var(--text-primary)",
+            }}
+          >
+            étale
+          </span>
+          <Link href="/recurrence" style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+            charges récurrentes
+          </Link>
+        </div>
 
         <BalancePanel currentMemberId={ctx.member.id} members={defaultShares} />
         <WaterSeparator />

@@ -56,6 +56,10 @@ class FakeFullRepository implements RecurringTemplateRepository {
     throw new Error("test: deactivateRecurringTemplate non exercé par ce fichier");
   }
 
+  async listRecurringTemplatesForHousehold(): Promise<StoredRecurringTemplate[]> {
+    throw new Error("test: listRecurringTemplatesForHousehold non exercé par ce fichier");
+  }
+
   async listActiveTemplatesForGeneration(): Promise<TemplateForGeneration[]> {
     return [...this.templates.values()]
       .filter((t) => t.active)

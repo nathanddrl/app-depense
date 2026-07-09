@@ -286,6 +286,33 @@ export class SupabaseRecurringTemplateRepository {
     }));
   }
 
+  async listRecurringTemplatesForHousehold(householdId: string): Promise<RecurringTemplate[]> {
+    const { data: templateRows, error } = await this.supabase
+      .from("recurring_template")
+      .select("*")
+      .eq("household_id", householdId)
+      .eq("active", true)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    if (!templateRows || templateRows.length === 0) return [];
+
+    const ids = templateRows.map((t) => t.id);
+    const { data: aidRows, error: aidsError } = await this.supabase
+      .from("recurring_aid")
+      .select("*")
+      .in("template_id", ids);
+    if (aidsError) throw aidsError;
+
+    const aidsByTemplate = new Map<string, RecurringAidRow[]>();
+    for (const row of aidRows ?? []) {
+      const list = aidsByTemplate.get(row.template_id) ?? [];
+      list.push(row);
+      aidsByTemplate.set(row.template_id, list);
+    }
+
+    return templateRows.map((row) => toRecurringTemplate(row, aidsByTemplate.get(row.id) ?? []));
+  }
+
   async generateOccurrence(input: GenerateOccurrenceInput): Promise<GeneratedOccurrence | null> {
     const { data, error } = await this.supabase.rpc("generate_recurring_occurrence", {
       p_template_id: input.templateId,
