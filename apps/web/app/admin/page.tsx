@@ -6,6 +6,8 @@ import { getCurrentContext } from "../../lib/auth/context";
 import { getAdminExpenseOverviewAction } from "../actions";
 import { getDefaultShares } from "../../lib/household";
 import { AdminExpenseTable } from "./admin-expense-table";
+import { Card } from "../_components/design-system/core";
+import { Notice } from "../_components/design-system/feedback";
 
 export default async function AdminPage() {
   const ctx = await getCurrentContext();
@@ -18,7 +20,9 @@ export default async function AdminPage() {
     return (
       <main>
         <h1>Administration — dépenses</h1>
-        <p role="alert">{overviewResult.error.message}</p>
+        <Card>
+          <Notice tone="error">{overviewResult.error.message}</Notice>
+        </Card>
       </main>
     );
   }

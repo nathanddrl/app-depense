@@ -8,11 +8,25 @@ type Props = {
   value: string;
   onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
-  type?: "text" | "number";
+  type?: "text" | "number" | "email" | "password";
   suffix?: string;
+  /** Champ contrôlé malgré tout (T-CD2.4) : nécessaire pour rester compatible avec
+   * une Server Action lisant un FormData natif (ex. useActionState) sans dupliquer
+   * la valeur dans un input caché. N'affecte pas le contrat contrôlé de `value`. */
+  name?: string;
+  autoComplete?: string;
 };
 
-export function Input({ label, value, onChange, placeholder, type = "text", suffix }: Props) {
+export function Input({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  suffix,
+  name,
+  autoComplete,
+}: Props) {
   return (
     <label className={styles.wrapper}>
       {label ? <span className={styles.label}>{label}</span> : null}
@@ -23,6 +37,8 @@ export function Input({ label, value, onChange, placeholder, type = "text", suff
           value={value}
           onChange={onChange}
           placeholder={placeholder}
+          name={name}
+          autoComplete={autoComplete}
         />
         {suffix ? <span className={styles.suffix}>{suffix}</span> : null}
       </span>
