@@ -10,6 +10,7 @@
 // données fraîches (solde + régularisation courante), pour éviter tout
 // affichage incohérent (ex. solde encore non nul juste après confirmation).
 
+import type { ReactNode } from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -20,7 +21,9 @@ import {
 import { formatAmountEUR } from "@app/shared";
 import type { ActionResult } from "@app/shared";
 import type { Settlement } from "@app/domain-settlement";
-import styles from "./settlement-controls.module.css";
+import { Button } from "../design-system/core";
+import { AmountDisplay } from "../design-system/balance";
+import { Notice } from "../design-system/feedback";
 
 type Props = {
   currentMemberId: string;
@@ -32,21 +35,35 @@ type Props = {
   amountCents: number;
 };
 
-/** Perspective du lecteur : jamais de « débiteur »/« créancier », que du « tu ». */
+/** Perspective du lecteur : jamais de « débiteur »/« créancier », que du « tu ».
+ * Montant en `AmountDisplay` (T-CD2.3) — le reste de la phrase est inchangé mot pour mot. */
 function bannerMessage(
   isInitiator: boolean,
   isCreditor: boolean,
   debtorName: string,
   creditorName: string,
   amount: string,
-): string {
+): ReactNode {
   if (isInitiator) {
-    return `Tu as dit avoir remboursé ${amount} à ${creditorName}. En attente de sa confirmation.`;
+    return (
+      <>
+        Tu as dit avoir remboursé <AmountDisplay value={amount} /> à {creditorName}. En attente de
+        sa confirmation.
+      </>
+    );
   }
   if (isCreditor) {
-    return `${debtorName} dit t'avoir remboursé ${amount}.`;
+    return (
+      <>
+        {debtorName} dit t&apos;avoir remboursé <AmountDisplay value={amount} />.
+      </>
+    );
   }
-  return `${creditorName} doit confirmer avoir reçu ${amount} de ${debtorName}.`;
+  return (
+    <>
+      {creditorName} doit confirmer avoir reçu <AmountDisplay value={amount} /> de {debtorName}.
+    </>
+  );
 }
 
 export function SettlementControls({
@@ -73,36 +90,43 @@ export function SettlementControls({
     });
   }
 
+  // Colonne flex : stretch (comportement par défaut de l'axe transverse en
+  // flex-column) donne au Button sa largeur 100 % sans toucher à son CSS —
+  // Button n'a pas de `width` propre, ce qui est le bon défaut pour ses
+  // autres usages (T-CD2.3 : vérifié, pas de hack nécessaire).
+  const layoutStyle = {
+    marginTop: "var(--space-2)",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "var(--space-1)",
+  };
+
   if (settlement && settlement.status === "pending") {
     const isInitiator = currentMemberId === settlement.initiatedBy;
     const isCreditor = currentMemberId === settlement.toMemberId;
     const amount = formatAmountEUR(settlement.amountCents);
 
     return (
-      <div className={styles.banner}>
-        <p className={styles.line}>
+      <div style={layoutStyle}>
+        <Notice tone="neutral">
           {bannerMessage(isInitiator, isCreditor, debtorName, creditorName, amount)}
-        </p>
-        {error ? <p role="alert">{error}</p> : null}
+        </Notice>
+        {error ? <Notice tone="error">{error}</Notice> : null}
         {isInitiator ? (
-          <button
-            type="button"
-            className={styles.button}
+          <Button
             disabled={isPending}
             onClick={() => run(() => cancelSettlementAction({ settlementId: settlement.id }))}
           >
             Annuler
-          </button>
+          </Button>
         ) : null}
         {isCreditor ? (
-          <button
-            type="button"
-            className={styles.button}
+          <Button
             disabled={isPending}
             onClick={() => run(() => confirmSettlementAction({ settlementId: settlement.id }))}
           >
             J&apos;ai reçu
-          </button>
+          </Button>
         ) : null}
       </div>
     );
@@ -113,16 +137,11 @@ export function SettlementControls({
   if (currentMemberId !== debtorId || amountCents === 0) return null;
 
   return (
-    <div className={styles.trigger}>
-      {error ? <p role="alert">{error}</p> : null}
-      <button
-        type="button"
-        className={styles.button}
-        disabled={isPending}
-        onClick={() => run(() => initiateSettlementAction())}
-      >
+    <div style={layoutStyle}>
+      {error ? <Notice tone="error">{error}</Notice> : null}
+      <Button disabled={isPending} onClick={() => run(() => initiateSettlementAction())}>
         Solder
-      </button>
+      </Button>
     </div>
   );
 }
