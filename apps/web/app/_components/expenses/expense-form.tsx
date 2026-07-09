@@ -164,22 +164,28 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
             <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
               répartition
             </span>
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: "var(--space-2)",
+              }}
+            >
               <input
                 type="range"
                 min={0}
                 max={100}
                 value={payerPct}
                 onChange={(e) => setPayerPct(Number(e.target.value))}
-                style={{ flex: 1, accentColor: "var(--text-primary)" }}
+                style={{ flex: "1 1 auto", minWidth: 0, accentColor: "var(--text-primary)" }}
               />
               <span
                 className="tabular-nums"
                 style={{
                   fontSize: "var(--text-sm)",
                   color: "var(--text-primary)",
-                  minWidth: "128px",
-                  textAlign: "right",
+                  marginLeft: "auto",
                 }}
               >
                 toi {payerPct}% · {otherMember.displayName} {100 - payerPct}%
