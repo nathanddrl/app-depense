@@ -4,7 +4,8 @@ import { signOut, listExpensesAction } from "./actions";
 import { ExpensesPanel } from "./_components/expenses/expenses-panel";
 import { BalancePanel } from "./_components/balance/balance-panel";
 import { Button } from "./_components/design-system/core";
-import { Stack, PageTitle } from "./_components/design-system/layout";
+import { WaterSeparator } from "./_components/design-system/navigation";
+import { Stack } from "./_components/design-system/layout";
 
 // Le seam résout le membre + le foyer courant (via le JWT/RLS) ; le middleware
 // redirige déjà les visiteurs non authentifiés vers /login.
@@ -17,24 +18,32 @@ export default async function Home() {
 
   return (
     <main>
-      <Stack gap={6}>
-        <Stack gap={4}>
-          <Stack gap={1}>
-            <PageTitle>Étale</PageTitle>
-            <p style={{ color: "var(--text-secondary)" }}>
-              Connecté en tant que <strong>{ctx.member.displayName}</strong>.
-            </p>
-          </Stack>
-          <BalancePanel currentMemberId={ctx.member.id} members={defaultShares} />
-          <ExpensesPanel
-            currentMemberId={ctx.member.id}
-            initialExpenses={expensesResult.ok ? expensesResult.data : []}
-            defaultShares={defaultShares}
-          />
-        </Stack>
+      <Stack gap={4}>
+        {/* Wordmark (uiuix-guide/03-typographie.md) : Fraunces italique,
+            bas-de-casse, jamais un logo ni le composant PageTitle générique
+            (réservé aux titres d'écran, ex. /admin, /login). */}
+        <span
+          style={{
+            fontFamily: "var(--font-display)",
+            fontStyle: "italic",
+            fontSize: "var(--display-sm)",
+            color: "var(--text-primary)",
+          }}
+        >
+          étale
+        </span>
+
+        <BalancePanel currentMemberId={ctx.member.id} members={defaultShares} />
+        <WaterSeparator />
+        <ExpensesPanel
+          currentMemberId={ctx.member.id}
+          initialExpenses={expensesResult.ok ? expensesResult.data : []}
+          defaultShares={defaultShares}
+        />
+
         <form action={signOut}>
           <Button type="submit" variant="secondary">
-            Se déconnecter
+            se déconnecter
           </Button>
         </form>
       </Stack>
