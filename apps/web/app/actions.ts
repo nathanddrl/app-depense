@@ -37,10 +37,16 @@ import type {
   ConfirmSettlementInput,
   Settlement,
 } from "@app/domain-settlement";
+import { createRecurringTemplate } from "@app/domain-recurrence";
+import type {
+  CreateRecurringTemplateInput,
+  RecurringTemplate,
+} from "@app/domain-recurrence";
 import {
   SupabaseExpenseRepository,
   SupabaseAidRepository,
   SupabaseSettlementRepository,
+  SupabaseRecurringTemplateRepository,
 } from "@app/db";
 import type { ActionResult } from "@app/shared";
 
@@ -181,4 +187,16 @@ export async function cancelSettlementAction(
   const ctx = await getCurrentContext();
   const repo = new SupabaseSettlementRepository(ctx.supabase);
   return cancelSettlement(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, input);
+}
+
+export async function createRecurringTemplateAction(
+  input: Omit<CreateRecurringTemplateInput, "householdId">,
+): Promise<ActionResult<RecurringTemplate>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseRecurringTemplateRepository(ctx.supabase);
+  return createRecurringTemplate(
+    repo,
+    { memberId: ctx.member.id, householdId: ctx.householdId },
+    { ...input, householdId: ctx.householdId },
+  );
 }
