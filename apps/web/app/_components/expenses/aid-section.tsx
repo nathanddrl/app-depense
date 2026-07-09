@@ -15,7 +15,9 @@ import { addAidAction, removeAidAction } from "../../actions";
 import { formatAmountEUR } from "@app/shared";
 import type { AidDTO } from "@app/domain-aid";
 import type { MemberShare } from "../../../lib/household";
-import styles from "./aid-section.module.css";
+import { Button, Input } from "../design-system/core";
+import { AmountDisplay } from "../design-system/balance";
+import { Notice } from "../design-system/feedback";
 
 type ShareDTO = { memberId: string; cents: number; pctSnapshot: number };
 
@@ -72,16 +74,26 @@ export function AidSection({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
 
-  function handleAdd(formData: FormData) {
+  // État contrôlé requis par `Input` (design-system/core, T-CD2.2) — même
+  // raison que expenses-panel.tsx : pas de prop `name` sur `Input`.
+  const [label, setLabel] = useState("");
+  const [amount, setAmount] = useState("");
+  const [beneficiaryId, setBeneficiaryId] = useState(currentMemberId);
+
+  function handleAdd() {
     setError(null);
-    const label = String(formData.get("label") ?? "").trim();
-    const amountEUR = String(formData.get("amount") ?? "");
-    const beneficiaryId = String(formData.get("beneficiaryId") ?? currentMemberId);
-    const amountCents = Math.round(Number.parseFloat(amountEUR.replace(",", ".")) * 100);
+    const trimmedLabel = label.trim();
+    const amountCents = Math.round(Number.parseFloat(amount.replace(",", ".")) * 100);
 
     startTransition(async () => {
-      const result = await addAidAction({ expenseId, label, beneficiaryId, amountCents });
+      const result = await addAidAction({
+        expenseId,
+        label: trimmedLabel,
+        beneficiaryId,
+        amountCents,
+      });
       if (!result.ok) {
         setError(result.error.message);
         return;
@@ -90,13 +102,16 @@ export function AidSection({
       onSharesUpdated(result.data.shares);
       setMessage(
         explanationSentence(
-          { label, amountCents, beneficiaryId },
+          { label: trimmedLabel, amountCents, beneficiaryId },
           currentMemberId,
           members,
           sumCents(result.data.shares),
           grossCents,
         ),
       );
+      setLabel("");
+      setAmount("");
+      setBeneficiaryId(currentMemberId);
     });
   }
 
@@ -115,61 +130,84 @@ export function AidSection({
   }
 
   return (
-    <details>
-      {/* Toujours replié par défaut (natif <details>) : une dépense courante
-          (resto) ne montre jamais les aides sans action explicite (T-C5.4). */}
-      <summary className={styles.trigger}>Options</summary>
-      <div className={styles.content}>
-        {aids.length > 0 ? (
-          <ul className={styles.list}>
-            {aids.map((a) => (
-              <li key={a.id} className={styles.item}>
-                <span>
-                  {a.label} — {formatAmountEUR(a.amountCents)}
-                </span>
-                <button
-                  type="button"
-                  className={styles.button}
-                  onClick={() => handleRemove(a.id)}
-                  disabled={isPending}
+    <div>
+      {/* Toujours replié par défaut : une dépense courante (resto) ne montre
+          jamais les aides sans action explicite (T-C5.4). Déclencheur en
+          `Button` (T-CD2.2, même pattern que BalanceDetailToggle T-CD2.1) —
+          size par défaut (md, ~46px) pour ne pas régresser sous 44px. */}
+      <Button variant="ghost" onClick={() => setOpen((prev) => !prev)}>
+        Options
+      </Button>
+      {open && (
+        <div style={{ marginTop: "var(--space-2)" }}>
+          {aids.length > 0 ? (
+            <ul
+              style={{
+                listStyle: "none",
+                margin: 0,
+                marginBottom: "var(--space-1)",
+                padding: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: "var(--space-1)",
+              }}
+            >
+              {aids.map((a) => (
+                <li
+                  key={a.id}
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "var(--space-1)",
+                  }}
                 >
-                  Retirer
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+                  <span>
+                    {a.label} — <AmountDisplay value={formatAmountEUR(a.amountCents)} />
+                  </span>
+                  <Button variant="secondary" onClick={() => handleRemove(a.id)} disabled={isPending}>
+                    Retirer
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
-        <form action={handleAdd} className={styles.form}>
-          <label>
-            Libellé
-            <input type="text" name="label" required placeholder="APL" />
-          </label>
-          <label>
-            Montant (€)
-            <input type="text" name="amount" inputMode="decimal" required placeholder="200" />
-          </label>
-          <label>
-            Qui la touche ?
-            <select name="beneficiaryId" defaultValue={currentMemberId}>
-              <option value={currentMemberId}>Toi</option>
-              {members
-                .filter((m) => m.memberId !== currentMemberId)
-                .map((m) => (
-                  <option key={m.memberId} value={m.memberId}>
-                    {m.displayName}
-                  </option>
-                ))}
-            </select>
-          </label>
-          {error ? <p role="alert">{error}</p> : null}
-          <button type="submit" className={styles.button} disabled={isPending}>
-            {isPending ? "Ajout…" : "Ajouter l'aide"}
-          </button>
-        </form>
+          <form
+            action={handleAdd}
+            style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
+          >
+            <Input label="Libellé" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="APL" />
+            <Input
+              label="Montant"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="200"
+              suffix="€"
+            />
+            <label>
+              Qui la touche ?
+              <select value={beneficiaryId} onChange={(e) => setBeneficiaryId(e.target.value)}>
+                <option value={currentMemberId}>Toi</option>
+                {members
+                  .filter((m) => m.memberId !== currentMemberId)
+                  .map((m) => (
+                    <option key={m.memberId} value={m.memberId}>
+                      {m.displayName}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            {error ? <Notice tone="error">{error}</Notice> : null}
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Ajout…" : "Ajouter l'aide"}
+            </Button>
+          </form>
 
-        {message ? <p className={styles.message}>{message}</p> : null}
-      </div>
-    </details>
+          {message ? <Notice tone="neutral">{message}</Notice> : null}
+        </div>
+      )}
+    </div>
   );
 }

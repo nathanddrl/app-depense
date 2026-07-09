@@ -4,12 +4,14 @@
 
 .card {
   background: var(--surface-card);
+  color: var(--text-primary);
   border-radius: var(--radius-none);
   box-shadow: var(--elevation-shadow);
 }
 
 .raised {
   background: var(--surface-raised);
+  color: var(--text-primary);
   border-radius: var(--radius-none);
   box-shadow: var(--elevation-shadow);
 }
