@@ -119,8 +119,8 @@ séparation logique/présentation, pas de gestion d'erreur). Pour `apps/web` :
   `apps/web/app/**/actions.ts` = wrappers fins, aucune logique métier (règle déjà actée
   dans `CLAUDE.md`), donc les composants de ce design system sont purement présentation.
 - Pas de TanStack Query (DA9) — l'UI optimiste passe par `useOptimistic`/`useTransition`
-  + Server Actions + `revalidatePath/Tag`, ce qui est indépendant de ce design system
-  (aucun composant ici ne fait de data-fetching).
+  - Server Actions + `revalidatePath/Tag`, ce qui est indépendant de ce design system
+    (aucun composant ici ne fait de data-fetching).
 
 ## 7. Icônes
 

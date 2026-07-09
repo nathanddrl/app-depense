@@ -25,53 +25,53 @@ vers un noir sans chroma.
 
 ### Neutres (teinte 170° constante, seule la luminosité varie)
 
-| Token | OKLCH | Rôle |
-|---|---|---|
-| `--grey-0` | `0.97 0.012 170` | fond |
-| `--grey-1` | `0.945 0.014 170` | surface |
-| `--grey-2` | `0.92 0.016 170` | surface élevée |
-| `--grey-3` | `0.85 0.018 170` | bordure discrète |
-| `--grey-4` | `0.75 0.02 170` | bordure marquée |
-| `--grey-5` | `0.52 0.02 170` | texte secondaire |
-| `--grey-6` | `0.24 0.02 168` | texte primaire |
+| Token      | OKLCH             | Rôle             |
+| ---------- | ----------------- | ---------------- |
+| `--grey-0` | `0.97 0.012 170`  | fond             |
+| `--grey-1` | `0.945 0.014 170` | surface          |
+| `--grey-2` | `0.92 0.016 170`  | surface élevée   |
+| `--grey-3` | `0.85 0.018 170`  | bordure discrète |
+| `--grey-4` | `0.75 0.02 170`   | bordure marquée  |
+| `--grey-5` | `0.52 0.02 170`   | texte secondaire |
+| `--grey-6` | `0.24 0.02 168`   | texte primaire   |
 
 ### Neutres dark (même teinte, échelle inversée, jamais un noir sans chroma)
 
-| Token | OKLCH |
-|---|---|
-| `--grey-dark-0` | `0.20 0.02 170` |
-| `--grey-dark-1` | `0.24 0.02 170` |
+| Token           | OKLCH            |
+| --------------- | ---------------- |
+| `--grey-dark-0` | `0.20 0.02 170`  |
+| `--grey-dark-1` | `0.24 0.02 170`  |
 | `--grey-dark-2` | `0.28 0.022 170` |
-| `--grey-dark-3` | `0.36 0.02 170` |
-| `--grey-dark-4` | `0.46 0.02 170` |
+| `--grey-dark-3` | `0.36 0.02 170`  |
+| `--grey-dark-4` | `0.46 0.02 170`  |
 | `--grey-dark-5` | `0.72 0.016 170` |
-| `--grey-dark-6` | `0.95 0.01 168` |
+| `--grey-dark-6` | `0.95 0.01 168`  |
 
 ### Accent minéral « argile » — un déclencheur par écran maximum
 
-| Token | OKLCH | Usage |
-|---|---|---|
-| `--clay-fill` | `0.62 0.085 55` | à voir : points, barres, états actifs |
-| `--clay-text` | `0.42 0.09 50` | à lire : conforme WCAG AA |
-| `--clay-subtle` | `0.72 0.06 55` | écart de faible magnitude |
-| `--clay-moderate` | `0.66 0.075 55` | magnitude moyenne |
-| `--clay-ceiling` | `0.60 0.09 55` | **plafond dur** — jamais dépassé quel que soit le montant réel |
-| `--clay-fill-dark` | `0.68 0.075 55` | dark theme : éclairci + désaturé (évite l'effet néon) |
+| Token              | OKLCH           | Usage                                                          |
+| ------------------ | --------------- | -------------------------------------------------------------- |
+| `--clay-fill`      | `0.62 0.085 55` | à voir : points, barres, états actifs                          |
+| `--clay-text`      | `0.42 0.09 50`  | à lire : conforme WCAG AA                                      |
+| `--clay-subtle`    | `0.72 0.06 55`  | écart de faible magnitude                                      |
+| `--clay-moderate`  | `0.66 0.075 55` | magnitude moyenne                                              |
+| `--clay-ceiling`   | `0.60 0.09 55`  | **plafond dur** — jamais dépassé quel que soit le montant réel |
+| `--clay-fill-dark` | `0.68 0.075 55` | dark theme : éclairci + désaturé (évite l'effet néon)          |
 
 **Deux versions non interchangeables** : `fill` pour être vu (points, barres),
 `text` pour être lu et rester conforme WCAG AA.
 
 ### Erreurs système — isolées, jamais mélangées à l'argile
 
-| Token | OKLCH |
-|---|---|
-| `--brick` | `0.5 0.07 30` |
+| Token            | OKLCH         |
+| ---------------- | ------------- |
+| `--brick`        | `0.5 0.07 30` |
 | `--brick-subtle` | `0.9 0.03 30` |
 
 ### Structurel
 
-| Token | OKLCH |
-|---|---|
+| Token     | OKLCH   |
+| --------- | ------- |
 | `--white` | `1 0 0` |
 
 ## Tokens sémantiques (`tokens/semantic.css`) — seuls consommés par les composants
@@ -80,13 +80,16 @@ vers un noir sans chroma.
 interdit).
 
 ### Surfaces
+
 `--surface-base`, `--surface-card`, `--surface-raised`, `--surface-overlay`,
 `--surface-scrim` (`oklch(0.24 0.02 168 / 0.45)`)
 
 ### Bordures
+
 `--border-subtle`, `--border-strong`
 
 ### Texte
+
 `--text-primary`, `--text-secondary`, `--text-on-accent`, `--text-disabled`
 
 ### Échelle de balance / écart
@@ -101,12 +104,12 @@ impossible plutôt que déconseillé).
 `--category-1` à `--category-6` — rotation fixe, sous-famille de gris-verts, **jamais**
 l'accent argile :
 
-| Token | OKLCH |
-|---|---|
+| Token          | OKLCH            |
+| -------------- | ---------------- |
 | `--category-1` | `0.62 0.035 150` |
-| `--category-2` | `0.62 0.03 190` |
-| `--category-3` | `0.6 0.035 130` |
-| `--category-4` | `0.58 0.03 205` |
+| `--category-2` | `0.62 0.03 190`  |
+| `--category-3` | `0.6 0.035 130`  |
+| `--category-4` | `0.58 0.03 205`  |
 | `--category-5` | `0.64 0.032 165` |
 | `--category-6` | `0.56 0.028 220` |
 

@@ -39,9 +39,13 @@ const sizes = {
 // radius-none, transition sur motion.micro, opacity 0.4 si disabled
 
 const variants = {
-  primary:   { background: "var(--text-primary)", color: "var(--surface-base)" },
-  secondary: { background: "transparent", color: "var(--text-primary)", borderColor: "var(--border-strong)" },
-  ghost:     { background: "transparent", color: "var(--text-secondary)" },
+  primary: { background: "var(--text-primary)", color: "var(--surface-base)" },
+  secondary: {
+    background: "transparent",
+    color: "var(--text-primary)",
+    borderColor: "var(--border-strong)",
+  },
+  ghost: { background: "transparent", color: "var(--text-secondary)" },
 };
 // hover : primary -> background var(--grey-5) ; secondary -> borderColor var(--text-primary) ;
 // ghost -> color var(--text-primary)
@@ -133,18 +137,27 @@ function WaterLine({ magnitude = 0, width = 320, height = 64 }) {
   const cx = width / 2;
 
   const color =
-    abs === 0 ? "var(--color-balance-none)" :
-    abs < 0.25 ? "var(--color-balance-subtle)" :
-    abs < 0.6 ? "var(--color-balance-moderate)" :
-    "var(--color-balance-ceiling)";
+    abs === 0
+      ? "var(--color-balance-none)"
+      : abs < 0.25
+        ? "var(--color-balance-subtle)"
+        : abs < 0.6
+          ? "var(--color-balance-moderate)"
+          : "var(--color-balance-ceiling)";
 
   // courbe quadratique : point de contrôle au centre, déplacé verticalement de `depth`
   const path = `M 0 ${midY} Q ${cx} ${midY + sign * depth} ${width} ${midY}`;
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"
-        style={{ transition: `all var(--motion-settle-duration) var(--motion-settle-easing)` }} />
+      <path
+        d={path}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        style={{ transition: `all var(--motion-settle-duration) var(--motion-settle-easing)` }}
+      />
     </svg>
   );
 }
@@ -153,12 +166,12 @@ function WaterLine({ magnitude = 0, width = 320, height = 64 }) {
 Seuils de palier de couleur (mêmes seuils pilotent la couleur ET la profondeur de la
 courbe — jamais un encodage divergent) :
 
-| `abs(magnitude)` | Couleur |
-|---|---|
-| `= 0` | `--color-balance-none` |
-| `< 0.25` | `--color-balance-subtle` |
-| `< 0.6` | `--color-balance-moderate` |
-| `>= 0.6` | `--color-balance-ceiling` |
+| `abs(magnitude)` | Couleur                    |
+| ---------------- | -------------------------- |
+| `= 0`            | `--color-balance-none`     |
+| `< 0.25`         | `--color-balance-subtle`   |
+| `< 0.6`          | `--color-balance-moderate` |
+| `>= 0.6`         | `--color-balance-ceiling`  |
 
 ### AmountDisplay
 
@@ -221,8 +234,8 @@ Overlay scrim uniquement (`--surface-scrim`) — zéro ombre à tout niveau d'é
 ### Tooltip
 
 ```ts
-children: React.ReactNode
-label: string
+children: React.ReactNode;
+label: string;
 ```
 
 Coins carrés, pas d'ombre.

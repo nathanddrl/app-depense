@@ -6,23 +6,23 @@
 justifie, jamais le défaut. Volontairement **aucun palier intermédiaire entre 32 et
 56**.
 
-| Token | Valeur |
-|---|---|
-| `--space-1` | 8px |
-| `--space-2` | 16px |
-| `--space-3` | 32px |
-| `--space-4` | 56px |
-| `--space-5` | 96px |
+| Token       | Valeur                          |
+| ----------- | ------------------------------- |
+| `--space-1` | 8px                             |
+| `--space-2` | 16px                            |
+| `--space-3` | 32px                            |
+| `--space-4` | 56px                            |
+| `--space-5` | 96px                            |
 | `--space-6` | 120px (= `--space-section-gap`) |
 
 ## Radius (`tokens/radius.css`)
 
 **Quasi nul.** Une seule valeur non-zéro dans tout le système.
 
-| Token | Valeur | Usage |
-|---|---|---|
-| `--radius-none` | 0px | tout le reste — cards, boutons, dialogs, chips |
-| `--radius-subtle` | 2px | **exclusivement** les surfaces tactiles (inputs, tap targets) |
+| Token             | Valeur | Usage                                                         |
+| ----------------- | ------ | ------------------------------------------------------------- |
+| `--radius-none`   | 0px    | tout le reste — cards, boutons, dialogs, chips                |
+| `--radius-subtle` | 2px    | **exclusivement** les surfaces tactiles (inputs, tap targets) |
 
 L'angle droit est le signe de l'immobilité, à rebours de l'arrondi « friendly » du SaaS
 générique. Ne jamais arrondir une card, un bouton, un dialog ou un chip.

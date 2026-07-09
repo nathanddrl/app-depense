@@ -18,11 +18,11 @@ de spring, pas de bounce, nulle part dans la codebase.
 --motion-micro-easing: cubic-bezier(0.16, 1, 0.3, 1);
 ```
 
-| Palier | Durée | Easing | Usage |
-|---|---|---|---|
-| `motion.settle` | 600ms | `cubic-bezier(0.16, 1, 0.3, 1)` | geste-signature du solde qui se stabilise (`WaterLine`) |
-| `motion.settle` étendu | 1200ms | idem | l'accent argile qui s'efface entièrement à la résorption d'un écart |
-| `motion.micro` | 300ms | `cubic-bezier(0.16, 1, 0.3, 1)` | feedback d'interaction ponctuel (hover, focus, toggle) |
+| Palier                 | Durée  | Easing                          | Usage                                                               |
+| ---------------------- | ------ | ------------------------------- | ------------------------------------------------------------------- |
+| `motion.settle`        | 600ms  | `cubic-bezier(0.16, 1, 0.3, 1)` | geste-signature du solde qui se stabilise (`WaterLine`)             |
+| `motion.settle` étendu | 1200ms | idem                            | l'accent argile qui s'efface entièrement à la résorption d'un écart |
+| `motion.micro`         | 300ms  | `cubic-bezier(0.16, 1, 0.3, 1)` | feedback d'interaction ponctuel (hover, focus, toggle)              |
 
 **Règle** : les deux paliers utilisent la même courbe de décélération lourde. Aucun
 spring bouncy nulle part dans la codebase — l'immobilité et la retenue priment même dans
