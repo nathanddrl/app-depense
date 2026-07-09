@@ -16,12 +16,12 @@ export default function LoginPage() {
   return (
     <main>
       <Stack gap={4}>
-        <PageTitle>Étale — Connexion</PageTitle>
+        <PageTitle>Étale — connexion</PageTitle>
         <Card>
           <form action={formAction}>
             <Stack gap={2}>
               <Input
-                label="Email"
+                label="email"
                 type="email"
                 name="email"
                 autoComplete="email"
@@ -29,7 +29,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
               <Input
-                label="Mot de passe"
+                label="mot de passe"
                 type="password"
                 name="password"
                 autoComplete="current-password"
@@ -38,7 +38,7 @@ export default function LoginPage() {
               />
               {state.error ? <Notice tone="error">{state.error}</Notice> : null}
               <Button type="submit" disabled={pending}>
-                {pending ? "Connexion…" : "Se connecter"}
+                {pending ? "connexion…" : "se connecter"}
               </Button>
             </Stack>
           </form>

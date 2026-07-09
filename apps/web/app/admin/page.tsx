@@ -25,7 +25,7 @@ export default async function AdminPage() {
     return (
       <main style={{ maxWidth: "960px" }}>
         <Stack gap={4}>
-          <PageTitle>Administration — dépenses</PageTitle>
+          <PageTitle>administration — dépenses</PageTitle>
           <Card>
             <Notice tone="error">{overviewResult.error.message}</Notice>
           </Card>
@@ -37,7 +37,7 @@ export default async function AdminPage() {
   return (
     <main style={{ maxWidth: "960px" }}>
       <Stack gap={4}>
-        <PageTitle>Administration — dépenses (vue brute)</PageTitle>
+        <PageTitle>administration — dépenses (vue brute)</PageTitle>
         <AdminExpenseTable initialLines={overviewResult.data} members={members} />
       </Stack>
     </main>

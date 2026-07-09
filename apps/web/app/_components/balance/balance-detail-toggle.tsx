@@ -106,12 +106,12 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
   return (
     <Stack gap={2}>
       <Button variant="ghost" onClick={handleClick}>
-        Pourquoi ?
+        pourquoi ?
       </Button>
       {open && (
         <Stack gap={1}>
           {isPending || lines === null ? (
-            <Notice tone="neutral">Calcul en cours…</Notice>
+            <Notice tone="neutral">calcul en cours…</Notice>
           ) : (
             <>
               {lines.map((line, i) => (
@@ -125,7 +125,7 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
                   ))}
                 </Notice>
               ))}
-              <Notice tone="neutral">Total : {totalMessage}</Notice>
+              <Notice tone="neutral">total : {totalMessage}</Notice>
             </>
           )}
         </Stack>

@@ -60,25 +60,25 @@ function EditRow({
           }}
         >
           <Stack gap={1}>
-            <Input label="Libellé" value={label} onChange={(e) => setLabel(e.target.value)} />
+            <Input label="libellé" value={label} onChange={(e) => setLabel(e.target.value)} />
             <Input
-              label="Montant"
+              label="montant"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               suffix="€"
             />
             <Input
               type="date"
-              label="Date"
+              label="date"
               value={incurredOn}
               onChange={(e) => setIncurredOn(e.target.value)}
               required
             />
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Enregistrement…" : "Enregistrer"}
+              {isPending ? "enregistrement…" : "enregistrer"}
             </Button>
             <Button type="button" variant="secondary" onClick={onCancel} disabled={isPending}>
-              Annuler
+              annuler
             </Button>
           </Stack>
         </form>
@@ -127,13 +127,13 @@ export function AdminExpenseTable({ initialLines: lines, members }: Props) {
           <table>
             <thead>
               <tr>
-                <th>Libellé</th>
-                <th>Catégorie</th>
-                <th>Date</th>
-                <th>Brut</th>
-                <th>Payeur</th>
-                <th>Statut</th>
-                <th>Décomposition</th>
+                <th>libellé</th>
+                <th>catégorie</th>
+                <th>date</th>
+                <th>brut</th>
+                <th>payeur</th>
+                <th>statut</th>
+                <th>décomposition</th>
                 <th />
               </tr>
             </thead>
@@ -178,7 +178,7 @@ export function AdminExpenseTable({ initialLines: lines, members }: Props) {
                     </td>
                     <td>
                       <Button type="button" onClick={() => setEditingId(line.id)}>
-                        Éditer
+                        éditer
                       </Button>
                     </td>
                   </tr>

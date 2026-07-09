@@ -138,7 +138,7 @@ export function AidSection({
           `Button` (T-CD2.2, même pattern que BalanceDetailToggle T-CD2.1) —
           size par défaut (md, ~46px) pour ne pas régresser sous 44px. */}
       <Button variant="ghost" onClick={() => setOpen((prev) => !prev)}>
-        Options
+        options
       </Button>
       {open && (
         <Stack gap={2}>
@@ -172,7 +172,7 @@ export function AidSection({
                       onClick={() => handleRemove(a.id)}
                       disabled={isPending}
                     >
-                      Retirer
+                      retirer
                     </Button>
                   </li>
                 ))}
@@ -182,26 +182,26 @@ export function AidSection({
             <form action={handleAdd}>
               <Stack gap={2}>
                 <Input
-                  label="Libellé"
+                  label="libellé"
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
                   placeholder="APL"
                 />
                 <Input
-                  label="Montant"
+                  label="montant"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="200"
                   suffix="€"
                 />
                 <label className={nativeSelectStyles.wrapper}>
-                  <span className={nativeSelectStyles.label}>Qui la touche ?</span>
+                  <span className={nativeSelectStyles.label}>qui la touche ?</span>
                   <select
                     className={nativeSelectStyles.select}
                     value={beneficiaryId}
                     onChange={(e) => setBeneficiaryId(e.target.value)}
                   >
-                    <option value={currentMemberId}>Toi</option>
+                    <option value={currentMemberId}>toi</option>
                     {members
                       .filter((m) => m.memberId !== currentMemberId)
                       .map((m) => (
@@ -213,7 +213,7 @@ export function AidSection({
                 </label>
                 {error ? <Notice tone="error">{error}</Notice> : null}
                 <Button type="submit" disabled={isPending}>
-                  {isPending ? "Ajout…" : "Ajouter l'aide"}
+                  {isPending ? "ajout…" : "ajouter l'aide"}
                 </Button>
               </Stack>
             </form>

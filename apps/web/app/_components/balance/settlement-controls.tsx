@@ -114,7 +114,7 @@ export function SettlementControls({
             disabled={isPending}
             onClick={() => run(() => cancelSettlementAction({ settlementId: settlement.id }))}
           >
-            Annuler
+            annuler
           </Button>
         ) : null}
         {isCreditor ? (
@@ -122,7 +122,7 @@ export function SettlementControls({
             disabled={isPending}
             onClick={() => run(() => confirmSettlementAction({ settlementId: settlement.id }))}
           >
-            J&apos;ai reçu
+            j&apos;ai reçu
           </Button>
         ) : null}
       </Stack>
@@ -137,7 +137,7 @@ export function SettlementControls({
     <Stack gap={1}>
       {error ? <Notice tone="error">{error}</Notice> : null}
       <Button disabled={isPending} onClick={() => run(() => initiateSettlementAction())}>
-        Solder
+        solder
       </Button>
     </Stack>
   );
