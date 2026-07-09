@@ -7,7 +7,7 @@ import { Button } from "./_components/design-system/core";
 import { WaterSeparator } from "./_components/design-system/navigation";
 import { Stack } from "./_components/design-system/layout";
 
-// Le seam résout le membre + le foyer courant (via le JWT/RLS) ; le middleware
+// Le seam résout le membre + le foyer courant (via le JWT/RLS) ; le proxy
 // redirige déjà les visiteurs non authentifiés vers /login.
 export default async function Home() {
   const ctx = await getCurrentContext();

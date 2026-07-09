@@ -3,7 +3,9 @@ import { updateSession } from "./lib/supabase/middleware";
 
 // Rafraîchit la session Supabase à chaque navigation et protège les routes
 // (redirect /login si non authentifié). Le matcher exclut les assets statiques.
-export async function middleware(request: NextRequest) {
+// Convention Next 16 : middleware.ts renommé proxy.ts (pur renommage, doc officielle
+// "Migration to Proxy" — https://nextjs.org/docs/app/api-reference/file-conventions/proxy).
+export async function proxy(request: NextRequest) {
   return updateSession(request);
 }
 
