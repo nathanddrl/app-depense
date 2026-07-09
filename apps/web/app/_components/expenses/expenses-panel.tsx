@@ -54,7 +54,7 @@ export function ExpensesPanel({ currentMemberId, initialExpenses, defaultShares 
           label: input.label,
           category: input.category,
           grossCents: input.grossCents,
-          payerId: currentMemberId,
+          payerId: input.payerId,
           incurredOn: input.incurredOn,
           shares: input.shares,
         });

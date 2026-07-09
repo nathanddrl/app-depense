@@ -4,9 +4,13 @@
 // (uiuix-guide/mainpage.zip, ExpenseForm.jsx) avec les vrais composants
 // design-system et les vraies catégories du domaine.
 //
-// Le payeur reste implicitement l'utilisateur connecté (décision actée avec
-// l'utilisateur : pas de sélecteur "payé par"). La répartition se pilote via un
-// curseur unique (foyer à 2 personnes, `defaultShares` toujours de longueur 2).
+// Le payeur est sélectionnable (« qui a payé », même sélecteur natif que
+// `recurring-template-form.tsx`/`aid-section.tsx`) — décision revenue sur le
+// choix initial (implicite = utilisateur connecté), un membre pouvant saisir
+// une dépense payée par l'autre. La répartition se pilote via un curseur
+// unique (foyer à 2 personnes, `defaultShares` toujours de longueur 2),
+// indépendant du payeur : payer et partager sont deux questions distinctes
+// (même contrat que `CreateExpenseInput`, `payerId` et `shares` séparés).
 // L'aide cochée ici ne fait AUCUN calcul côté client : seul un montant brut est
 // collecté, `addAidAction` (côté parent) applique la vraie logique calc-engine.
 
@@ -18,11 +22,13 @@ import { Button, Card, Input, Checkbox } from "../design-system/core";
 import { CategoryChip } from "../design-system/balance";
 import { Notice } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
+import nativeSelectStyles from "../design-system/core/native-select.module.css";
 
 export type NewExpenseInput = {
   label: string;
   category: Category;
   grossCents: number;
+  payerId: string;
   incurredOn: string;
   shares: { memberId: string; pct: number }[];
   aid: { amountCents: number } | null;
@@ -52,6 +58,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<Category>("autre");
+  const [payerId, setPayerId] = useState(currentMemberId);
   const [incurredOn, setIncurredOn] = useState(today());
   const [payerPct, setPayerPct] = useState(initialPayerPct);
   const [aideOn, setAideOn] = useState(false);
@@ -70,6 +77,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
       label: trimmedLabel,
       category,
       grossCents: centsFrom(amount),
+      payerId,
       incurredOn,
       shares,
       aid: aideOn && aideAmount ? { amountCents: centsFrom(aideAmount) } : null,
@@ -79,6 +87,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
       setLabel("");
       setAmount("");
       setCategory("autre");
+      setPayerId(currentMemberId);
       setIncurredOn(today());
       setAideOn(false);
       setAideAmount("");
@@ -163,6 +172,24 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
             ))}
           </div>
         </Stack>
+
+        <label className={nativeSelectStyles.wrapper}>
+          <span className={nativeSelectStyles.label}>qui a payé</span>
+          <select
+            className={nativeSelectStyles.select}
+            value={payerId}
+            onChange={(e) => setPayerId(e.target.value)}
+          >
+            <option value={currentMemberId}>toi</option>
+            {defaultShares
+              .filter((m) => m.memberId !== currentMemberId)
+              .map((m) => (
+                <option key={m.memberId} value={m.memberId}>
+                  {m.displayName}
+                </option>
+              ))}
+          </select>
+        </label>
 
         {otherMember ? (
           <Stack gap={1}>
