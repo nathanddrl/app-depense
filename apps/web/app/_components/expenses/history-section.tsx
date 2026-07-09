@@ -12,6 +12,11 @@
 //
 // L'aide après coup (`AidSection`) reste disponible par ligne, derrière une
 // disclosure « options » — capacité déjà existante, simplement nichée ici.
+//
+// `expense.source` (T-CR3, spec 8.1) : badge discret sur les lignes générées
+// par une charge récurrente, même traitement visuel que « en attente… » —
+// jamais une couleur d'alerte, ce n'est pas une anomalie. Rien n'est affiché
+// pour `source='manual'` (le défaut reste silencieux).
 
 import { useMemo, useState } from "react";
 import type { Category, Expense } from "@app/domain-expense";
@@ -145,6 +150,11 @@ export function HistorySection({
                     {"pending" in e && e.pending ? (
                       <span style={{ color: "var(--text-secondary)", fontSize: "var(--text-sm)" }}>
                         en attente…
+                      </span>
+                    ) : null}
+                    {"source" in e && e.source === "recurring" ? (
+                      <span style={{ color: "var(--text-secondary)", fontSize: "var(--text-sm)" }}>
+                        dépense qui revient chaque mois
                       </span>
                     ) : null}
                   </div>
