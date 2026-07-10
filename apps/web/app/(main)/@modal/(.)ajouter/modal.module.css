@@ -1,0 +1,40 @@
+/* Overlay plein écran de l'écran « ajouter » (navigation-ia §3.3). Surface mate
+   opaque (pas de scrim puisqu'il n'y a plus de fond à assombrir), zéro ombre,
+   zéro radius. Placeholder CN1. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-base);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.title {
+  font-family: var(--font-body);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+/* Contrepoids du bouton « annuler » pour centrer le titre. */
+.spacer {
+  min-width: 64px;
+}
+
+.body {
+  flex: 1;
+  max-width: 480px;
+  width: 100%;
+  margin-inline: auto;
+  padding: var(--space-3);
+}
