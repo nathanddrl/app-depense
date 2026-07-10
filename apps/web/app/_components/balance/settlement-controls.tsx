@@ -46,17 +46,12 @@ function bannerMessage(
   amount: string,
 ): ReactNode {
   if (isInitiator) {
-    return (
-      <>
-        Tu as dit avoir remboursé <AmountDisplay value={amount} /> à {creditorName}. En attente de
-        sa confirmation.
-      </>
-    );
+    return <>tu as marqué l&apos;écart comme résorbé auprès de {creditorName} — en attente de sa confirmation.</>;
   }
   if (isCreditor) {
     return (
       <>
-        {debtorName} dit t&apos;avoir remboursé <AmountDisplay value={amount} />.
+        {debtorName} dit avoir résorbé l&apos;écart de <AmountDisplay value={amount} /> avec toi.
       </>
     );
   }
