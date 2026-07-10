@@ -59,6 +59,13 @@ Chaque package expose sa source directement : `"exports": { ".": "./src/index.ts
 | `pnpm lint` / `pnpm typecheck`        | ESLint / `tsc --noEmit` par package                       |
 | `pnpm format` / `pnpm format:check`   | Prettier                                                  |
 
+## Design Context
+
+`apps/web/PRODUCT.md` (registre, utilisateurs, positionnement, anti-références)
+et `apps/web/DESIGN.md` (tokens couleur/typo/motion, composants, do's/don'ts)
+font foi pour tout travail UI — générés par `/impeccable init`, à partir du
+guide de marque `uiuix-guide/` et des tokens réels (`app/styles/tokens/*.css`).
+
 ## Contraintes de stack
 
 - **Ne pas installer** TanStack Query (DA9) ni next-intl (DA10). UI optimiste =

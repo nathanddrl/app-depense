@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-10T00:00:00.000Z",
+  "title": "Design System: Étale",
+  "extensions": {
+    "colorMeta": {
+      "surface-base": {
+        "role": "neutral",
+        "displayName": "Ardoise fond",
+        "canonical": "oklch(0.97 0.012 170)",
+        "tonalRamp": [
+          "oklch(0.15 0.02 170)",
+          "oklch(0.28 0.02 170)",
+          "oklch(0.40 0.02 170)",
+          "oklch(0.52 0.02 170)",
+          "oklch(0.64 0.02 170)",
+          "oklch(0.76 0.02 170)",
+          "oklch(0.86 0.016 170)",
+          "oklch(0.97 0.012 170)"
+        ]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Ardoise texte primaire",
+        "canonical": "oklch(0.24 0.02 168)",
+        "tonalRamp": [
+          "oklch(0.15 0.02 168)",
+          "oklch(0.24 0.02 168)",
+          "oklch(0.36 0.02 170)",
+          "oklch(0.46 0.02 170)",
+          "oklch(0.52 0.02 170)",
+          "oklch(0.75 0.02 170)",
+          "oklch(0.85 0.018 170)",
+          "oklch(0.945 0.014 170)"
+        ]
+      },
+      "clay-fill": {
+        "role": "accent",
+        "displayName": "Argile",
+        "canonical": "oklch(0.62 0.085 55)",
+        "tonalRamp": [
+          "oklch(0.15 0.085 55)",
+          "oklch(0.28 0.09 50)",
+          "oklch(0.42 0.09 50)",
+          "oklch(0.55 0.088 55)",
+          "oklch(0.62 0.085 55)",
+          "oklch(0.66 0.075 55)",
+          "oklch(0.72 0.06 55)",
+          "oklch(0.85 0.04 55)"
+        ]
+      },
+      "clay-text": {
+        "role": "accent",
+        "displayName": "Argile lisible",
+        "canonical": "oklch(0.42 0.09 50)"
+      },
+      "brick": {
+        "role": "error",
+        "displayName": "Brique",
+        "canonical": "oklch(0.5 0.07 30)",
+        "tonalRamp": [
+          "oklch(0.15 0.07 30)",
+          "oklch(0.28 0.07 30)",
+          "oklch(0.40 0.07 30)",
+          "oklch(0.5 0.07 30)",
+          "oklch(0.62 0.06 30)",
+          "oklch(0.74 0.05 30)",
+          "oklch(0.85 0.035 30)",
+          "oklch(0.9 0.03 30)"
+        ]
+      },
+      "category-1": {
+        "role": "tertiary",
+        "displayName": "Catégorie — vert-gris 150°",
+        "canonical": "oklch(0.62 0.035 150)"
+      },
+      "category-2": {
+        "role": "tertiary",
+        "displayName": "Catégorie — bleu-gris 190°",
+        "canonical": "oklch(0.62 0.03 190)"
+      },
+      "category-3": {
+        "role": "tertiary",
+        "displayName": "Catégorie — vert-gris 130°",
+        "canonical": "oklch(0.6 0.035 130)"
+      },
+      "category-4": {
+        "role": "tertiary",
+        "displayName": "Catégorie — bleu-gris 205°",
+        "canonical": "oklch(0.58 0.03 205)"
+      },
+      "category-5": {
+        "role": "tertiary",
+        "displayName": "Catégorie — ardoise-vert 165°",
+        "canonical": "oklch(0.64 0.032 165)"
+      },
+      "category-6": {
+        "role": "tertiary",
+        "displayName": "Catégorie — bleu-ardoise 220°",
+        "canonical": "oklch(0.56 0.028 220)"
+      }
+    },
+    "typographyMeta": {
+      "display-lg": { "displayName": "Display — constat large", "purpose": "Phrases de constat déclaratif du solde uniquement (BalanceStatement, taille lg)." },
+      "display-md": { "displayName": "Display — constat moyen", "purpose": "Constat déclaratif, contexte secondaire." },
+      "display-sm": { "displayName": "Display — constat petit", "purpose": "Constat déclaratif, contexte compact (listes, cartes)." },
+      "title": { "displayName": "Titre de section", "purpose": "Titres de page/section en General Sans medium." },
+      "ui": { "displayName": "Chrome UI", "purpose": "Boutons, navigation, labels de chrome." },
+      "body": { "displayName": "Corps de texte", "purpose": "Texte courant, plafond 65–75ch." },
+      "caption": { "displayName": "Légende", "purpose": "Labels courts au-dessus d'un montant (ex. « solde »)." },
+      "amount": { "displayName": "Montant", "purpose": "Valeurs monétaires, chiffres tabulaires, différenciées par le poids jamais la taille." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "settle", "value": "600ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Geste-signature du solde qui se stabilise (WaterLine)." },
+      { "name": "settle-extended", "value": "1200ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Fondu de l'accent argile qui s'efface entièrement à la résorption d'un écart." },
+      { "name": "micro", "value": "300ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Feedback d'interaction ordinaire (hover, focus, toggle)." }
+    ],
+    "breakpoints": [
+      { "name": "mobile-column", "value": "480px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Button — primary",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Fond plein sombre, texte clair. Action principale d'un écran (ex. « ajouter une dépense »).",
+      "html": "<button class=\"ds-btn ds-btn-primary\">ajouter une dépense</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; font-family: \"General Sans\", -apple-system, sans-serif; font-weight: 500; letter-spacing: 0.01em; font-size: 15px; border: 1px solid transparent; border-radius: 0; padding: 12px 20px; cursor: pointer; transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-primary { background: oklch(0.24 0.02 168); color: oklch(0.97 0.012 170); } .ds-btn-primary:hover { background: oklch(0.52 0.02 170); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(0.62 0.085 55); outline-offset: 2px; }"
+    },
+    {
+      "name": "Button — secondary",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Contour, fond transparent. Action alternative à côté d'une primary.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\">annuler</button>",
+      "css": ".ds-btn-secondary { background: transparent; color: oklch(0.24 0.02 168); border-color: oklch(0.75 0.02 170); } .ds-btn-secondary:hover { border-color: oklch(0.24 0.02 168); } .ds-btn-secondary:focus-visible { outline: 2px solid oklch(0.62 0.085 55); outline-offset: 2px; }"
+    },
+    {
+      "name": "Button — ghost",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Texte seul, sans fond ni contour. Action tertiaire, faible priorité visuelle.",
+      "html": "<button class=\"ds-btn ds-btn-ghost\">plus tard</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: oklch(0.52 0.02 170); } .ds-btn-ghost:hover { color: oklch(0.24 0.02 168); }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Ligne unique, radius-subtle (2px) — la seule surface arrondie du système. Suffixe d'unité optionnel (ex. « € »).",
+      "html": "<div class=\"ds-input-wrapper\"><label class=\"ds-input-label\">montant</label><div class=\"ds-input-field\"><input class=\"ds-input\" type=\"number\" placeholder=\"0\" /><span class=\"ds-input-suffix\">€</span></div></div>",
+      "css": ".ds-input-wrapper { display: flex; flex-direction: column; gap: 4px; font-family: \"General Sans\", -apple-system, sans-serif; } .ds-input-label { font-size: 13px; color: oklch(0.52 0.02 170); } .ds-input-field { display: flex; align-items: center; border: 1px solid oklch(0.85 0.018 170); border-radius: 2px; background: oklch(0.97 0.012 170); padding: 0 12px; } .ds-input-field:focus-within { border-color: oklch(0.62 0.085 55); } .ds-input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-size: 15px; color: oklch(0.24 0.02 168); padding: 10px 0; } .ds-input::placeholder { color: oklch(0.52 0.02 170); } .ds-input-suffix { font-size: 15px; color: oklch(0.52 0.02 170); padding-left: 8px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Surface plate, aucune ombre, aucun radius, jamais.",
+      "html": "<div class=\"ds-card\">contenu</div>",
+      "css": ".ds-card { background: oklch(0.945 0.014 170); border-radius: 0; padding: 32px; }"
+    },
+    {
+      "name": "CategoryChip",
+      "kind": "chip",
+      "refersTo": "chip-category",
+      "description": "Aplat de couleur (rotation category-1..6) + initiale du nom saisi, jamais un pictogramme littéral. Attribution automatique, aucun color picker exposé.",
+      "html": "<span class=\"ds-chip\">L</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 28px; height: 28px; border-radius: 0; font-family: \"General Sans\", -apple-system, sans-serif; font-weight: 500; font-size: 13px; color: oklch(1 0 0); line-height: 1; background: oklch(0.62 0.035 150); }"
+    },
+    {
+      "name": "WaterLine",
+      "kind": "custom",
+      "refersTo": "water-line",
+      "description": "Composant signature : ligne horizontale dont l'inflexion et la couleur encodent la magnitude d'un écart (-1..1), jamais un nombre dans un badge.",
+      "html": "<svg class=\"ds-water-line\" width=\"280\" height=\"72\" viewBox=\"0 0 280 72\"><path d=\"M 0 36 Q 140 46 280 36\" fill=\"none\" stroke-width=\"2\" stroke-linecap=\"round\" /></svg>",
+      "css": ".ds-water-line path { stroke: oklch(0.66 0.075 55); transition: all 600ms cubic-bezier(0.16, 1, 0.3, 1); }"
+    },
+    {
+      "name": "Notice",
+      "kind": "custom",
+      "refersTo": "notice",
+      "description": "Message factuel inline ; aucun ton célébratoire/succès n'existe par construction.",
+      "html": "<div class=\"ds-notice\">le loyer de juillet a été ajouté</div>",
+      "css": ".ds-notice { font-family: \"General Sans\", -apple-system, sans-serif; font-size: 15px; line-height: 1.55; color: oklch(0.24 0.02 168); background: oklch(0.945 0.014 170); border-radius: 0; padding: 16px; } .ds-notice.error { color: oklch(0.5 0.07 30); background: oklch(0.9 0.03 30); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Le témoin immobile",
+    "overview": "Étale n'illustre pas l'équilibre financier d'un couple, elle le rend en position : une ligne horizontale qui s'infléchit avec la magnitude d'un écart, jamais avec son camp. Rien ne pop, tout se pose. Le système entier — angles droits, aucune ombre, une seule teinte d'accent plafonnée dur — est la traduction visuelle littérale d'un témoin fiable qui constate sans jamais prendre parti ni relancer.\n\nLa palette est volontairement pauvre : une ardoise glauque à teinte constante (168–170° OKLCH) du fond au texte, et un unique accent minéral « argile » réservé à une seule fonction — encoder la magnitude d'un écart, jamais deux couleurs opposées pour « ton côté vs mon côté ». Un solde équilibré ne porte aucune couleur : la résorption est un retour au neutre, jamais l'apparition d'un vert « succès ». Ce système rejette explicitement le réflexe Tricount (badges, streaks, félicitations, vert de succès) et le réflexe fintech perso type Sumeria/Revolut (vocabulaire et code couleur de pilotage/optimisation).",
+    "keyCharacteristics": [
+      "Angles droits partout ; une seule valeur de radius non nulle, réservée aux surfaces tactiles.",
+      "Aucune ombre, jamais — la profondeur s'encode par la luminosité de surface.",
+      "Une seule teinte d'accent (argile), plafonnée dur, jamais un second camp de couleur.",
+      "Fraunces italique réservée aux constats déclaratifs ; tout le reste en General Sans, deux graisses seulement.",
+      "Deux paliers de motion, décélération lourde, zéro overshoot, zéro spring."
+    ],
+    "rules": [
+      { "name": "La règle du plafond dur", "body": "L'accent argile ne dépasse jamais clay-ceiling quelle que soit la magnitude réelle de l'écart.", "section": "colors" },
+      { "name": "La règle de l'écart neutre", "body": "Un solde à zéro ne porte aucune couleur. La résorption est un retour au gris, jamais l'apparition d'un vert de succès.", "section": "colors" },
+      { "name": "La règle du montant discret", "body": "La taille d'un montant est toujours alignée sur le corps de texte environnant ; la différenciation se fait uniquement par le poids, jamais par la taille.", "section": "typography" },
+      { "name": "La règle bas-de-casse", "body": "Bas-de-casse quasi systématique, y compris le nom de marque et les labels courts. text-transform: uppercase interdit partout.", "section": "typography" },
+      { "name": "La règle zéro ombre", "body": "box-shadow n'apparaît nulle part dans le système, à aucun niveau d'élévation, y compris les modals.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do consommer les tokens sémantiques (--surface-raised), jamais une primitive directement (--grey-2) dans un composant.",
+      "Do encoder un écart via la magnitude de WaterLine (ligne + une seule teinte, plafonnée à clay-ceiling).",
+      "Do réserver radius-subtle (2px) exclusivement aux surfaces tactiles (inputs, tap targets).",
+      "Do encoder la profondeur par la luminosité de surface (--elevation-*).",
+      "Do réserver Fraunces italique aux phrases de constat déclaratif.",
+      "Do différencier un montant par le poids (medium vs regular), jamais par la taille.",
+      "Do nommer les personnes dans la copy (« léa doit 42 € à nathan »), jamais une formulation impersonnelle.",
+      "Do auto-assigner couleur et initiale d'une catégorie, sans sélecteur manuel exposé."
+    ],
+    "donts": [
+      "Don't utiliser un badge/pill coloré ou deux teintes opposées pour « les deux côtés » d'un écart.",
+      "Don't arrondir une card, un bouton, un dialog ou un chip.",
+      "Don't ajouter un box-shadow où que ce soit, y compris les modals.",
+      "Don't ajouter un easing spring/bounce nulle part dans la codebase.",
+      "Don't réutiliser un token de l'échelle color-balance-* pour une erreur technique, ni l'inverse.",
+      "Don't utiliser text-transform: uppercase ou capitaliser pour l'emphase, nulle part.",
+      "Don't faire apparaître un ton célébratoire, un vert de succès, un badge ou un streak.",
+      "Don't introduire un vocabulaire de pilotage/optimisation ou une couleur d'alerte pour un retard.",
+      "Don't utiliser pièces, billets, cartes bancaires, portefeuilles, tirelires, personnages/avatars, mains qui se serrent, blobs mignons, émojis vectorisés, flèches de tendance boursière, confettis."
+    ]
+  }
+}
