@@ -13,11 +13,19 @@
 // (même contrat que `CreateExpenseInput`, `payerId` et `shares` séparés).
 // L'aide cochée ici ne fait AUCUN calcul côté client : seul un montant brut est
 // collecté, `addAidAction` (côté parent) applique la vraie logique calc-engine.
+//
+// Harmonisé avec `aid-section.tsx` (T-CR4, decisions-techniques.md) : champ
+// Aide visible uniquement pour la catégorie loyer, même sélecteur « toi /
+// [nom] / les 2 » (`aid-split.ts`). Le split réel (2 appels `addAid`) est
+// fait par le parent (`expenses-panel.tsx`), qui a seul accès à l'`expenseId`
+// une fois la dépense créée — ce composant se contente de faire remonter le
+// bénéficiaire choisi (memberId ou la sentinelle `BOTH_BENEFICIARIES`).
 
 import { useState } from "react";
 import type { Category } from "@app/domain-expense";
 import type { MemberShare } from "../../../lib/household";
 import { CATEGORIES } from "./categories";
+import { BOTH_BENEFICIARIES } from "./aid-split";
 import { Button, Card, Input, Checkbox } from "../design-system/core";
 import { CategoryChip } from "../design-system/balance";
 import { Notice } from "../design-system/feedback";
@@ -31,7 +39,7 @@ export type NewExpenseInput = {
   payerId: string;
   incurredOn: string;
   shares: { memberId: string; pct: number }[];
-  aid: { amountCents: number } | null;
+  aid: { amountCents: number; beneficiaryId: string } | null;
 };
 
 type Props = {
@@ -63,6 +71,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
   const [payerPct, setPayerPct] = useState(initialPayerPct);
   const [aideOn, setAideOn] = useState(false);
   const [aideAmount, setAideAmount] = useState("");
+  const [aideBeneficiary, setAideBeneficiary] = useState<string>(currentMemberId);
 
   async function handleSubmit() {
     const trimmedLabel = label.trim();
@@ -80,7 +89,10 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
       payerId,
       incurredOn,
       shares,
-      aid: aideOn && aideAmount ? { amountCents: centsFrom(aideAmount) } : null,
+      aid:
+        category === "loyer" && aideOn && aideAmount
+          ? { amountCents: centsFrom(aideAmount), beneficiaryId: aideBeneficiary }
+          : null,
     });
 
     if (success) {
@@ -91,6 +103,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
       setIncurredOn(today());
       setAideOn(false);
       setAideAmount("");
+      setAideBeneficiary(currentMemberId);
     }
   }
 
@@ -226,25 +239,45 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
           </Stack>
         ) : null}
 
-        <Stack gap={1}>
-          <Checkbox
-            checked={aideOn}
-            onChange={setAideOn}
-            label="une aide est rattachée à cette dépense"
-          />
-          {aideOn ? (
-            // 28px : proche de --space-3 (32px, écart 14%) mais pas assez pour
-            // substituer sans changement visuel constaté — conservé en dur (audit T-CD3)
-            <div style={{ paddingLeft: "28px" }}>
-              <Input
-                label="montant de l'aide"
-                value={aideAmount}
-                onChange={(e) => setAideAmount(e.target.value)}
-                suffix="€"
-              />
-            </div>
-          ) : null}
-        </Stack>
+        {category === "loyer" ? (
+          <Stack gap={1}>
+            <Checkbox
+              checked={aideOn}
+              onChange={setAideOn}
+              label="une aide est rattachée à cette dépense"
+            />
+            {aideOn ? (
+              // 28px : proche de --space-3 (32px, écart 14%) mais pas assez pour
+              // substituer sans changement visuel constaté — conservé en dur (audit T-CD3)
+              <div style={{ paddingLeft: "28px" }}>
+                <Stack gap={2}>
+                  <Input
+                    label="montant de l'aide"
+                    value={aideAmount}
+                    onChange={(e) => setAideAmount(e.target.value)}
+                    suffix="€"
+                  />
+                  <label className={nativeSelectStyles.wrapper}>
+                    <span className={nativeSelectStyles.label}>qui la touche ?</span>
+                    <select
+                      className={nativeSelectStyles.select}
+                      value={aideBeneficiary}
+                      onChange={(e) => setAideBeneficiary(e.target.value)}
+                    >
+                      <option value={currentMemberId}>toi</option>
+                      {otherMember ? (
+                        <>
+                          <option value={otherMember.memberId}>{otherMember.displayName}</option>
+                          <option value={BOTH_BENEFICIARIES}>les 2</option>
+                        </>
+                      ) : null}
+                    </select>
+                  </label>
+                </Stack>
+              </div>
+            ) : null}
+          </Stack>
+        ) : null}
 
         {error ? <Notice tone="error">{error}</Notice> : null}
         <Button onClick={handleSubmit} disabled={pending}>

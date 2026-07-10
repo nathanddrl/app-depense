@@ -17,6 +17,7 @@ import type { Expense } from "@app/domain-expense";
 import type { MemberShare } from "../../../lib/household";
 import { ExpenseForm, type NewExpenseInput } from "./expense-form";
 import { HistorySection, type HistoryExpense } from "./history-section";
+import { BOTH_BENEFICIARIES, splitBothCents } from "./aid-split";
 import { WaterSeparator } from "../design-system/navigation";
 import { Stack } from "../design-system/layout";
 
@@ -68,17 +69,42 @@ export function ExpensesPanel({ currentMemberId, initialExpenses, defaultShares 
         // Composition côté client de deux actions déjà existantes (aucune
         // logique métier ajoutée) : l'aide n'existe qu'une fois la dépense
         // créée (elle porte un `expenseId`), donc ce second appel ne peut pas
-        // être fusionné dans `createExpenseAction`.
+        // être fusionné dans `createExpenseAction`. « Les 2 » (T-CR4) appelle
+        // addAid deux fois — même logique de split que `aid-section.tsx`,
+        // partagée via `aid-split.ts`, jamais recalculée ici.
         let created = result.data;
         if (input.aid) {
-          const aidResult = await addAidAction({
-            expenseId: created.id,
-            label: "aide",
-            beneficiaryId: currentMemberId,
-            amountCents: input.aid.amountCents,
-          });
-          if (aidResult.ok) {
-            created = { ...created, aids: aidResult.data.aids, shares: aidResult.data.shares };
+          const otherMemberId = defaultShares.find((m) => m.memberId !== currentMemberId)?.memberId;
+
+          if (input.aid.beneficiaryId === BOTH_BENEFICIARIES && otherMemberId) {
+            const [firstCents, secondCents] = splitBothCents(input.aid.amountCents);
+            const firstResult = await addAidAction({
+              expenseId: created.id,
+              label: "aide",
+              beneficiaryId: currentMemberId,
+              amountCents: firstCents,
+            });
+            if (firstResult.ok) {
+              const secondResult = await addAidAction({
+                expenseId: created.id,
+                label: "aide",
+                beneficiaryId: otherMemberId,
+                amountCents: secondCents,
+              });
+              if (secondResult.ok) {
+                created = { ...created, aids: secondResult.data.aids, shares: secondResult.data.shares };
+              }
+            }
+          } else {
+            const aidResult = await addAidAction({
+              expenseId: created.id,
+              label: "aide",
+              beneficiaryId: input.aid.beneficiaryId,
+              amountCents: input.aid.amountCents,
+            });
+            if (aidResult.ok) {
+              created = { ...created, aids: aidResult.data.aids, shares: aidResult.data.shares };
+            }
           }
         }
 
