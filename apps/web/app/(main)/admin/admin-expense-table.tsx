@@ -6,14 +6,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { adminUpdateExpenseAction } from "../actions";
+import { adminUpdateExpenseAction } from "../../actions";
 import type { AdminExpenseOverviewLine } from "@app/domain-expense";
 import { formatAmountEUR, formatDateFr } from "@app/shared";
-import type { MemberShare } from "../../lib/household";
-import { Button, Card, Input } from "../_components/design-system/core";
-import { AmountDisplay } from "../_components/design-system/balance";
-import { Notice } from "../_components/design-system/feedback";
-import { Stack } from "../_components/design-system/layout";
+import type { MemberShare } from "../../../lib/household";
+import { Button, Card, Input } from "../../_components/design-system/core";
+import { AmountDisplay } from "../../_components/design-system/balance";
+import { Notice } from "../../_components/design-system/feedback";
+import { Stack } from "../../_components/design-system/layout";
 
 type Props = {
   initialLines: AdminExpenseOverviewLine[];

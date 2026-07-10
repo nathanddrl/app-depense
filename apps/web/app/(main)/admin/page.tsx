@@ -2,13 +2,13 @@
 // dépense verrouillée (T-C8.3). Aucun terme de vocabulaire membre à respecter
 // ici (§8.1 ne s'applique qu'aux écrans membres).
 
-import { getCurrentContext } from "../../lib/auth/context";
-import { getAdminExpenseOverviewAction } from "../actions";
-import { getDefaultShares } from "../../lib/household";
+import { getCurrentContext } from "../../../lib/auth/context";
+import { getAdminExpenseOverviewAction } from "../../actions";
+import { getDefaultShares } from "../../../lib/household";
 import { AdminExpenseTable } from "./admin-expense-table";
-import { Card } from "../_components/design-system/core";
-import { Notice } from "../_components/design-system/feedback";
-import { Stack, PageTitle } from "../_components/design-system/layout";
+import { Card } from "../../_components/design-system/core";
+import { Notice } from "../../_components/design-system/feedback";
+import { Stack, PageTitle } from "../../_components/design-system/layout";
 
 export default async function AdminPage() {
   const ctx = await getCurrentContext();
