@@ -54,8 +54,10 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function centsFrom(raw: string): number {
-  return Math.round(Number.parseFloat(raw.replace(",", ".")) * 100);
+/** `null` si `raw` n'est pas un montant exploitable — jamais de `NaN` renvoyé au serveur. */
+function centsFrom(raw: string): number | null {
+  const n = Number.parseFloat(raw.replace(",", "."));
+  return Number.isFinite(n) ? Math.round(n * 100) : null;
 }
 
 export function ExpenseForm({ currentMemberId, defaultShares, pending, error, onSubmit }: Props) {
@@ -72,10 +74,28 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
   const [aideOn, setAideOn] = useState(false);
   const [aideAmount, setAideAmount] = useState("");
   const [aideBeneficiary, setAideBeneficiary] = useState<string>(currentMemberId);
+  const [amountError, setAmountError] = useState<string | null>(null);
 
   async function handleSubmit() {
+    setAmountError(null);
     const trimmedLabel = label.trim();
     if (!trimmedLabel || !amount) return;
+
+    const grossCents = centsFrom(amount);
+    if (grossCents === null) {
+      setAmountError("montant invalide");
+      return;
+    }
+
+    let aid: NewExpenseInput["aid"] = null;
+    if (category === "loyer" && aideOn && aideAmount) {
+      const aideCents = centsFrom(aideAmount);
+      if (aideCents === null) {
+        setAmountError("montant de l'aide invalide");
+        return;
+      }
+      aid = { amountCents: aideCents, beneficiaryId: aideBeneficiary };
+    }
 
     const shares = defaultShares.map((m) => ({
       memberId: m.memberId,
@@ -85,14 +105,11 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
     const success = await onSubmit({
       label: trimmedLabel,
       category,
-      grossCents: centsFrom(amount),
+      grossCents,
       payerId,
       incurredOn,
       shares,
-      aid:
-        category === "loyer" && aideOn && aideAmount
-          ? { amountCents: centsFrom(aideAmount), beneficiaryId: aideBeneficiary }
-          : null,
+      aid,
     });
 
     if (success) {
@@ -131,6 +148,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0,00"
+              inputMode="decimal"
               suffix="€"
             />
           </div>
@@ -255,6 +273,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
                     label="montant de l'aide"
                     value={aideAmount}
                     onChange={(e) => setAideAmount(e.target.value)}
+                    inputMode="decimal"
                     suffix="€"
                   />
                   <label className={nativeSelectStyles.wrapper}>
@@ -279,6 +298,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
           </Stack>
         ) : null}
 
+        {amountError ? <Notice tone="error">{amountError}</Notice> : null}
         {error ? <Notice tone="error">{error}</Notice> : null}
         <Button onClick={handleSubmit} disabled={pending}>
           {pending ? "ajout…" : "ajouter"}

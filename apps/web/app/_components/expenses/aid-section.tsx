@@ -82,6 +82,12 @@ function sumCents(shares: ShareDTO[]): number {
   return shares.reduce((s, x) => s + x.cents, 0);
 }
 
+/** `null` si `raw` n'est pas un montant exploitable — jamais de `NaN` renvoyé au serveur. */
+function centsFrom(raw: string): number | null {
+  const n = Number.parseFloat(raw.replace(",", "."));
+  return Number.isFinite(n) ? Math.round(n * 100) : null;
+}
+
 export function AidSection({
   expenseId,
   grossCents,
@@ -115,7 +121,11 @@ export function AidSection({
   function handleAdd() {
     setError(null);
     const trimmedLabel = label.trim();
-    const amountCents = Math.round(Number.parseFloat(amount.replace(",", ".")) * 100);
+    const amountCents = centsFrom(amount);
+    if (amountCents === null) {
+      setError("montant invalide");
+      return;
+    }
 
     startTransition(async () => {
       if (beneficiary === BOTH_BENEFICIARIES && otherMember) {
@@ -260,6 +270,7 @@ export function AidSection({
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="200"
+                    inputMode="decimal"
                     suffix="€"
                   />
                   <label className={nativeSelectStyles.wrapper}>

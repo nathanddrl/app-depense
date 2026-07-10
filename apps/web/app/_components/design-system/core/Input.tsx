@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, InputHTMLAttributes } from "react";
 import styles from "./Input.module.css";
 
 type Props = {
@@ -9,6 +9,8 @@ type Props = {
   onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
   type?: "text" | "number" | "email" | "password" | "date";
+  /** Clavier mobile adapté (ex. `"decimal"` pour un champ montant). */
+  inputMode?: InputHTMLAttributes<HTMLInputElement>["inputMode"];
   suffix?: string;
   /** Champ contrôlé malgré tout (T-CD2.4) : nécessaire pour rester compatible avec
    * une Server Action lisant un FormData natif (ex. useActionState) sans dupliquer
@@ -24,6 +26,7 @@ export function Input({
   onChange,
   placeholder,
   type = "text",
+  inputMode,
   suffix,
   name,
   autoComplete,
@@ -36,6 +39,7 @@ export function Input({
         <input
           className={styles.input}
           type={type}
+          inputMode={inputMode}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
