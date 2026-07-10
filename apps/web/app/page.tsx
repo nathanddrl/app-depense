@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { getCurrentContext } from "../lib/auth/context";
 import { getDefaultShares } from "../lib/household";
-import { signOut, listExpensesAction } from "./actions";
+import { signOut, listExpensesAction, listRecurringTemplatesAction } from "./actions";
 import { ExpensesPanel } from "./_components/expenses/expenses-panel";
 import { BalancePanel } from "./_components/balance/balance-panel";
+import { FirstExpenseInvite } from "./_components/home/first-expense-invite";
+import { RecurrenceInvite } from "./_components/home/recurrence-invite";
 import { Button } from "./_components/design-system/core";
 import { WaterSeparator } from "./_components/design-system/navigation";
 import { Stack } from "./_components/design-system/layout";
@@ -12,10 +14,16 @@ import { Stack } from "./_components/design-system/layout";
 // redirige déjà les visiteurs non authentifiés vers /login.
 export default async function Home() {
   const ctx = await getCurrentContext();
-  const [expensesResult, defaultShares] = await Promise.all([
+  const [expensesResult, templatesResult, defaultShares] = await Promise.all([
     listExpensesAction(),
+    listRecurringTemplatesAction(),
     getDefaultShares(ctx.supabase, ctx.householdId),
   ]);
+
+  // États vides orientés action (spec 8.6, T-C9.1) : pas d'invitation si
+  // l'appel a échoué — on n'affirme rien sur un état inconnu.
+  const showFirstExpenseInvite = expensesResult.ok && expensesResult.data.length === 0;
+  const showRecurrenceInvite = templatesResult.ok && templatesResult.data.length === 0;
 
   return (
     <main>
@@ -40,6 +48,8 @@ export default async function Home() {
         </div>
 
         <BalancePanel currentMemberId={ctx.member.id} members={defaultShares} />
+        {showFirstExpenseInvite ? <FirstExpenseInvite /> : null}
+        {showRecurrenceInvite ? <RecurrenceInvite /> : null}
         <WaterSeparator />
         <ExpensesPanel
           currentMemberId={ctx.member.id}

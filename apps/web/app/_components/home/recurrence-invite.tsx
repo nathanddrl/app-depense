@@ -1,0 +1,27 @@
+"use client";
+
+// Invitation à paramétrer le loyer (spec 8.6, T-C9.1) : visible tant qu'aucun
+// template de charge récurrente actif n'existe (page.tsx,
+// `showRecurrenceInvite`), masquée dès qu'un template existe —
+// `listRecurringTemplates` ne remonte que les templates `active = true`. Même
+// ton que `first-expense-invite.tsx` : constat factuel + CTA infinitif.
+
+import { useRouter } from "next/navigation";
+import { Card, Button } from "../design-system/core";
+import { Notice } from "../design-system/feedback";
+import { Stack } from "../design-system/layout";
+
+export function RecurrenceInvite() {
+  const router = useRouter();
+
+  return (
+    <Card>
+      <Stack gap={2}>
+        <Notice>aucune charge récurrente n&apos;est encore paramétrée</Notice>
+        <Button variant="primary" onClick={() => router.push("/recurrence")}>
+          paramétrer le loyer
+        </Button>
+      </Stack>
+    </Card>
+  );
+}

@@ -120,13 +120,18 @@ export function ExpensesPanel({ currentMemberId, initialExpenses, defaultShares 
 
   return (
     <Stack gap={3}>
-      <ExpenseForm
-        currentMemberId={currentMemberId}
-        defaultShares={defaultShares}
-        pending={isPending}
-        error={error}
-        onSubmit={handleAdd}
-      />
+      {/* Cible de scroll pour `FirstExpenseInvite` (T-C9.1) — le formulaire
+          est déjà sur la page, l'invitation y amène plutôt que de dupliquer
+          une route dédiée. */}
+      <div id="nouvelle-depense">
+        <ExpenseForm
+          currentMemberId={currentMemberId}
+          defaultShares={defaultShares}
+          pending={isPending}
+          error={error}
+          onSubmit={handleAdd}
+        />
+      </div>
       <WaterSeparator />
       <HistorySection
         expenses={optimisticExpenses}
