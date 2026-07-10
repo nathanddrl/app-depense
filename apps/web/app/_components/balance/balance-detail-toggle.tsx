@@ -44,7 +44,7 @@ function baseLine(
   const isCurrentPayer = line.payerId === currentMemberId;
   const payerLabel = isCurrentPayer ? "toi" : otherDisplayName;
   const otherPct = pctOf(line.baseOwedCents, line.grossCents);
-  const resultPrefix = isCurrentPayer ? `${otherDisplayName} te doit ` : "Tu dois ";
+  const resultPrefix = isCurrentPayer ? `${otherDisplayName} te doit ` : "tu dois ";
   const resultSuffix = isCurrentPayer ? "" : ` à ${payerLabel}`;
   return (
     <>

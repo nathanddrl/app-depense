@@ -58,7 +58,7 @@ export async function BalancePanel({ currentMemberId, members }: Props) {
       <BalanceNetworkGate>
         <Card>
           <Stack gap={2}>
-            <BalanceStatement>Vous êtes à jour</BalanceStatement>
+            <BalanceStatement>vous êtes étale</BalanceStatement>
             <WaterLine magnitude={0} />
             {settlementControls}
           </Stack>
@@ -73,7 +73,7 @@ export async function BalancePanel({ currentMemberId, members }: Props) {
   const amount = formatAmountEUR(amountCents);
   const message = isCreditor
     ? `${otherName} te doit ${amount}`
-    : `Tu dois ${amount} à ${otherName}`;
+    : `tu dois ${amount} à ${otherName}`;
 
   return (
     <BalanceNetworkGate>
