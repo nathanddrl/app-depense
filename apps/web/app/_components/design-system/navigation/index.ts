@@ -4,3 +4,5 @@
 
 export { Tabs } from "./Tabs";
 export { WaterSeparator } from "./WaterSeparator";
+export { BottomNav } from "./BottomNav";
+export type { BottomNavItem } from "./BottomNav";
