@@ -9,12 +9,19 @@
 // "reste à partager" vient directement de `shares` renvoyées par le serveur
 // (calc-engine reste la seule source de calcul, DA4) : on ne le recalcule jamais
 // ici, on additionne juste les parts déjà calculées.
+//
+// T-CR4 (décision produit 09/07/2026) : le champ Aide n'est proposé que pour
+// la catégorie loyer (restriction UI seulement, `aid` reste générique côté
+// domaine) ; sélecteur bénéficiaire étendu avec « les 2 », raccourci de saisie
+// qui appelle `addAid` deux fois (`aid-split.ts`) — jamais un nouveau champ.
 
 import { useState, useTransition } from "react";
 import { addAidAction, removeAidAction } from "../../actions";
 import { formatAmountEUR } from "@app/shared";
 import type { AidDTO } from "@app/domain-aid";
+import type { Category } from "@app/domain-expense";
 import type { MemberShare } from "../../../lib/household";
+import { BOTH_BENEFICIARIES, splitBothCents } from "./aid-split";
 import { Button, Input } from "../design-system/core";
 import { AmountDisplay } from "../design-system/balance";
 import { Notice } from "../design-system/feedback";
@@ -26,6 +33,7 @@ type ShareDTO = { memberId: string; cents: number; pctSnapshot: number };
 type Props = {
   expenseId: string;
   grossCents: number;
+  category: Category;
   currentMemberId: string;
   members: MemberShare[];
   initialAids: AidDTO[];
@@ -58,6 +66,18 @@ function explanationSentence(
   return `${aid.label} de ${formatAmountEUR(aid.amountCents)} ${verb} sert à la dépense commune. On ne partage que ce qui reste : ${formatAmountEUR(remainingCents)} au lieu de ${formatAmountEUR(grossCents)}.`;
 }
 
+/** Variante « les 2 » (T-CR4) : les 2 montants sont énoncés, toujours un résultat, jamais la formule. */
+function explanationSentenceBoth(
+  label: string,
+  firstCents: number,
+  secondCents: number,
+  otherName: string,
+  remainingCents: number,
+  grossCents: number,
+): string {
+  return `${label} de ${formatAmountEUR(firstCents)} que tu touches et ${formatAmountEUR(secondCents)} que ${otherName} touche servent à la dépense commune. On ne partage que ce qui reste : ${formatAmountEUR(remainingCents)} au lieu de ${formatAmountEUR(grossCents)}.`;
+}
+
 function sumCents(shares: ShareDTO[]): number {
   return shares.reduce((s, x) => s + x.cents, 0);
 }
@@ -65,6 +85,7 @@ function sumCents(shares: ShareDTO[]): number {
 export function AidSection({
   expenseId,
   grossCents,
+  category,
   currentMemberId,
   members,
   initialAids,
@@ -82,7 +103,14 @@ export function AidSection({
   // raison que expenses-panel.tsx : pas de prop `name` sur `Input`.
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
-  const [beneficiaryId, setBeneficiaryId] = useState(currentMemberId);
+  const [beneficiary, setBeneficiary] = useState<string>(currentMemberId);
+
+  const otherMember = members.find((m) => m.memberId !== currentMemberId);
+  // Restriction UI T-CR4 (decisions-techniques.md, 09/07) : aide proposée
+  // seulement pour le loyer. Le modèle reste générique — une aide déjà posée
+  // sur une autre catégorie (avant cette carte) reste gérable/retirable ici.
+  const canAddAid = category === "loyer";
+  if (!canAddAid && aids.length === 0) return null;
 
   function handleAdd() {
     setError(null);
@@ -90,30 +118,69 @@ export function AidSection({
     const amountCents = Math.round(Number.parseFloat(amount.replace(",", ".")) * 100);
 
     startTransition(async () => {
-      const result = await addAidAction({
-        expenseId,
-        label: trimmedLabel,
-        beneficiaryId,
-        amountCents,
-      });
-      if (!result.ok) {
-        setError(result.error.message);
-        return;
+      if (beneficiary === BOTH_BENEFICIARIES && otherMember) {
+        // « Les 2 » (T-CR4) : raccourci de saisie, appelle addAid deux fois —
+        // aucun nouveau champ, aucun calcul ici (`sumCents` ne fait qu'additionner
+        // ce que calc-engine a déjà recalculé côté serveur au 2e appel).
+        const [firstCents, secondCents] = splitBothCents(amountCents);
+        const firstResult = await addAidAction({
+          expenseId,
+          label: trimmedLabel,
+          beneficiaryId: currentMemberId,
+          amountCents: firstCents,
+        });
+        if (!firstResult.ok) {
+          setError(firstResult.error.message);
+          return;
+        }
+        const secondResult = await addAidAction({
+          expenseId,
+          label: trimmedLabel,
+          beneficiaryId: otherMember.memberId,
+          amountCents: secondCents,
+        });
+        if (!secondResult.ok) {
+          setError(secondResult.error.message);
+          return;
+        }
+        setAids(secondResult.data.aids);
+        onSharesUpdated(secondResult.data.shares);
+        setMessage(
+          explanationSentenceBoth(
+            trimmedLabel,
+            firstCents,
+            secondCents,
+            otherMember.displayName,
+            sumCents(secondResult.data.shares),
+            grossCents,
+          ),
+        );
+      } else {
+        const result = await addAidAction({
+          expenseId,
+          label: trimmedLabel,
+          beneficiaryId: beneficiary,
+          amountCents,
+        });
+        if (!result.ok) {
+          setError(result.error.message);
+          return;
+        }
+        setAids(result.data.aids);
+        onSharesUpdated(result.data.shares);
+        setMessage(
+          explanationSentence(
+            { label: trimmedLabel, amountCents, beneficiaryId: beneficiary },
+            currentMemberId,
+            members,
+            sumCents(result.data.shares),
+            grossCents,
+          ),
+        );
       }
-      setAids(result.data.aids);
-      onSharesUpdated(result.data.shares);
-      setMessage(
-        explanationSentence(
-          { label: trimmedLabel, amountCents, beneficiaryId },
-          currentMemberId,
-          members,
-          sumCents(result.data.shares),
-          grossCents,
-        ),
-      );
       setLabel("");
       setAmount("");
-      setBeneficiaryId(currentMemberId);
+      setBeneficiary(currentMemberId);
     });
   }
 
@@ -179,45 +246,46 @@ export function AidSection({
               </ul>
             ) : null}
 
-            <form action={handleAdd}>
-              <Stack gap={2}>
-                <Input
-                  label="libellé"
-                  value={label}
-                  onChange={(e) => setLabel(e.target.value)}
-                  placeholder="APL"
-                />
-                <Input
-                  label="montant"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="200"
-                  suffix="€"
-                />
-                <label className={nativeSelectStyles.wrapper}>
-                  <span className={nativeSelectStyles.label}>qui la touche ?</span>
-                  <select
-                    className={nativeSelectStyles.select}
-                    value={beneficiaryId}
-                    onChange={(e) => setBeneficiaryId(e.target.value)}
-                  >
-                    <option value={currentMemberId}>toi</option>
-                    {members
-                      .filter((m) => m.memberId !== currentMemberId)
-                      .map((m) => (
-                        <option key={m.memberId} value={m.memberId}>
-                          {m.displayName}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-                {error ? <Notice tone="error">{error}</Notice> : null}
-                <Button type="submit" disabled={isPending}>
-                  {isPending ? "ajout…" : "ajouter l'aide"}
-                </Button>
-              </Stack>
-            </form>
+            {canAddAid ? (
+              <form action={handleAdd}>
+                <Stack gap={2}>
+                  <Input
+                    label="libellé"
+                    value={label}
+                    onChange={(e) => setLabel(e.target.value)}
+                    placeholder="APL"
+                  />
+                  <Input
+                    label="montant"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="200"
+                    suffix="€"
+                  />
+                  <label className={nativeSelectStyles.wrapper}>
+                    <span className={nativeSelectStyles.label}>qui la touche ?</span>
+                    <select
+                      className={nativeSelectStyles.select}
+                      value={beneficiary}
+                      onChange={(e) => setBeneficiary(e.target.value)}
+                    >
+                      <option value={currentMemberId}>toi</option>
+                      {otherMember ? (
+                        <>
+                          <option value={otherMember.memberId}>{otherMember.displayName}</option>
+                          <option value={BOTH_BENEFICIARIES}>les 2</option>
+                        </>
+                      ) : null}
+                    </select>
+                  </label>
+                  <Button type="submit" disabled={isPending}>
+                    {isPending ? "ajout…" : "ajouter l'aide"}
+                  </Button>
+                </Stack>
+              </form>
+            ) : null}
 
+            {error ? <Notice tone="error">{error}</Notice> : null}
             {message ? <Notice tone="neutral">{message}</Notice> : null}
           </Stack>
       )}

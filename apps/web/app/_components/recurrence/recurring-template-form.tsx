@@ -7,17 +7,23 @@
 // grille de boutons d'`expense-form.tsx`, ce formulaire reste volontairement
 // plus dense.
 //
-// Décision produit du 09/07 (`decisions-techniques.md`) : le champ Aide
-// n'apparaît que pour la catégorie loyer. Comme dans `expenses-panel.tsx`,
-// aucun calcul de parts/plafond n'est fait ici — `createRecurringTemplate`
-// (domain-recurrence) reste seul habilité, calc-engine seul en aval à la
-// génération d'occurrence.
+// Décision produit du 09/07 (`decisions-techniques.md`, T-CR4) : le champ
+// Aide n'apparaît que pour la catégorie loyer, avec un sélecteur bénéficiaire
+// étendu « toi / [nom] / les 2 » — « les 2 » construit directement un tableau
+// `aids` à 2 lignes (`aid-split.ts`, même règle floor/reliquat que
+// `aid-section.tsx`) au lieu d'appeler l'action deux fois : ici la création
+// du template et de ses aides passe déjà par UN SEUL appel à
+// `createRecurringTemplateAction` (`aids[]`), pas de composition à faire.
+// Comme dans `expenses-panel.tsx`, aucun calcul de parts/plafond n'est fait
+// ici — `createRecurringTemplate` (domain-recurrence) reste seul habilité,
+// calc-engine seul en aval à la génération d'occurrence.
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createRecurringTemplateAction } from "../../actions";
 import type { MemberShare } from "../../../lib/household";
 import { CATEGORIES } from "../expenses/categories";
+import { BOTH_BENEFICIARIES, splitBothCents } from "../expenses/aid-split";
 import { Button, Card, Input, Checkbox } from "../design-system/core";
 import { CategoryChip } from "../design-system/balance";
 import { Notice } from "../design-system/feedback";
@@ -35,6 +41,33 @@ function centsFrom(raw: string): number {
   return Math.round(Number.parseFloat(raw.replace(",", ".")) * 100);
 }
 
+type NewAidInput = { beneficiaryId: string; label: string; amountCents: number };
+
+/** « les 2 » (T-CR4) construit directement les 2 lignes `aids[]` — un seul
+ * appel à `createRecurringTemplateAction` fait déjà tout, pas de composition
+ * séquentielle nécessaire ici (contrairement à `aid-section.tsx`, qui ajoute
+ * une aide sur une dépense déjà existante). */
+function buildAids(
+  category: Category,
+  aideOn: boolean,
+  aideAmount: string,
+  aideBeneficiary: string,
+  currentMemberId: string,
+  otherMemberId: string | undefined,
+): NewAidInput[] | undefined {
+  if (category !== "loyer" || !aideOn || !aideAmount) return undefined;
+  const amountCents = centsFrom(aideAmount);
+
+  if (aideBeneficiary === BOTH_BENEFICIARIES && otherMemberId) {
+    const [firstCents, secondCents] = splitBothCents(amountCents);
+    return [
+      { beneficiaryId: currentMemberId, label: "aide", amountCents: firstCents },
+      { beneficiaryId: otherMemberId, label: "aide", amountCents: secondCents },
+    ];
+  }
+  return [{ beneficiaryId: aideBeneficiary, label: "aide", amountCents }];
+}
+
 export function RecurringTemplateForm({ currentMemberId, defaultShares }: Props) {
   const router = useRouter();
   const otherMember = defaultShares.find((m) => m.memberId !== currentMemberId);
@@ -49,7 +82,7 @@ export function RecurringTemplateForm({ currentMemberId, defaultShares }: Props)
   const [sharePct, setSharePct] = useState(initialSharePct);
   const [aideOn, setAideOn] = useState(false);
   const [aideAmount, setAideAmount] = useState("");
-  const [aideBeneficiaryId, setAideBeneficiaryId] = useState(currentMemberId);
+  const [aideBeneficiary, setAideBeneficiary] = useState<string>(currentMemberId);
 
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +97,7 @@ export function RecurringTemplateForm({ currentMemberId, defaultShares }: Props)
     setSharePct(initialSharePct);
     setAideOn(false);
     setAideAmount("");
-    setAideBeneficiaryId(currentMemberId);
+    setAideBeneficiary(currentMemberId);
   }
 
   function handleSubmit() {
@@ -86,16 +119,14 @@ export function RecurringTemplateForm({ currentMemberId, defaultShares }: Props)
         payerId,
         dayOfMonth: Number.parseInt(dayOfMonth, 10),
         shares,
-        aids:
-          category === "loyer" && aideOn && aideAmount
-            ? [
-                {
-                  beneficiaryId: aideBeneficiaryId,
-                  label: "aide",
-                  amountCents: centsFrom(aideAmount),
-                },
-              ]
-            : undefined,
+        aids: buildAids(
+          category,
+          aideOn,
+          aideAmount,
+          aideBeneficiary,
+          currentMemberId,
+          otherMember?.memberId,
+        ),
       });
 
       if (!result.ok) {
@@ -239,17 +270,16 @@ export function RecurringTemplateForm({ currentMemberId, defaultShares }: Props)
                   <span className={nativeSelectStyles.label}>qui la touche ?</span>
                   <select
                     className={nativeSelectStyles.select}
-                    value={aideBeneficiaryId}
-                    onChange={(e) => setAideBeneficiaryId(e.target.value)}
+                    value={aideBeneficiary}
+                    onChange={(e) => setAideBeneficiary(e.target.value)}
                   >
                     <option value={currentMemberId}>toi</option>
-                    {defaultShares
-                      .filter((m) => m.memberId !== currentMemberId)
-                      .map((m) => (
-                        <option key={m.memberId} value={m.memberId}>
-                          {m.displayName}
-                        </option>
-                      ))}
+                    {otherMember ? (
+                      <>
+                        <option value={otherMember.memberId}>{otherMember.displayName}</option>
+                        <option value={BOTH_BENEFICIARIES}>les 2</option>
+                      </>
+                    ) : null}
                   </select>
                 </label>
               </Stack>

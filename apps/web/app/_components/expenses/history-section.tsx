@@ -165,6 +165,7 @@ export function HistorySection({
                   <AidSection
                     expenseId={e.id}
                     grossCents={e.grossCents}
+                    category={e.category}
                     currentMemberId={currentMemberId}
                     members={defaultShares}
                     initialAids={e.aids}
