@@ -16,7 +16,7 @@ export default function LoginPage() {
   return (
     <main>
       <Stack gap={4}>
-        <PageTitle>Étale — connexion</PageTitle>
+        <PageTitle>étale — connexion</PageTitle>
         <Card>
           <form action={formAction}>
             <Stack gap={2}>
