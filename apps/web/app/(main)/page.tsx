@@ -5,6 +5,7 @@ import { signOut, listExpensesAction, listRecurringTemplatesAction } from "../ac
 import { BalancePanel } from "../_components/balance/balance-panel";
 import { FirstExpenseInvite } from "../_components/home/first-expense-invite";
 import { RecurrenceInvite } from "../_components/home/recurrence-invite";
+import { AddExpenseButton } from "../_components/home/add-expense-button";
 import { MovementsList } from "../_components/expenses/movements-list";
 import { Button } from "../_components/design-system/core";
 import { Stack } from "../_components/design-system/layout";
@@ -50,6 +51,7 @@ export default async function Home() {
         </div>
 
         <BalancePanel currentMemberId={ctx.member.id} members={defaultShares} />
+        <AddExpenseButton />
         {recentExpenses.length > 0 ? (
           <MovementsList expenses={recentExpenses} members={defaultShares} />
         ) : null}
