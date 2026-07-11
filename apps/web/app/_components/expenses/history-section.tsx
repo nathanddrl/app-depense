@@ -23,6 +23,7 @@ import type { Category, Expense } from "@app/domain-expense";
 import { formatAmountEUR } from "@app/shared";
 import type { MemberShare } from "../../../lib/household";
 import { CATEGORIES, categoryLabelOf } from "./categories";
+import { dayLabel } from "./date-label";
 import { AidSection } from "./aid-section";
 import { Card } from "../design-system/core";
 import { CategoryChip, AmountDisplay } from "../design-system/balance";
@@ -61,15 +62,6 @@ function monthLabel(monthKey: string): string {
   const [year, month] = monthKey.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, 1));
   return new Intl.DateTimeFormat("fr-FR", { month: "long", timeZone: "UTC" }).format(date);
-}
-
-/** `"2026-07-09"` → « 9 juillet ». Même précaution anti-fuseau que `monthLabel`. */
-function dayLabel(incurredOn: string): string {
-  const [year, month, day] = incurredOn.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" }).format(
-    date,
-  );
 }
 
 export function HistorySection({

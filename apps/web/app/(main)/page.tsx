@@ -5,6 +5,7 @@ import { signOut, listExpensesAction, listRecurringTemplatesAction } from "../ac
 import { BalancePanel } from "../_components/balance/balance-panel";
 import { FirstExpenseInvite } from "../_components/home/first-expense-invite";
 import { RecurrenceInvite } from "../_components/home/recurrence-invite";
+import { MovementsList } from "../_components/expenses/movements-list";
 import { Button } from "../_components/design-system/core";
 import { Stack } from "../_components/design-system/layout";
 
@@ -22,6 +23,9 @@ export default async function Home() {
   // l'appel a échoué — on n'affirme rien sur un état inconnu.
   const showFirstExpenseInvite = expensesResult.ok && expensesResult.data.length === 0;
   const showRecurrenceInvite = templatesResult.ok && templatesResult.data.length === 0;
+  // Déjà trié du plus récent au plus ancien par le repo (`order incurred_on
+  // desc`) — pas de nouveau tri ici, juste l'extrait (CN2.2).
+  const recentExpenses = expensesResult.ok ? expensesResult.data.slice(0, 3) : [];
 
   return (
     <main>
@@ -46,6 +50,9 @@ export default async function Home() {
         </div>
 
         <BalancePanel currentMemberId={ctx.member.id} members={defaultShares} />
+        {recentExpenses.length > 0 ? (
+          <MovementsList expenses={recentExpenses} members={defaultShares} />
+        ) : null}
         {showFirstExpenseInvite ? <FirstExpenseInvite /> : null}
         {showRecurrenceInvite ? <RecurrenceInvite /> : null}
 
