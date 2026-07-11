@@ -7,6 +7,7 @@ import { FirstExpenseInvite } from "../_components/home/first-expense-invite";
 import { RecurrenceInvite } from "../_components/home/recurrence-invite";
 import { AddExpenseButton } from "../_components/home/add-expense-button";
 import { MovementsList } from "../_components/expenses/movements-list";
+import { ADD_MODE_PARAM, ADD_MODE_RECURRENT } from "../_components/add/add-mode";
 import { Button } from "../_components/design-system/core";
 import { Stack } from "../_components/design-system/layout";
 
@@ -45,7 +46,10 @@ export default async function Home() {
           >
             étale
           </span>
-          <Link href="/recurrence" style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}>
+          <Link
+            href={`/ajouter?${ADD_MODE_PARAM}=${ADD_MODE_RECURRENT}`}
+            style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}
+          >
             charges récurrentes
           </Link>
         </div>

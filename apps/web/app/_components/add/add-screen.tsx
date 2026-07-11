@@ -10,6 +10,7 @@ import { BOTH_BENEFICIARIES, splitBothCents } from "../expenses/aid-split";
 import { RecurringTemplateForm } from "../recurrence/recurring-template-form";
 import { RecurringTemplateList } from "../recurrence/recurring-template-list";
 import { ADD_MODE_ONCE, ADD_MODE_RECURRENT } from "./add-mode";
+import { Button } from "../design-system/core";
 import { Dialog } from "../design-system/feedback";
 import { Tabs, WaterSeparator } from "../design-system/navigation";
 import { Stack } from "../design-system/layout";
@@ -21,10 +22,10 @@ import { Stack } from "../design-system/layout";
 //
 // Bascule ponctuel/récurrent (T-CN4.2, premier usage réel de `Tabs`,
 // T-CD1.4) : `initialMode` vient de `?mode=recurrent` (T-CN2.2, CTA de
-// `recurrence-invite.tsx`, jamais exploité avant ce câblage), la suite est un
-// changement d'onglet in-place (état local, pas de navigation). Contenu du
-// mode récurrent repris tel quel de `recurrence/page.tsx` (`RecurringTemplateForm`
-// + `RecurringTemplateList`) — vue par défaut et polish restent T-CN4.3.
+// `recurrence-invite.tsx`), la suite est un changement d'onglet in-place
+// (état local, pas de navigation). Composition du mode récurrent posée en
+// T-CN4.3 (`RecurringMode` ci-dessous) : la route dédiée `/recurrence` est
+// supprimée, cet écran devient l'unique point d'entrée.
 //
 // Orchestration du mode « une fois » reprise telle quelle de l'ancien
 // `expenses-panel.tsx` (mort depuis T-CN3.1, `MovementsList` a pris sa place
@@ -133,17 +134,53 @@ export function AddScreen({ currentMemberId, defaultShares, templates, closeTo, 
             onSubmit={handleAdd}
           />
         ) : (
-          <Stack gap={4}>
-            <RecurringTemplateForm currentMemberId={currentMemberId} defaultShares={defaultShares} />
-            <WaterSeparator />
-            <RecurringTemplateList
-              currentMemberId={currentMemberId}
-              defaultShares={defaultShares}
-              templates={templates}
-            />
-          </Stack>
+          <RecurringMode currentMemberId={currentMemberId} defaultShares={defaultShares} templates={templates} />
         )}
       </Stack>
     </Dialog>
+  );
+}
+
+type RecurringModeProps = {
+  currentMemberId: string;
+  defaultShares: MemberShare[];
+  templates: RecurringTemplate[];
+};
+
+// Composition T-CN4.3 (remplace /recurrence, supprimée) : la liste passe
+// devant dès qu'il existe des charges actives — plus de formulaire vierge à
+// chaque ouverture (T-CR2 inchangé, `RecurringTemplateList` ne remonte que
+// les templates `active=true`). Formulaire replié derrière un bouton, même
+// pattern disclosure que `aid-section.tsx`/`TemplateRow` (« options ») ;
+// s'il n'y a rien à lister, le formulaire s'affiche directement (pas de
+// bouton à afficher pour révéler une liste vide). `showForm` n'est réévalué
+// qu'au montage : après une création depuis une liste déjà non vide,
+// `RecurringTemplateForm` reste ouvert (son propre `router.refresh()` suffit
+// à faire réapparaître la nouvelle charge dans la liste juste en dessous).
+function RecurringMode({ currentMemberId, defaultShares, templates }: RecurringModeProps) {
+  const hasTemplates = templates.length > 0;
+  const [showForm, setShowForm] = useState(!hasTemplates);
+
+  return (
+    <Stack gap={4}>
+      {hasTemplates ? (
+        <Button variant="ghost" onClick={() => setShowForm((prev) => !prev)}>
+          nouvelle charge récurrente
+        </Button>
+      ) : null}
+      {showForm ? (
+        <RecurringTemplateForm currentMemberId={currentMemberId} defaultShares={defaultShares} />
+      ) : null}
+      {hasTemplates ? (
+        <>
+          <WaterSeparator />
+          <RecurringTemplateList
+            currentMemberId={currentMemberId}
+            defaultShares={defaultShares}
+            templates={templates}
+          />
+        </>
+      ) : null}
+    </Stack>
   );
 }
