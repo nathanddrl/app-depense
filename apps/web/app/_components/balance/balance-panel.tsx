@@ -6,7 +6,7 @@
 
 import { getBalanceAction, getCurrentSettlementAction } from "../../actions";
 import { formatAmountEUR } from "@app/shared";
-import type { MemberShare } from "../../../lib/household";
+import { memberDisplayName, type MemberShare } from "../../../lib/household";
 import { BalanceDetailToggle } from "./balance-detail-toggle";
 import { BalanceNetworkGate } from "./balance-network-gate";
 import { SettlementControls } from "./settlement-controls";
@@ -19,10 +19,6 @@ type Props = {
   currentMemberId: string;
   members: MemberShare[];
 };
-
-function displayNameOf(members: MemberShare[], memberId: string): string {
-  return members.find((m) => m.memberId === memberId)?.displayName ?? "";
-}
 
 export async function BalancePanel({ currentMemberId, members }: Props) {
   const [balanceResult, settlementResult] = await Promise.all([
@@ -39,8 +35,8 @@ export async function BalancePanel({ currentMemberId, members }: Props) {
   // (nouvelles dépenses ouvertes pendant que la régularisation est pending).
   const debtorId = settlement?.fromMemberId ?? from;
   const creditorId = settlement?.toMemberId ?? to;
-  const debtorName = displayNameOf(members, debtorId);
-  const creditorName = displayNameOf(members, creditorId);
+  const debtorName = memberDisplayName(members, debtorId);
+  const creditorName = memberDisplayName(members, creditorId);
 
   const settlementControls = (
     <SettlementControls
@@ -69,7 +65,7 @@ export async function BalancePanel({ currentMemberId, members }: Props) {
 
   const isCreditor = to === currentMemberId;
   const otherMemberId = isCreditor ? from : to;
-  const otherName = displayNameOf(members, otherMemberId);
+  const otherName = memberDisplayName(members, otherMemberId);
   const amount = formatAmountEUR(amountCents);
   const message = isCreditor
     ? `${otherName} te doit ${amount}`

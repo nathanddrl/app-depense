@@ -24,7 +24,7 @@ import { Fragment } from "react";
 import { useRouter } from "next/navigation";
 import type { Expense } from "@app/domain-expense";
 import { formatAmountEUR } from "@app/shared";
-import type { MemberShare } from "../../../lib/household";
+import { memberDisplayName, type MemberShare } from "../../../lib/household";
 import { categoryLabelOf } from "./categories";
 import { dayLabel, monthLabel } from "./date-label";
 import { groupByDay, groupByMonth } from "./group-expenses";
@@ -39,10 +39,6 @@ type Props = {
   currentMemberId: string;
   groupBy?: "day" | "month";
 };
-
-function displayNameOf(members: MemberShare[], memberId: string): string {
-  return members.find((m) => m.memberId === memberId)?.displayName ?? "";
-}
 
 export function MovementsList({ expenses, members, currentMemberId, groupBy = "day" }: Props) {
   const router = useRouter();
@@ -70,7 +66,7 @@ export function MovementsList({ expenses, members, currentMemberId, groupBy = "d
                   <span>{categoryLabelOf(e.category).toLowerCase()}</span>
                 </div>
                 <span style={{ color: "var(--text-secondary)" }}>
-                  {displayNameOf(members, e.payerId)}
+                  {memberDisplayName(members, e.payerId)}
                 </span>
                 <span style={{ justifySelf: "end" }}>
                   <AmountDisplay value={formatAmountEUR(e.grossCents)} size="sm" />

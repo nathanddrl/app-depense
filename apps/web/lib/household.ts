@@ -6,6 +6,11 @@ import type { DbClient } from "@app/db";
 
 export type MemberShare = { memberId: string; displayName: string; defaultSharePct: number };
 
+/** Nom affiché d'un membre du foyer, ou "" s'il est introuvable — jamais un id brut à l'écran. */
+export function memberDisplayName(members: MemberShare[], memberId: string): string {
+  return members.find((m) => m.memberId === memberId)?.displayName ?? "";
+}
+
 export async function getDefaultShares(
   supabase: DbClient,
   householdId: string,
