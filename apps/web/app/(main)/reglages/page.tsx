@@ -1,13 +1,39 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
+import { getCurrentContext, isAdmin } from "../../../lib/auth/context";
+import { signOut } from "../../actions";
 import { Stack, PageTitle } from "../../_components/design-system/layout";
+import styles from "./reglages.module.css";
 
-// Placeholder CN1 — compte, thème, confidentialité, lien admin et déconnexion
-// arrivent en CN5.
-export default function ReglagesPage() {
+// Réglages d'app/profil uniquement (T-CN5, dernière carte du chantier CN) —
+// rien qui relève de la gestion de dépenses. Le thème clair/sombre
+// (theme-toggle.tsx, T-C9.2) est déjà monté globalement dans le layout
+// racine : il apparaît sur cet écran comme sur tous les autres, sans
+// duplication ici.
+export default async function ReglagesPage() {
+  const ctx = await getCurrentContext();
+
   return (
     <main>
       <Stack gap={4}>
         <PageTitle>réglages</PageTitle>
-        <p style={{ color: "var(--text-secondary)" }}>bientôt disponible</p>
+        <div>
+          <div className={styles.row}>
+            <span>compte</span>
+            <span className={styles.value}>{ctx.member.email}</span>
+          </div>
+          {isAdmin(ctx) ? (
+            <Link href="/admin" className={styles.row}>
+              <span>administration</span>
+              <ChevronRight size={18} className={styles.chevron} aria-hidden="true" />
+            </Link>
+          ) : null}
+          <form action={signOut}>
+            <button type="submit" className={styles.rowButton}>
+              se déconnecter
+            </button>
+          </form>
+        </div>
       </Stack>
     </main>
   );

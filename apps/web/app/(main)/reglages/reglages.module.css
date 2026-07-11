@@ -1,0 +1,40 @@
+/* Lignes de texte séparées par un filet --border-subtle (contrainte de
+   composition transverse CN) — pas de panneau --surface-raised, pas de style
+   « table groupée iOS ». Chaque ligne partage la même typographie. */
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--text-md);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.rowButton {
+  composes: row;
+  width: 100%;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.value {
+  color: var(--text-secondary);
+}
+
+.chevron {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}

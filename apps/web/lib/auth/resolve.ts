@@ -8,7 +8,7 @@
 import type { DbClient } from "@app/db";
 
 /** Membre courant tel qu'exposé au reste de l'app (jamais l'auth_user_id brut). */
-export type SessionMember = { id: string; displayName: string };
+export type SessionMember = { id: string; displayName: string; email: string };
 
 /**
  * Contexte authentifié réutilisable par les Server Actions (C3-web en dérivera
@@ -50,7 +50,7 @@ export async function resolveContext(supabase: DbClient): Promise<ResolvedContex
   if (!data || !householdId || !role) return null;
 
   return {
-    member: { id: data.id, displayName: data.display_name },
+    member: { id: data.id, displayName: data.display_name, email: user.email ?? "" },
     householdId,
     role,
   };

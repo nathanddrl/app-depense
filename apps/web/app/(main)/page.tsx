@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { getCurrentContext } from "../../lib/auth/context";
 import { getDefaultShares } from "../../lib/household";
-import { signOut, listExpensesAction, listRecurringTemplatesAction } from "../actions";
+import { listExpensesAction, listRecurringTemplatesAction } from "../actions";
 import { BalancePanel } from "../_components/balance/balance-panel";
 import { FirstExpenseInvite } from "../_components/home/first-expense-invite";
 import { RecurrenceInvite } from "../_components/home/recurrence-invite";
 import { AddExpenseButton } from "../_components/home/add-expense-button";
 import { MovementsList } from "../_components/expenses/movements-list";
 import { ADD_MODE_PARAM, ADD_MODE_RECURRENT } from "../_components/add/add-mode";
-import { Button } from "../_components/design-system/core";
 import { Stack } from "../_components/design-system/layout";
 
 // Le seam résout le membre + le foyer courant (via le JWT/RLS) ; le proxy
@@ -65,12 +64,6 @@ export default async function Home() {
         ) : null}
         {showFirstExpenseInvite ? <FirstExpenseInvite /> : null}
         {showRecurrenceInvite ? <RecurrenceInvite /> : null}
-
-        <form action={signOut}>
-          <Button type="submit" variant="secondary">
-            se déconnecter
-          </Button>
-        </form>
       </Stack>
     </main>
   );
