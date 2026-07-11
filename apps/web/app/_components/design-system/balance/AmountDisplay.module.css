@@ -35,6 +35,10 @@
   color: var(--text-secondary);
 }
 
-.balance {
-  color: var(--color-balance-text);
+.balance-negative {
+  color: var(--color-balance-negative-text);
+}
+
+.balance-positive {
+  color: var(--color-balance-positive-text);
 }

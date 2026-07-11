@@ -17,13 +17,19 @@
   --text-on-accent: var(--white);
   --text-disabled: var(--grey-4);
 
-  /* Échelle de balance / écart — isolée de --color-system-error* */
+  /* Échelle de balance / écart — directionnelle (négatif/positif), isolée de
+     --color-system-error*. Alias directs des primitives, jamais de
+     dérivation. --color-balance-none reste neutre, aucune direction sans
+     écart. */
   --color-balance-none: var(--border-strong);
-  --color-balance-subtle: var(--clay-subtle);
-  --color-balance-moderate: var(--clay-moderate);
-  --color-balance-marked: var(--clay-fill);
-  --color-balance-ceiling: var(--clay-ceiling);
-  --color-balance-text: var(--clay-text);
+  --color-balance-negative-subtle: var(--negative-subtle);
+  --color-balance-negative-moderate: var(--negative-moderate);
+  --color-balance-negative-ceiling: var(--negative-ceiling);
+  --color-balance-negative-text: var(--negative-text);
+  --color-balance-positive-subtle: var(--positive-subtle);
+  --color-balance-positive-moderate: var(--positive-moderate);
+  --color-balance-positive-ceiling: var(--positive-ceiling);
+  --color-balance-positive-text: var(--positive-text);
 
   /* Erreurs système — isolées de l'échelle de balance */
   --color-system-error: var(--brick);
@@ -57,8 +63,14 @@
   --text-on-accent: var(--white);
   --text-disabled: var(--grey-dark-4);
 
-  --color-balance-marked: var(--clay-fill-dark);
-  --color-balance-text: var(--clay-text);
+  --color-balance-negative-subtle: var(--negative-dark-subtle);
+  --color-balance-negative-moderate: var(--negative-dark-moderate);
+  --color-balance-negative-ceiling: var(--negative-dark-ceiling);
+  --color-balance-negative-text: var(--negative-dark-text);
+  --color-balance-positive-subtle: var(--positive-dark-subtle);
+  --color-balance-positive-moderate: var(--positive-dark-moderate);
+  --color-balance-positive-ceiling: var(--positive-dark-ceiling);
+  --color-balance-positive-text: var(--positive-dark-text);
 
   --focus-ring: var(--clay-fill-dark);
 }

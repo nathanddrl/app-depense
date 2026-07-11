@@ -8,16 +8,37 @@ describe("computeWaterLine", () => {
     expect(colorVar).toBe("var(--color-balance-none)");
   });
 
-  it("l'inflexion et la couleur progressent ensemble, sur les mêmes seuils (0 / 0.25 / 0.6)", () => {
+  it("l'inflexion et la couleur positive progressent ensemble, sur les mêmes seuils (0 / 0.25 / 0.6)", () => {
     const cases: Array<[number, string]> = [
-      [0.1, "var(--color-balance-subtle)"],
-      [0.24, "var(--color-balance-subtle)"],
-      [0.25, "var(--color-balance-moderate)"],
-      [0.3, "var(--color-balance-moderate)"],
-      [0.59, "var(--color-balance-moderate)"],
-      [0.6, "var(--color-balance-ceiling)"],
-      [0.7, "var(--color-balance-ceiling)"],
-      [1, "var(--color-balance-ceiling)"],
+      [0.1, "var(--color-balance-positive-subtle)"],
+      [0.24, "var(--color-balance-positive-subtle)"],
+      [0.25, "var(--color-balance-positive-moderate)"],
+      [0.3, "var(--color-balance-positive-moderate)"],
+      [0.59, "var(--color-balance-positive-moderate)"],
+      [0.6, "var(--color-balance-positive-ceiling)"],
+      [0.7, "var(--color-balance-positive-ceiling)"],
+      [1, "var(--color-balance-positive-ceiling)"],
+    ];
+
+    let previousDepth = 0;
+    for (const [magnitude, expectedColor] of cases) {
+      const { depth, colorVar } = computeWaterLine(magnitude, 320, 64);
+      expect(colorVar).toBe(expectedColor);
+      expect(depth).toBeGreaterThan(previousDepth);
+      previousDepth = depth;
+    }
+  });
+
+  it("l'inflexion et la couleur négative progressent ensemble, sur les mêmes seuils (0 / 0.25 / 0.6)", () => {
+    const cases: Array<[number, string]> = [
+      [-0.1, "var(--color-balance-negative-subtle)"],
+      [-0.24, "var(--color-balance-negative-subtle)"],
+      [-0.25, "var(--color-balance-negative-moderate)"],
+      [-0.3, "var(--color-balance-negative-moderate)"],
+      [-0.59, "var(--color-balance-negative-moderate)"],
+      [-0.6, "var(--color-balance-negative-ceiling)"],
+      [-0.7, "var(--color-balance-negative-ceiling)"],
+      [-1, "var(--color-balance-negative-ceiling)"],
     ];
 
     let previousDepth = 0;
@@ -36,10 +57,12 @@ describe("computeWaterLine", () => {
     expect(beyond.colorVar).toBe(atCeiling.colorVar);
   });
 
-  it("le signe inverse la direction de l'inflexion, jamais la couleur (une seule teinte, pas deux camps)", () => {
+  it("le signe inverse la direction de l'inflexion ET la teinte (encodage directionnel, poids comparable)", () => {
     const positive = computeWaterLine(0.4, 320, 64);
     const negative = computeWaterLine(-0.4, 320, 64);
-    expect(positive.colorVar).toBe(negative.colorVar);
+    expect(positive.colorVar).toBe("var(--color-balance-positive-moderate)");
+    expect(negative.colorVar).toBe("var(--color-balance-negative-moderate)");
+    expect(positive.colorVar).not.toBe(negative.colorVar);
     expect(positive.depth).toBe(negative.depth);
     expect(positive.path).not.toBe(negative.path);
   });

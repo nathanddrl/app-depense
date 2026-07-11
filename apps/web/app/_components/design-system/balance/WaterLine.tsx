@@ -8,9 +8,10 @@ type Props = {
 };
 
 // 0 = étale (ligne droite, couleur neutre, pas d'accent). Rendu comme une
-// ligne horizontale uniquement — jamais un chiffre dans un badge coloré,
-// jamais deux teintes opposées pour "ton côté / son côté" (uiuix guide/
-// 07-composants.md, 02-couleurs.md).
+// ligne horizontale uniquement — jamais un chiffre dans un badge coloré.
+// Encodage directionnel (v2) : une teinte par direction du signe (négatif/
+// positif), de poids perceptif comparable — la couleur vient de
+// computeWaterLine, jamais recalculée ici.
 export function WaterLine({ magnitude = 0, width = 320, height = 64 }: Props) {
   const { path, colorVar } = computeWaterLine(magnitude, width, height);
 
