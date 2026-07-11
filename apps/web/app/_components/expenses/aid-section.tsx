@@ -21,6 +21,7 @@ import { formatAmountEUR } from "@app/shared";
 import type { AidDTO } from "@app/domain-aid";
 import type { Category } from "@app/domain-expense";
 import type { MemberShare } from "../../../lib/household";
+import { parseAmountToCents } from "../../../lib/amount";
 import { BOTH_BENEFICIARIES, splitBothCents } from "./aid-split";
 import { Button, Input } from "../design-system/core";
 import { AmountDisplay } from "../design-system/balance";
@@ -82,12 +83,6 @@ function sumCents(shares: ShareDTO[]): number {
   return shares.reduce((s, x) => s + x.cents, 0);
 }
 
-/** `null` si `raw` n'est pas un montant exploitable — jamais de `NaN` renvoyé au serveur. */
-function centsFrom(raw: string): number | null {
-  const n = Number.parseFloat(raw.replace(",", "."));
-  return Number.isFinite(n) ? Math.round(n * 100) : null;
-}
-
 export function AidSection({
   expenseId,
   grossCents,
@@ -121,7 +116,7 @@ export function AidSection({
   function handleAdd() {
     setError(null);
     const trimmedLabel = label.trim();
-    const amountCents = centsFrom(amount);
+    const amountCents = parseAmountToCents(amount);
     if (amountCents === null) {
       setError("montant invalide");
       return;

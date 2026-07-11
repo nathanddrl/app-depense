@@ -24,6 +24,7 @@
 import { useState } from "react";
 import type { Category } from "@app/domain-expense";
 import type { MemberShare } from "../../../lib/household";
+import { parseAmountToCents } from "../../../lib/amount";
 import { CATEGORIES } from "./categories";
 import { BOTH_BENEFICIARIES } from "./aid-split";
 import { Button, Card, Input, Checkbox } from "../design-system/core";
@@ -54,12 +55,6 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** `null` si `raw` n'est pas un montant exploitable — jamais de `NaN` renvoyé au serveur. */
-function centsFrom(raw: string): number | null {
-  const n = Number.parseFloat(raw.replace(",", "."));
-  return Number.isFinite(n) ? Math.round(n * 100) : null;
-}
-
 export function ExpenseForm({ currentMemberId, defaultShares, pending, error, onSubmit }: Props) {
   const otherMember = defaultShares.find((m) => m.memberId !== currentMemberId);
   const initialPayerPct =
@@ -81,7 +76,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
     const trimmedLabel = label.trim();
     if (!trimmedLabel || !amount) return;
 
-    const grossCents = centsFrom(amount);
+    const grossCents = parseAmountToCents(amount);
     if (grossCents === null) {
       setAmountError("montant invalide");
       return;
@@ -89,7 +84,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
 
     let aid: NewExpenseInput["aid"] = null;
     if (category === "loyer" && aideOn && aideAmount) {
-      const aideCents = centsFrom(aideAmount);
+      const aideCents = parseAmountToCents(aideAmount);
       if (aideCents === null) {
         setAmountError("montant de l'aide invalide");
         return;
