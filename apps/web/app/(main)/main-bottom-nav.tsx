@@ -1,18 +1,16 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Home, ArrowLeftRight, Plus, Settings } from "lucide-react";
+import { Home, ArrowLeftRight, Settings } from "lucide-react";
 import { BottomNav, type BottomNavItem } from "../_components/design-system/navigation";
-import { NAV_ADD_VALUE } from "../_components/design-system/navigation/bottom-nav-state";
 
 // Câblage app du shell : mappe le pathname → item actif et pousse la navigation.
 // Le composant BottomNav (kit) reste purement présentiel ; c'est ici que vivent
-// la config des 4 destinations et la résolution de l'écran courant.
+// la config des 3 destinations et la résolution de l'écran courant.
 
 const ITEMS: BottomNavItem[] = [
   { icon: Home, label: "accueil", value: "accueil" },
   { icon: ArrowLeftRight, label: "mouvements", value: "mouvements" },
-  { icon: Plus, label: "ajouter", value: NAV_ADD_VALUE },
   { icon: Settings, label: "réglages", value: "reglages" },
 ];
 
@@ -42,8 +40,6 @@ export function MainBottomNav() {
         const href = ROUTE_BY_VALUE[value];
         if (href) router.push(href);
       }}
-      // Route interceptée (.)ajouter : ouvre l'écran en overlay, refresh = plein écran.
-      onAddPress={() => router.push("/ajouter")}
     />
   );
 }
