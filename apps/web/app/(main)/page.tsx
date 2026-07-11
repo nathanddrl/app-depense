@@ -2,12 +2,10 @@ import Link from "next/link";
 import { getCurrentContext } from "../../lib/auth/context";
 import { getDefaultShares } from "../../lib/household";
 import { signOut, listExpensesAction, listRecurringTemplatesAction } from "../actions";
-import { ExpensesPanel } from "../_components/expenses/expenses-panel";
 import { BalancePanel } from "../_components/balance/balance-panel";
 import { FirstExpenseInvite } from "../_components/home/first-expense-invite";
 import { RecurrenceInvite } from "../_components/home/recurrence-invite";
 import { Button } from "../_components/design-system/core";
-import { WaterSeparator } from "../_components/design-system/navigation";
 import { Stack } from "../_components/design-system/layout";
 
 // Le seam résout le membre + le foyer courant (via le JWT/RLS) ; le proxy
@@ -50,12 +48,6 @@ export default async function Home() {
         <BalancePanel currentMemberId={ctx.member.id} members={defaultShares} />
         {showFirstExpenseInvite ? <FirstExpenseInvite /> : null}
         {showRecurrenceInvite ? <RecurrenceInvite /> : null}
-        <WaterSeparator />
-        <ExpensesPanel
-          currentMemberId={ctx.member.id}
-          initialExpenses={expensesResult.ok ? expensesResult.data : []}
-          defaultShares={defaultShares}
-        />
 
         <form action={signOut}>
           <Button type="submit" variant="secondary">
