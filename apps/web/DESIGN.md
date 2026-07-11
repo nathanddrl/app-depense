@@ -287,8 +287,12 @@ composant) est la garde-fou qui empêche la dérive vers l'app générique.
 - **Style:** aplat de couleur (rotation `category-1..6`) + initiale du nom
   saisi, en General Sans medium. Jamais un pictogramme littéral, jamais un
   color picker exposé — attribution automatique uniquement.
-- **State:** pas d'état sélectionné distinct ; une couleur, une initiale, fixes
-  par catégorie.
+- **State:** une couleur, une initiale, fixes par catégorie. Aucun état
+  sélectionné dans les usages d'affichage (historique, aperçu, formulaire).
+  Exception ciblée : le filtre catégorie de `/mouvements` (T-CN3.2) passe des
+  props optionnelles `onClick`/`selected` qui transforment le chip en bouton
+  avec anneau de sélection — n'affecte aucun autre call site (défaut inchangé
+  sans `onClick`).
 
 ### Cards / Containers
 - **Corner Style:** angle droit strict, jamais de radius.

@@ -13,3 +13,15 @@
   color: var(--text-on-accent);
   line-height: 1;
 }
+
+/* Variante interactive (T-CN3.2, filtre catégorie) : le chip devient un
+   vrai <button>, jamais de style de sélection par défaut ailleurs. */
+.interactive {
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.selected {
+  box-shadow: 0 0 0 2px var(--text-primary);
+}

@@ -23,3 +23,21 @@ export function monthLabel(monthKey: string): string {
     date,
   );
 }
+
+/** Mois courant en `"YYYY-MM"` (T-CN3.2, défaut du filtre `/mouvements`). */
+export function currentMonthKey(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
+/** Fenêtre glissante de `count` mois en `"YYYY-MM"`, du plus récent au plus
+ * ancien — options du filtre mois. Fenêtre fixe (pas de requête pour la
+ * peupler), cohérent avec l'échelle solo dev/MVP. */
+export function recentMonthKeys(count: number, from: string = currentMonthKey()): string[] {
+  const [year, month] = from.split("-").map(Number);
+  const keys: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const date = new Date(Date.UTC(year, month - 1 - i, 1));
+    keys.push(`${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`);
+  }
+  return keys;
+}
