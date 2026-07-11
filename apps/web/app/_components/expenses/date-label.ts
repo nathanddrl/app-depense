@@ -12,3 +12,14 @@ export function dayLabel(incurredOn: string): string {
     date,
   );
 }
+
+/** `"2026-07"` → « juillet 2026 » (mois + année : repère non-ambigu sur un
+ * historique complet, contrairement au libellé de mois seul des onglets de
+ * filtre de `HistorySection`). */
+export function monthLabel(monthKey: string): string {
+  const [year, month] = monthKey.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, 1));
+  return new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" }).format(
+    date,
+  );
+}
