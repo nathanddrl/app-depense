@@ -49,6 +49,7 @@ export default async function MouvementsPage({ searchParams }: Props) {
           <MovementsList
             expenses={expensesResult.data}
             members={defaultShares}
+            currentMemberId={ctx.member.id}
             groupBy={month === ALL_MONTHS ? "month" : "day"}
           />
         )}

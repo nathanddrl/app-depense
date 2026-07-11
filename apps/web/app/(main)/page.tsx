@@ -53,7 +53,11 @@ export default async function Home() {
         <BalancePanel currentMemberId={ctx.member.id} members={defaultShares} />
         <AddExpenseButton />
         {recentExpenses.length > 0 ? (
-          <MovementsList expenses={recentExpenses} members={defaultShares} />
+          <MovementsList
+            expenses={recentExpenses}
+            members={defaultShares}
+            currentMemberId={ctx.member.id}
+          />
         ) : null}
         {showFirstExpenseInvite ? <FirstExpenseInvite /> : null}
         {showRecurrenceInvite ? <RecurrenceInvite /> : null}
