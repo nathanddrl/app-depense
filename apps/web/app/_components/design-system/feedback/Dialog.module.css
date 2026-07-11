@@ -34,3 +34,44 @@
 .close {
   margin-top: var(--space-2);
 }
+
+/* Mode plein écran (navigation-ia §3.3) : surface mate opaque plein viewport,
+   aucun scrim, aucun box-shadow, aucun radius. */
+.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-base);
+}
+
+/* Grille 1fr auto 1fr : le titre reste centré quelle que soit la largeur du
+   bouton « annuler ». */
+.fullscreenHeader {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fullscreenHeader > :first-child {
+  justify-self: start;
+}
+
+.fullscreenTitle {
+  justify-self: center;
+  font-family: var(--font-body);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.fullscreenBody {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
+  padding: var(--space-3);
+}
