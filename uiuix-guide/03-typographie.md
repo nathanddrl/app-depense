@@ -15,13 +15,13 @@
 
 Les deux familles sont fournies en binaires dans `assets/fonts/` du bundle source :
 
-| Fichier                        | Usage                                                    |
-| ------------------------------ | -------------------------------------------------------- |
-| `Fraunces-Italic-Variable.ttf` | display italique, variable (poids 300–700)               |
-| `Fraunces-Variable.ttf`        | roman — **non utilisée** dans le système (italique only) |
-| `GeneralSans-Regular.woff2`    | corps, poids 400                                         |
-| `GeneralSans-Medium.woff2`     | corps, poids 500                                         |
-| `GeneralSans-Italic.woff2`     | italique General Sans (usage secondaire)                 |
+| Fichier | Usage |
+|---|---|
+| `Fraunces-Italic-Variable.ttf` | display italique, variable (poids 300–700) |
+| `Fraunces-Variable.ttf` | roman — **non utilisée** dans le système (italique only) |
+| `GeneralSans-Regular.woff2` | corps, poids 400 |
+| `GeneralSans-Medium.woff2` | corps, poids 500 |
+| `GeneralSans-Italic.woff2` | italique General Sans (usage secondaire) |
 
 Self-host obligatoire — pas de CDN. Fraunces licenciée pour l'usage fourni ; General
 Sans est sous licence Fontshare (gratuite, y compris usage commercial).
@@ -73,31 +73,31 @@ Dans `apps/web`, préférer `next/font/local` pour l'auto-hébergement plutôt q
 
 ### Échelle de tailles — General Sans
 
-| Token         | Taille |
-| ------------- | ------ |
-| `--text-2xl`  | 40px   |
-| `--text-xl`   | 28px   |
-| `--text-lg`   | 22px   |
-| `--text-md`   | 17px   |
-| `--text-body` | 15px   |
-| `--text-sm`   | 13px   |
-| `--text-xs`   | 11px   |
+| Token | Taille |
+|---|---|
+| `--text-2xl` | 40px |
+| `--text-xl` | 28px |
+| `--text-lg` | 22px |
+| `--text-md` | 17px |
+| `--text-body` | 15px |
+| `--text-sm` | 13px |
+| `--text-xs` | 11px |
 
 ### Échelle display — Fraunces italique (optical size = display, jamais texte)
 
-| Token          | Taille |
-| -------------- | ------ |
-| `--display-lg` | 44px   |
-| `--display-md` | 32px   |
-| `--display-sm` | 24px   |
+| Token | Taille |
+|---|---|
+| `--display-lg` | 44px |
+| `--display-md` | 32px |
+| `--display-sm` | 24px |
 
 ### Interlignage et tracking
 
-| Token                | Valeur  |
-| -------------------- | ------- |
-| `--leading-body`     | 1.55    |
-| `--leading-tight`    | 1.2     |
-| `--tracking-title`   | 0.01em  |
+| Token | Valeur |
+|---|---|
+| `--leading-body` | 1.55 |
+| `--leading-tight` | 1.2 |
+| `--tracking-title` | 0.01em |
 | `--tracking-display` | 0.015em |
 
 Réglages : tracking +1–2 % sur titres et constats, interligne 1.5–1.6 sur le texte

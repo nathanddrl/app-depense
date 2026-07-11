@@ -35,7 +35,12 @@ DA repose sur la retenue de palette.
 
 ## 3. États système / chargement
 
-Pas de coche verte, pas de croix rouge.
+Pas de coche verte, pas de croix rouge — règle inchangée pour les états système
+(chargement, confirmation, erreurs techniques). **Ne pas confondre avec `WaterLine`** :
+depuis le 11/07/2026, l'écart de solde porte lui une teinte directionnelle
+(négatif/positif, voir `02-couleurs.md`) — ce virage reste strictement cantonné à
+l'écart de solde, il ne réintroduit pas de coche verte/croix rouge ailleurs dans le
+système (confirmation, erreurs, statuts restent neutres/factuels comme avant).
 
 - Étale (équilibré) = ligne droite immobile.
 - Écart = ligne infléchie (`WaterLine`).
@@ -46,7 +51,8 @@ Pas de coche verte, pas de croix rouge.
 
 La ligne d'eau horizontale comme séparateur de section (`WaterSeparator`), capable
 d'une légère inflexion pour représenter l'écart (`WaterLine`) — proportionnelle à la
-magnitude, même échelle que la couleur (voir [`02-couleurs.md`](02-couleurs.md)).
+magnitude, **et depuis le 11/07/2026 à une teinte directionnelle** (négatif/positif,
+voir [`02-couleurs.md`](02-couleurs.md) — remplace l'ancien encodage à teinte unique).
 
 Le « é » reste un actif à part (favicon/avatar), **jamais** dispersé comme motif
 décoratif générique.

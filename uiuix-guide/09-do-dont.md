@@ -1,19 +1,19 @@
 # Checklist rapide — do / don't
 
-| Faire                                                                      | Ne pas faire                                                                   |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Consommer les tokens sémantiques (`--surface-raised`)                      | Consommer une primitive directement (`--grey-2`) dans un composant             |
-| Encoder l'écart via la magnitude de `WaterLine` (ligne + une seule teinte) | Utiliser un badge/pill coloré ou deux teintes opposées pour « les deux côtés » |
-| Utiliser `radius-subtle` (2px) uniquement sur inputs/surfaces tactiles     | Arrondir des cards, boutons, dialogs, chips                                    |
-| Utiliser `--elevation-*` (luminosité de surface) pour la profondeur        | Ajouter un `box-shadow` où que ce soit, y compris les modals                   |
-| Fraunces italique uniquement pour les constats déclaratifs                 | Utiliser Fraunces romain, ou Fraunces pour un titre/label                      |
-| Chiffres tabulaires, montants différenciés par le poids                    | Faire varier la taille de police d'un montant pour l'emphase                   |
-| `motion.settle` / `motion.micro` (décélération lourde, zéro overshoot)     | Ajouter un easing spring/bounce n'importe où                                   |
-| Auto-assigner la couleur/l'initiale d'une catégorie                        | Exposer un color picker pour les catégories                                    |
-| Isoler `color.system.error` de `color.balance.*`                           | Réutiliser un token de l'échelle de balance pour une erreur technique          |
-| Nommer les personnes dans la copy (« léa doit 42 € à nathan »)             | Utiliser une formulation impersonnelle (« l'écart est en faveur de x »)        |
-| Rester en bas-de-casse, y compris le nom de marque                         | `text-transform: uppercase`, capitaliser pour l'emphase                        |
-| Un ton factuel, déclaratif, présent                                        | Un impératif, un point d'exclamation, une célébration ou un blâme              |
+| Faire | Ne pas faire |
+|---|---|
+| Consommer les tokens sémantiques (`--surface-raised`) | Consommer une primitive directement (`--grey-2`) dans un composant |
+| Encoder l'écart via la ligne `WaterLine` (inflexion = magnitude, teinte directionnelle négatif/positif — révisé 11/07/2026) | Utiliser un badge/pill coloré, ou des teintes saturées type feu de circulation |
+| Utiliser `radius-subtle` (2px) uniquement sur inputs/surfaces tactiles | Arrondir des cards, boutons, dialogs, chips |
+| Utiliser `--elevation-*` (luminosité de surface) pour la profondeur | Ajouter un `box-shadow` où que ce soit, y compris les modals |
+| Fraunces italique uniquement pour les constats déclaratifs | Utiliser Fraunces romain, ou Fraunces pour un titre/label |
+| Chiffres tabulaires, montants différenciés par le poids | Faire varier la taille de police d'un montant pour l'emphase |
+| `motion.settle` / `motion.micro` (décélération lourde, zéro overshoot) | Ajouter un easing spring/bounce n'importe où |
+| Auto-assigner la couleur/l'initiale d'une catégorie | Exposer un color picker pour les catégories |
+| Isoler `color.system.error` de `color.balance.*` | Réutiliser un token de l'échelle de balance pour une erreur technique |
+| Nommer les personnes dans la copy (« léa doit 42 € à nathan ») | Utiliser une formulation impersonnelle (« l'écart est en faveur de x ») |
+| Rester en bas-de-casse, y compris le nom de marque | `text-transform: uppercase`, capitaliser pour l'emphase |
+| Un ton factuel, déclaratif, présent | Un impératif, un point d'exclamation, une célébration ou un blâme |
 
 ## Interdits absolus — contenu
 

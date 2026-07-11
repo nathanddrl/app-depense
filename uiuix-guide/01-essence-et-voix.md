@@ -32,14 +32,14 @@ adjectifs :
 Déclarative, présente, factuelle. **Jamais** d'impératif, **jamais** de point
 d'exclamation, **jamais** de blâme ni de célébration.
 
-| Situation          | Étale dit                        | Jamais                                 |
-| ------------------ | -------------------------------- | -------------------------------------- |
-| Solde équilibré    | vous êtes étale                  | bravo, vos comptes sont à jour !       |
-| Écart en cours     | léa doit 42 € à nathan           | léa te doit de la thune, relance-la 💸 |
-| Régularisation     | l'écart est résorbé              | transaction validée ✅ bien joué !     |
+| Situation | Étale dit | Jamais |
+|---|---|---|
+| Solde équilibré | vous êtes étale | bravo, vos comptes sont à jour ! |
+| Écart en cours | léa doit 42 € à nathan | léa te doit de la thune, relance-la 💸 |
+| Régularisation | l'écart est résorbé | transaction validée ✅ bien joué ! |
 | Dépense récurrente | le loyer de juillet a été ajouté | 🏠 n'oubliez pas de payer avant le 5 ! |
-| Écran vide         | rien à régler pour l'instant     | ajoutez votre première dépense ! 🎉    |
-| Écart ancien       | l'écart date du 12 juin          | ⏰ 21 jours de retard !                |
+| Écran vide | rien à régler pour l'instant | ajoutez votre première dépense ! 🎉 |
+| Écart ancien | l'écart date du 12 juin | ⏰ 21 jours de retard ! |
 
 **Mots bannis** : bravo, félicitations, n'oubliez pas, relancez, en retard, objectif,
 économiser, optimisez, oups. **Aucun emoji, aucun point d'exclamation, jamais.**
@@ -65,11 +65,11 @@ ni capitaliser pour appuyer une emphase.
 
 ### Lexique — « le lexique de la marée »
 
-| Utiliser   | Jamais                    |
-| ---------- | ------------------------- |
-| écart      | dette / debt              |
+| Utiliser | Jamais |
+|---|---|
+| écart | dette / debt |
 | résorption | remboursement / repayment |
-| mouvement  | transaction               |
+| mouvement | transaction |
 
 C'est la signature de marque la plus difficile à copier : reprendre un mot isolé ne
 coûte rien à un concurrent, reprendre tout le champ lexical revient à abandonner son

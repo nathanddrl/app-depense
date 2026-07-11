@@ -39,13 +39,9 @@ const sizes = {
 // radius-none, transition sur motion.micro, opacity 0.4 si disabled
 
 const variants = {
-  primary: { background: "var(--text-primary)", color: "var(--surface-base)" },
-  secondary: {
-    background: "transparent",
-    color: "var(--text-primary)",
-    borderColor: "var(--border-strong)",
-  },
-  ghost: { background: "transparent", color: "var(--text-secondary)" },
+  primary:   { background: "var(--text-primary)", color: "var(--surface-base)" },
+  secondary: { background: "transparent", color: "var(--text-primary)", borderColor: "var(--border-strong)" },
+  ghost:     { background: "transparent", color: "var(--text-secondary)" },
 };
 // hover : primary -> background var(--grey-5) ; secondary -> borderColor var(--text-primary) ;
 // ghost -> color var(--text-primary)
@@ -122,9 +118,16 @@ height?: number
 ```
 
 0 = étale (ligne droite, couleur neutre, pas d'accent). Le signe donne la direction de
-l'écart, la valeur absolue donne à la fois la profondeur de l'inflexion **et** le palier
-de couleur (même encodage, jamais divergent) jusqu'au plafond dur `clay-ceiling`. Rendu
-comme une ligne horizontale, **jamais** un nombre dans un badge coloré.
+l'écart, la valeur absolue donne la profondeur de l'inflexion. Rendu comme une ligne
+horizontale, **jamais** un nombre dans un badge coloré.
+
+**Révisé le 11/07/2026 (voir `decisions-techniques.md`, « Refonte navigation & identité
+du solde ») : la couleur encode désormais aussi le signe**, pas seulement la magnitude —
+reversal du principe « une seule teinte, jamais divergente du signe » qui tenait jusqu'ici.
+Deux échelles de teinte (négatif/positif), chacune plafonnée dur, remplacent l'ancienne
+échelle unique. **Valeurs OKLCH des tokens `--color-balance-negative-*`/`-positive-*`
+non encore définies** — l'algorithme ci-dessous est à jour dans sa structure (branchement
+sur le signe) mais les noms de tokens sont indicatifs, à confirmer avant implémentation.
 
 Algorithme de référence (`WaterLine.jsx`) :
 
@@ -136,42 +139,36 @@ function WaterLine({ magnitude = 0, width = 320, height = 64 }) {
   const sign = magnitude < 0 ? -1 : 1;
   const cx = width / 2;
 
+  // Depuis le 11/07/2026 : la teinte dépend du signe (négatif/positif), plus d'une
+  // échelle unique non-directionnelle. Noms de tokens indicatifs (OKLCH à définir).
+  const direction = sign < 0 ? "negative" : "positive";
   const color =
-    abs === 0
-      ? "var(--color-balance-none)"
-      : abs < 0.25
-        ? "var(--color-balance-subtle)"
-        : abs < 0.6
-          ? "var(--color-balance-moderate)"
-          : "var(--color-balance-ceiling)";
+    abs === 0 ? "var(--color-balance-none)" :
+    abs < 0.25 ? `var(--color-balance-${direction}-subtle)` :
+    abs < 0.6 ? `var(--color-balance-${direction}-moderate)` :
+    `var(--color-balance-${direction}-ceiling)`;
 
   // courbe quadratique : point de contrôle au centre, déplacé verticalement de `depth`
   const path = `M 0 ${midY} Q ${cx} ${midY + sign * depth} ${width} ${midY}`;
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      <path
-        d={path}
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        style={{ transition: `all var(--motion-settle-duration) var(--motion-settle-easing)` }}
-      />
+      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round"
+        style={{ transition: `all var(--motion-settle-duration) var(--motion-settle-easing)` }} />
     </svg>
   );
 }
 ```
 
-Seuils de palier de couleur (mêmes seuils pilotent la couleur ET la profondeur de la
-courbe — jamais un encodage divergent) :
+Seuils de palier (la profondeur de la courbe reste pilotée par `abs(magnitude)` seul ;
+la couleur croise désormais `abs(magnitude)` **et** le signe) :
 
-| `abs(magnitude)` | Couleur                    |
-| ---------------- | -------------------------- |
-| `= 0`            | `--color-balance-none`     |
-| `< 0.25`         | `--color-balance-subtle`   |
-| `< 0.6`          | `--color-balance-moderate` |
-| `>= 0.6`         | `--color-balance-ceiling`  |
+| `abs(magnitude)` | Couleur (négatif) | Couleur (positif) |
+|---|---|---|
+| `= 0` | `--color-balance-none` (commun) | `--color-balance-none` (commun) |
+| `< 0.25` | `--color-balance-negative-subtle` | `--color-balance-positive-subtle` |
+| `< 0.6` | `--color-balance-negative-moderate` | `--color-balance-positive-moderate` |
+| `>= 0.6` | `--color-balance-negative-ceiling` | `--color-balance-positive-ceiling` |
 
 ### AmountDisplay
 
@@ -234,8 +231,8 @@ Overlay scrim uniquement (`--surface-scrim`) — zéro ombre à tout niveau d'é
 ### Tooltip
 
 ```ts
-children: React.ReactNode;
-label: string;
+children: React.ReactNode
+label: string
 ```
 
 Coins carrés, pas d'ombre.

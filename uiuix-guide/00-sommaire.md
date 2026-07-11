@@ -16,17 +16,17 @@ règles du document de marque, pas la copie d'un produit existant.
 
 ## Index
 
-| Fichier                                                                | Contenu                                                                     |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [01-essence-et-voix.md](01-essence-et-voix.md)                         | Positionnement produit, personnalité, voix, lexique, contenu interdit       |
-| [02-couleurs.md](02-couleurs.md)                                       | Palette OKLCH complète (neutres, accent argile, erreurs, dark theme)        |
-| [03-typographie.md](03-typographie.md)                                 | Fraunces / General Sans, échelle de tailles, règles de casse et de montants |
-| [04-espacement-radius-elevation.md](04-espacement-radius-elevation.md) | Échelle d'espacement, radius, élévation, fonds                              |
-| [05-motion.md](05-motion.md)                                           | Les deux paliers d'animation et leurs usages                                |
-| [06-iconographie.md](06-iconographie.md)                               | Règles Lucide, CategoryChip, interdits absolus                              |
-| [07-composants.md](07-composants.md)                                   | Catalogue des composants (props, comportement, extraits de code)            |
-| [08-integration-nextjs.md](08-integration-nextjs.md)                   | Comment câbler tout ça dans `apps/web` (tokens, fonts, dark mode)           |
-| [09-do-dont.md](09-do-dont.md)                                         | Checklist rapide de conformité DA                                           |
+| Fichier | Contenu |
+|---|---|
+| [01-essence-et-voix.md](01-essence-et-voix.md) | Positionnement produit, personnalité, voix, lexique, contenu interdit |
+| [02-couleurs.md](02-couleurs.md) | Palette OKLCH complète (neutres, accent argile, erreurs, dark theme) |
+| [03-typographie.md](03-typographie.md) | Fraunces / General Sans, échelle de tailles, règles de casse et de montants |
+| [04-espacement-radius-elevation.md](04-espacement-radius-elevation.md) | Échelle d'espacement, radius, élévation, fonds |
+| [05-motion.md](05-motion.md) | Les deux paliers d'animation et leurs usages |
+| [06-iconographie.md](06-iconographie.md) | Règles Lucide, CategoryChip, interdits absolus |
+| [07-composants.md](07-composants.md) | Catalogue des composants (props, comportement, extraits de code) |
+| [08-integration-nextjs.md](08-integration-nextjs.md) | Comment câbler tout ça dans `apps/web` (tokens, fonts, dark mode) |
+| [09-do-dont.md](09-do-dont.md) | Checklist rapide de conformité DA |
 
 ## D'où vient ce guide
 
