@@ -22,6 +22,7 @@ import { updateRecurringTemplateAction, deactivateRecurringTemplateAction } from
 import { formatAmountEUR } from "@app/shared";
 import type { RecurringTemplate } from "@app/domain-recurrence";
 import type { MemberShare } from "../../../lib/household";
+import { parseAmountToCents } from "../../../lib/amount";
 import { categoryLabelOf } from "../expenses/categories";
 import { Button, Card, Input } from "../design-system/core";
 import { CategoryChip, AmountDisplay } from "../design-system/balance";
@@ -34,11 +35,9 @@ type Props = {
   templates: RecurringTemplate[];
 };
 
-function centsFrom(raw: string): number {
-  return Math.round(Number.parseFloat(raw.replace(",", ".")) * 100);
-}
-
-/** « toi » / nom du membre — jamais un id brut à l'écran (même règle que `aid-section.tsx`). */
+// Sémantique propre à cet écran, volontairement distincte de `memberDisplayName`
+// (lib/household) : le membre courant devient « toi » et le fallback est « l'autre »
+// (jamais "" ni un id brut). On ne la fond donc pas dans le helper partagé.
 function nameOf(memberId: string, currentMemberId: string, members: MemberShare[]): string {
   if (memberId === currentMemberId) return "toi";
   return members.find((m) => m.memberId === memberId)?.displayName ?? "l'autre";
@@ -96,7 +95,11 @@ function TemplateRow({ template, currentMemberId, members }: RowProps) {
   function handleUpdateAmount() {
     setError(null);
     setMessage(null);
-    const amountCents = centsFrom(amount);
+    const amountCents = parseAmountToCents(amount);
+    if (amountCents === null) {
+      setError("montant invalide");
+      return;
+    }
 
     startTransition(async () => {
       const result = await updateRecurringTemplateAction({

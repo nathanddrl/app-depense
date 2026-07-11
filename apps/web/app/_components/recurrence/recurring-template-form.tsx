@@ -22,6 +22,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createRecurringTemplateAction } from "../../actions";
 import type { MemberShare } from "../../../lib/household";
+import { parseAmountToCents } from "../../../lib/amount";
 import { CATEGORIES } from "../expenses/categories";
 import { BOTH_BENEFICIARIES, splitBothCents } from "../expenses/aid-split";
 import { Button, Card, Input, Checkbox } from "../design-system/core";
@@ -37,27 +38,19 @@ type Props = {
   defaultShares: MemberShare[];
 };
 
-function centsFrom(raw: string): number {
-  return Math.round(Number.parseFloat(raw.replace(",", ".")) * 100);
-}
-
 type NewAidInput = { beneficiaryId: string; label: string; amountCents: number };
 
 /** « les 2 » (T-CR4) construit directement les 2 lignes `aids[]` — un seul
  * appel à `createRecurringTemplateAction` fait déjà tout, pas de composition
  * séquentielle nécessaire ici (contrairement à `aid-section.tsx`, qui ajoute
- * une aide sur une dépense déjà existante). */
+ * une aide sur une dépense déjà existante). Le montant est déjà validé et
+ * converti en centimes par l'appelant (`handleSubmit`). */
 function buildAids(
-  category: Category,
-  aideOn: boolean,
-  aideAmount: string,
+  amountCents: number,
   aideBeneficiary: string,
   currentMemberId: string,
   otherMemberId: string | undefined,
-): NewAidInput[] | undefined {
-  if (category !== "loyer" || !aideOn || !aideAmount) return undefined;
-  const amountCents = centsFrom(aideAmount);
-
+): NewAidInput[] {
   if (aideBeneficiary === BOTH_BENEFICIARIES && otherMemberId) {
     const [firstCents, secondCents] = splitBothCents(amountCents);
     return [
@@ -106,6 +99,22 @@ export function RecurringTemplateForm({ currentMemberId, defaultShares }: Props)
     const trimmedLabel = label.trim();
     if (!trimmedLabel || !amount || !dayOfMonth) return;
 
+    const amountCents = parseAmountToCents(amount);
+    if (amountCents === null) {
+      setError("montant invalide");
+      return;
+    }
+
+    let aids: NewAidInput[] | undefined;
+    if (category === "loyer" && aideOn && aideAmount) {
+      const aideCents = parseAmountToCents(aideAmount);
+      if (aideCents === null) {
+        setError("montant de l'aide invalide");
+        return;
+      }
+      aids = buildAids(aideCents, aideBeneficiary, currentMemberId, otherMember?.memberId);
+    }
+
     const shares = defaultShares.map((m) => ({
       memberId: m.memberId,
       pct: m.memberId === currentMemberId ? sharePct : 100 - sharePct,
@@ -115,18 +124,11 @@ export function RecurringTemplateForm({ currentMemberId, defaultShares }: Props)
       const result = await createRecurringTemplateAction({
         label: trimmedLabel,
         category,
-        amountCents: centsFrom(amount),
+        amountCents,
         payerId,
         dayOfMonth: Number.parseInt(dayOfMonth, 10),
         shares,
-        aids: buildAids(
-          category,
-          aideOn,
-          aideAmount,
-          aideBeneficiary,
-          currentMemberId,
-          otherMember?.memberId,
-        ),
+        aids,
       });
 
       if (!result.ok) {

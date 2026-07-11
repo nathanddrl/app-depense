@@ -10,6 +10,7 @@ import { adminUpdateExpenseAction } from "../../actions";
 import type { AdminExpenseOverviewLine } from "@app/domain-expense";
 import { formatAmountEUR, formatDateFr } from "@app/shared";
 import type { MemberShare } from "../../../lib/household";
+import { parseAmountToCents } from "../../../lib/amount";
 import { Button, Card, Input } from "../../_components/design-system/core";
 import { AmountDisplay } from "../../_components/design-system/balance";
 import { Notice } from "../../_components/design-system/feedback";
@@ -44,9 +45,15 @@ function EditRow({
   const [label, setLabel] = useState(line.label);
   const [amount, setAmount] = useState((line.grossCents / 100).toFixed(2));
   const [incurredOn, setIncurredOn] = useState(line.incurredOn);
+  const [amountError, setAmountError] = useState<string | null>(null);
 
   function handleSubmit() {
-    const grossCents = Math.round(Number.parseFloat(amount.replace(",", ".")) * 100);
+    setAmountError(null);
+    const grossCents = parseAmountToCents(amount);
+    if (grossCents === null) {
+      setAmountError("montant invalide");
+      return;
+    }
     onSubmit({ label: label.trim(), grossCents, incurredOn });
   }
 
@@ -74,6 +81,7 @@ function EditRow({
               onChange={(e) => setIncurredOn(e.target.value)}
               required
             />
+            {amountError ? <Notice tone="error">{amountError}</Notice> : null}
             <Button type="submit" disabled={isPending}>
               {isPending ? "enregistrement…" : "enregistrer"}
             </Button>
@@ -93,6 +101,9 @@ export function AdminExpenseTable({ initialLines: lines, members }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Vue admin (debug/support) : fallback = id brut, volontairement distinct de
+  // `memberDisplayName` (qui masque l'id) — ici on veut pouvoir identifier un
+  // membre orphelin. On ne la fond donc pas dans le helper partagé.
   const nameOf = (memberId: string) =>
     members.find((m) => m.memberId === memberId)?.displayName ?? memberId;
 
