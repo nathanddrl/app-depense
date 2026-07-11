@@ -2,8 +2,8 @@
 // --surface-base, séparé par des filets WaterSeparator — jamais de Card par
 // ligne ni autour du bloc. Motif posé ici de façon réutilisable : l'écran
 // mouvements complet (T-CN3.1, pas encore construit) reprendra la même ligne
-// (CategoryChip, payeur, date, montant), potentiellement sur la liste entière
-// plutôt qu'un extrait.
+// (CategoryChip, libellé, payeur, date, montant), potentiellement sur la
+// liste entière plutôt qu'un extrait.
 
 import type { Expense } from "@app/domain-expense";
 import { formatAmountEUR } from "@app/shared";
@@ -39,9 +39,12 @@ export function MovementsList({ expenses, members }: Props) {
           >
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
               <CategoryChip name={categoryLabelOf(e.category)} size={28} />
-              <span style={{ color: "var(--text-secondary)", fontSize: "var(--text-sm)" }}>
-                {displayNameOf(members, e.payerId)} · {dayLabel(e.incurredOn)}
-              </span>
+              <Stack gap={1}>
+                <span>{e.label}</span>
+                <span style={{ color: "var(--text-secondary)", fontSize: "var(--text-sm)" }}>
+                  {displayNameOf(members, e.payerId)} · {dayLabel(e.incurredOn)}
+                </span>
+              </Stack>
             </div>
             <AmountDisplay value={formatAmountEUR(e.grossCents)} size="sm" />
           </div>
