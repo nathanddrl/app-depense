@@ -9,8 +9,7 @@ décisions numérotées DA1-DA14 et D1-D18).
 
 - **Jamais de co-author Claude / Claude Code dans les commits.** Aucune ligne
   `Co-Authored-By: Claude…`, aucune mention « Generated with Claude Code ».
-- Répondre et commenter le code en français (produit 100 % FR, aucune i18n — DA10).
-- Ne rien commiter/pusher sans demande explicite.
+- Répondre et commenter le code en français.
 
 ## Structure (archi ch.1.3)
 
