@@ -9,6 +9,8 @@ import { createSupabaseServerClient } from "../lib/supabase/server";
 import { getCurrentContext, requireAdmin } from "../lib/auth/context";
 import {
   createExpense,
+  updateExpense,
+  deleteExpense,
   listExpenses,
   getBalance,
   getBalanceDetail,
@@ -75,6 +77,26 @@ export async function createExpenseAction(
     { memberId: ctx.member.id, householdId: ctx.householdId },
     { ...input, householdId: ctx.householdId },
   );
+}
+
+// Édition membre d'une dépense ouverte (spec ch.5.1). Contrairement à
+// `adminUpdateExpenseAction`, cette version reste soumise au verrou
+// EXPENSE_LOCKED : une dépense rattachée à une régularisation renvoie une erreur.
+export async function updateExpenseAction(
+  input: UpdateExpenseInput,
+): Promise<ActionResult<Expense>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseExpenseRepository(ctx.supabase);
+  return updateExpense(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, input);
+}
+
+// Suppression membre (soft delete, D2). Même garde EXPENSE_LOCKED que l'édition.
+export async function deleteExpenseAction(
+  input: { expenseId: string },
+): Promise<ActionResult<{ id: string }>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseExpenseRepository(ctx.supabase);
+  return deleteExpense(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, input);
 }
 
 export async function listExpensesAction(
