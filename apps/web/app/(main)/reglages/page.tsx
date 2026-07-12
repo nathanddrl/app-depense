@@ -3,13 +3,12 @@ import { ChevronRight } from "lucide-react";
 import { getCurrentContext, isAdmin } from "../../../lib/auth/context";
 import { signOut } from "../../actions";
 import { Stack, PageTitle } from "../../_components/design-system/layout";
+import { ThemeToggle } from "../../_components/design-system/theme";
 import styles from "./reglages.module.css";
 
 // Réglages d'app/profil uniquement (T-CN5, dernière carte du chantier CN) —
-// rien qui relève de la gestion de dépenses. Le thème clair/sombre
-// (theme-toggle.tsx, T-C9.2) est déjà monté globalement dans le layout
-// racine : il apparaît sur cet écran comme sur tous les autres, sans
-// duplication ici.
+// rien qui relève de la gestion de dépenses. Le toggle thème clair/sombre
+// (theme-toggle.tsx, T-C9.2) vit ici uniquement, plus dans le layout racine.
 export default async function ReglagesPage() {
   const ctx = await getCurrentContext();
 
@@ -21,6 +20,9 @@ export default async function ReglagesPage() {
           <div className={styles.row}>
             <span>compte</span>
             <span className={styles.value}>{ctx.member.email}</span>
+          </div>
+          <div className={styles.row}>
+            <ThemeToggle />
           </div>
           {isAdmin(ctx) ? (
             <Link href="/admin" className={styles.row}>
