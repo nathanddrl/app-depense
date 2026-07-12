@@ -26,6 +26,7 @@ import {
   deactivateRecurringTemplate,
   runRecurringGeneration,
   type RecurrenceContext,
+  type RecurringGenerationOutcome,
 } from "@app/domain-recurrence";
 import {
   initiateSettlement,
@@ -43,6 +44,7 @@ const SERVICE_ROLE_KEY =
 const HOUSEHOLD_ID = "d0000000-0000-0000-0000-000000000001";
 const NATHAN = "a0000000-0000-0000-0000-000000000001";
 const OKSANA = "a0000000-0000-0000-0000-000000000002";
+const LOYER_TEMPLATE_ID = "c0000000-0000-0000-0000-000000000001";
 
 const supabase = createDbClient(API_URL, SERVICE_ROLE_KEY);
 
@@ -108,7 +110,10 @@ function isoDate(monthsAgo: number, day: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-async function generateMonth(monthsAgo: number, day: number): Promise<void> {
+async function generateMonth(
+  monthsAgo: number,
+  day: number,
+): Promise<RecurringGenerationOutcome[]> {
   const now = relativeMonth(monthsAgo, day);
   const result = await runRecurringGeneration(recurringRepo, now);
   const summary = unwrap(result, "runRecurringGeneration");
@@ -116,6 +121,19 @@ async function generateMonth(monthsAgo: number, day: number): Promise<void> {
   for (const r of summary.results) {
     console.log(`  [récurrence ${period}] ${r.templateId.slice(0, 8)}… → ${r.status}`);
   }
+  return summary.results;
+}
+
+/** Retrouve l'`expenseId` de l'occurrence générée pour un template donné ce mois-là. */
+function expenseIdForTemplate(
+  results: RecurringGenerationOutcome[],
+  templateId: string,
+): string {
+  const found = results.find((r) => r.templateId === templateId);
+  if (!found || found.status !== "generated") {
+    throw new Error(`Aucune occurrence générée pour le template ${templateId} ce mois-ci.`);
+  }
+  return found.expenseId;
 }
 
 async function createOneOff(opts: {
@@ -339,7 +357,7 @@ async function main(): Promise<void> {
 
   // ── 6) M-1 ───────────────────────────────────────────────────────────────
   console.log("Mois M-1 : génération récurrence + dépenses ponctuelles…");
-  await generateMonth(1, lastDayOfRelativeMonth(1));
+  const resultsM1 = await generateMonth(1, lastDayOfRelativeMonth(1));
   await createOneOff({
     monthsAgo: 1,
     day: 6,
@@ -356,11 +374,27 @@ async function main(): Promise<void> {
     grossCents: 5420,
     payerId: OKSANA,
   });
+
+  console.log(
+    "  Aide exceptionnelle sur le VRAI loyer de M-1 (cumulée à l'APL, dépasse la charge — warning D11)…",
+  );
+  {
+    const rentExpenseId = expenseIdForTemplate(resultsM1, LOYER_TEMPLATE_ID);
+    const aidResult = await addAid(aidRepo, aidCtx(NATHAN), {
+      expenseId: rentExpenseId,
+      label: "Aide exceptionnelle CAF",
+      beneficiaryId: OKSANA,
+      amountCents: 70000, // + APL 200€ déjà attachée au template = 900€ > 800€ de loyer.
+    });
+    unwrap(aidResult, "addAid (aide > charge, sur le vrai loyer M-1)");
+    const warnings = aidResult.ok ? (aidResult.warnings ?? []) : [];
+    console.log(`  → warnings: ${JSON.stringify(warnings)}, net attendu = 0€`);
+  }
   console.log();
 
   // ── 7) M0 (aujourd'hui) ──────────────────────────────────────────────────
   console.log("Mois M0 (aujourd'hui) : génération récurrence + dépenses ponctuelles…");
-  await generateMonth(0, new Date().getUTCDate());
+  const resultsM0 = await generateMonth(0, new Date().getUTCDate());
   await createOneOff({
     monthsAgo: 0,
     day: Math.max(1, new Date().getUTCDate() - 3),
@@ -370,56 +404,28 @@ async function main(): Promise<void> {
     payerId: NATHAN,
   });
 
-  console.log("  Dépense loyer avec aide dépassant la charge nette (warning de plafonnement, D11)…");
+  console.log(
+    "  Aide « les deux » sur le VRAI loyer de M0 (split 50/50, en plus de l'APL, D-produit 09/07)…",
+  );
   {
-    const day = Math.max(1, new Date().getUTCDate() - 2);
-    const expenseId = await createOneOff({
-      monthsAgo: 0,
-      day,
-      label: "Loyer complémentaire (aide > charge)",
-      category: "loyer",
-      grossCents: 50000,
-      payerId: NATHAN,
-    });
-    const aidResult = await addAid(aidRepo, aidCtx(NATHAN), {
-      expenseId,
-      label: "Aide exceptionnelle CAF",
-      beneficiaryId: OKSANA,
-      amountCents: 60000,
-    });
-    unwrap(aidResult, "addAid (aide > charge)");
-    const warnings = aidResult.ok ? (aidResult.warnings ?? []) : [];
-    console.log(`  → warnings: ${JSON.stringify(warnings)}, net attendu = 0€`);
-  }
-
-  console.log("  Dépense loyer avec aide « les deux » (split 50/50, D-produit 09/07)…");
-  {
-    const day = Math.max(1, new Date().getUTCDate() - 1);
-    const expenseId = await createOneOff({
-      monthsAgo: 0,
-      day,
-      label: "Loyer — aide partagée",
-      category: "loyer",
-      grossCents: 70000,
-      payerId: OKSANA,
-    });
+    const rentExpenseId = expenseIdForTemplate(resultsM0, LOYER_TEMPLATE_ID);
     unwrap(
       await addAid(aidRepo, aidCtx(OKSANA), {
-        expenseId,
-        label: "APL (part 1/2)",
+        expenseId: rentExpenseId,
+        label: "Aide exceptionnelle (les deux, part 1/2)",
         beneficiaryId: NATHAN,
-        amountCents: 15000,
+        amountCents: 10000,
       }),
-      "addAid (les deux, part 1)",
+      "addAid (les deux, part 1, sur le vrai loyer M0)",
     );
     unwrap(
       await addAid(aidRepo, aidCtx(OKSANA), {
-        expenseId,
-        label: "APL (part 2/2)",
+        expenseId: rentExpenseId,
+        label: "Aide exceptionnelle (les deux, part 2/2)",
         beneficiaryId: OKSANA,
-        amountCents: 15000,
+        amountCents: 10000,
       }),
-      "addAid (les deux, part 2)",
+      "addAid (les deux, part 2, sur le vrai loyer M0)",
     );
   }
   console.log();
