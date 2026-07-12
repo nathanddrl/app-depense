@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getCurrentContext } from "../../lib/auth/context";
 import { getDefaultShares } from "../../lib/household";
 import { listExpensesAction, listRecurringTemplatesAction } from "../actions";
@@ -7,7 +6,6 @@ import { FirstExpenseInvite } from "../_components/home/first-expense-invite";
 import { RecurrenceInvite } from "../_components/home/recurrence-invite";
 import { AddExpenseButton } from "../_components/home/add-expense-button";
 import { MovementsList } from "../_components/expenses/movements-list";
-import { ADD_MODE_PARAM, ADD_MODE_RECURRENT } from "../_components/add/add-mode";
 import { Stack } from "../_components/design-system/layout";
 
 // Le seam résout le membre + le foyer courant (via le JWT/RLS) ; le proxy
@@ -31,27 +29,19 @@ export default async function Home() {
   return (
     <main>
       <Stack gap={4}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-          {/* Wordmark (uiuix-guide/03-typographie.md) : Fraunces italique,
-              bas-de-casse, jamais un logo ni le composant PageTitle générique
-              (réservé aux titres d'écran, ex. /admin, /login). */}
-          <span
-            style={{
-              fontFamily: "var(--font-display)",
-              fontStyle: "italic",
-              fontSize: "var(--display-sm)",
-              color: "var(--text-primary)",
-            }}
-          >
-            étale
-          </span>
-          <Link
-            href={`/ajouter?${ADD_MODE_PARAM}=${ADD_MODE_RECURRENT}`}
-            style={{ fontSize: "var(--text-sm)", color: "var(--text-secondary)" }}
-          >
-            charges récurrentes
-          </Link>
-        </div>
+        {/* Wordmark (uiuix-guide/03-typographie.md) : Fraunces italique,
+            bas-de-casse, jamais un logo ni le composant PageTitle générique
+            (réservé aux titres d'écran, ex. /admin, /login). */}
+        <span
+          style={{
+            fontFamily: "var(--font-display)",
+            fontStyle: "italic",
+            fontSize: "var(--display-sm)",
+            color: "var(--text-primary)",
+          }}
+        >
+          étale
+        </span>
 
         <BalancePanel currentMemberId={ctx.member.id} members={defaultShares} />
         <AddExpenseButton />
