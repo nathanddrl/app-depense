@@ -1,8 +1,8 @@
-// @app/domain-settlement — déclenchement d'une régularisation (spec ch.5.3, D16
-// v0.3, T-C6.2). Le débiteur déclenche (« j'ai remboursé »), le solde n'est figé
-// qu'à la confirmation (T-C6.3) — ici on fige seulement le montant et on gèle les
-// dépenses ouvertes du foyer, qui comptent encore dans le solde tant que le
-// settlement est `pending` (§4.2, déjà respecté par `getBalance`).
+// @app/domain-settlement — déclenchement d'une régularisation (spec ch.5.3, D15
+// révisé, D16 v0.3, T-C6.2). Le débiteur déclenche (« j'ai remboursé »), pour
+// tout ou partie du solde courant. Modèle ledger (D7 révisé) : plus de gel des
+// dépenses — le solde n'est réduit qu'à la confirmation (T-C6.3), via
+// l'ajustement du montant confirmé (cf. `@app/calc-engine.computeBalance`).
 
 import { err, ok } from "@app/shared";
 import type { ActionResult } from "@app/shared";
@@ -20,26 +20,34 @@ export async function initiateSettlement(
   }
 
   // 2) Solde nul : rien à régulariser.
-  if (input.amountCents === 0) {
+  if (input.balanceAmountCents === 0) {
     return err(
       "BALANCE_ALREADY_ZERO",
       "Le solde est déjà à zéro, aucune régularisation n'est nécessaire.",
     );
   }
 
-  // 3) Seul le débiteur peut déclencher (D16).
+  // 3) Montant demandé invalide ou supérieur au solde réel (D15 révisé — partiel autorisé).
+  if (input.amountCents <= 0 || input.amountCents > input.balanceAmountCents) {
+    return err(
+      "AMOUNT_EXCEEDS_BALANCE",
+      "Tu ne peux pas rembourser plus que ce que tu dois actuellement.",
+    );
+  }
+
+  // 4) Seul le débiteur peut déclencher (D16).
   if (ctx.memberId !== input.fromMemberId) {
     return err("FORBIDDEN", "Seul le débiteur peut déclencher une régularisation.");
   }
 
-  // 4) Une seule régularisation `pending` par foyer.
+  // 5) Une seule régularisation `pending` par foyer.
   const pending = await repo.getPendingSettlement(input.householdId);
   if (pending) {
     return err("SETTLEMENT_PENDING_EXISTS", "Une régularisation est déjà en cours pour ce foyer.");
   }
 
-  // 5) Création atomique + gel des dépenses ouvertes du foyer.
-  const settlement = await repo.createSettlementAndFreezeExpenses({
+  // 6) Création atomique — aucune dépense n'est touchée (modèle ledger, D7 révisé).
+  const settlement = await repo.createSettlement({
     householdId: input.householdId,
     amountCents: input.amountCents,
     fromMemberId: input.fromMemberId,

@@ -19,13 +19,16 @@ class FakeSettlementRepository implements SettlementRepository {
     return this.settlements.get(settlementId) ?? null;
   }
 
-  async createSettlementAndFreezeExpenses(_newSettlement: NewSettlement): Promise<Settlement> {
+  async createSettlement(_newSettlement: NewSettlement): Promise<Settlement> {
     throw new Error("non utilisé par ces tests");
   }
   async confirmSettlement(_settlementId: string, _confirmedBy: string): Promise<Settlement> {
     throw new Error("non utilisé par ces tests");
   }
   async cancelSettlement(_settlementId: string): Promise<Settlement> {
+    throw new Error("non utilisé par ces tests");
+  }
+  async listConfirmedSettlements(_householdId: string): Promise<Settlement[]> {
     throw new Error("non utilisé par ces tests");
   }
 }

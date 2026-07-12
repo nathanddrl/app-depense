@@ -463,7 +463,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      cancel_settlement: { Args: { p_settlement_id: string }; Returns: string }
       create_expense_with_shares: {
         Args: {
           p_category: Database["public"]["Enums"]["expense_category"]
@@ -492,16 +491,6 @@ export type Database = {
           p_template_id: string
         }
         Returns: Json
-      }
-      initiate_settlement: {
-        Args: {
-          p_amount_cents: number
-          p_from_member_id: string
-          p_household_id: string
-          p_initiated_by: string
-          p_to_member_id: string
-        }
-        Returns: string
       }
     }
     Enums: {

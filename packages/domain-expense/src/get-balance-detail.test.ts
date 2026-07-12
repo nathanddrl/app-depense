@@ -71,7 +71,6 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           payerId: "A",
           shares: ratio5050Shares(60000),
           aids: [{ beneficiaryId: "A", amountCents: 20000, label: "APL" }],
-          settlementStatus: null,
           source: "manual",
         },
       ],
@@ -104,7 +103,6 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           payerId: "A",
           shares: ratio5050Shares(80000),
           aids: [],
-          settlementStatus: null,
           source: "manual",
         },
         {
@@ -113,7 +111,6 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           payerId: "B",
           shares: ratio5050Shares(6000),
           aids: [],
-          settlementStatus: null,
           source: "manual",
         },
       ],
@@ -126,7 +123,9 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
     expect(res.data.map((l) => l.label)).toEqual(["Loyer", "Courses"]);
   });
 
-  it("settlement confirmé → dépense exclue du détail", async () => {
+  it("dépense passée par un règlement (D7 révisé, modèle ledger) reste présente dans le détail", async () => {
+    // Plus de statut de settlement rattaché à l'expense : le domaine n'a même
+    // plus à le connaître, seules les dépenses non supprimées sont chargées.
     const repo = new FakeExpenseRepository(
       ["A", "B"],
       [
@@ -136,29 +135,6 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           payerId: "A",
           shares: ratio5050Shares(80000),
           aids: [],
-          settlementStatus: "confirmed",
-          source: "manual",
-        },
-      ],
-    );
-
-    const res = await getBalanceDetail(repo, ctx, { householdId: HOUSEHOLD });
-    expect(res.ok).toBe(true);
-    if (!res.ok) return;
-    expect(res.data).toEqual([]);
-  });
-
-  it("settlement pending → dépense encore présente dans le détail", async () => {
-    const repo = new FakeExpenseRepository(
-      ["A", "B"],
-      [
-        {
-          label: "Loyer",
-          grossCents: 80000,
-          payerId: "A",
-          shares: ratio5050Shares(80000),
-          aids: [],
-          settlementStatus: "pending",
           source: "manual",
         },
       ],
@@ -191,7 +167,6 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
             { memberId: "B", cents: 0, pctSnapshot: 50 },
           ],
           aids: [{ beneficiaryId: "A", amountCents: 90000, label: "APL" }],
-          settlementStatus: null,
           source: "manual",
         },
       ],

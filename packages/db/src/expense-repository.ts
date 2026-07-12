@@ -67,7 +67,6 @@ export type StoredExpense = Expense & { deletedAt: string | null };
 
 export type ListExpensesFilters = { month?: string; category?: Category };
 
-export type SettlementStatus = Enums<"settlement_status">;
 export type BalanceAid = { beneficiaryId: string; amountCents: number; label: string };
 export type BalanceExpenseRow = {
   label: string;
@@ -75,14 +74,12 @@ export type BalanceExpenseRow = {
   payerId: string;
   shares: { memberId: string; cents: number; pctSnapshot: number }[];
   aids: BalanceAid[];
-  settlementStatus: SettlementStatus | null;
   source: string;
 };
 
 type ExpenseRow = Tables<"expense">;
 type ExpenseShareRow = Tables<"expense_share">;
 type AidRow = Tables<"aid">;
-type SettlementRow = Tables<"settlement">;
 
 function toShareDTO(row: ExpenseShareRow): ExpenseShareDTO {
   return {
@@ -305,21 +302,6 @@ export class SupabaseExpenseRepository {
     if (sharesError) throw sharesError;
     if (aidsError) throw aidsError;
 
-    const settlementIds = [
-      ...new Set(expenseRows.map((e) => e.settlement_id).filter(Boolean)),
-    ] as string[];
-    const statusById = new Map<string, SettlementStatus>();
-    if (settlementIds.length > 0) {
-      const { data: settlementRows, error: settlementError } = await this.supabase
-        .from("settlement")
-        .select("id, status")
-        .in("id", settlementIds);
-      if (settlementError) throw settlementError;
-      for (const s of (settlementRows ?? []) as Pick<SettlementRow, "id" | "status">[]) {
-        statusById.set(s.id, s.status);
-      }
-    }
-
     const sharesByExpense = new Map<string, ExpenseShareRow[]>();
     for (const row of shareRows ?? []) {
       const list = sharesByExpense.get(row.expense_id) ?? [];
@@ -343,7 +325,6 @@ export class SupabaseExpenseRepository {
         amountCents: a.amount_cents,
         label: a.label,
       })),
-      settlementStatus: row.settlement_id ? (statusById.get(row.settlement_id) ?? null) : null,
       source: row.source,
     }));
   }

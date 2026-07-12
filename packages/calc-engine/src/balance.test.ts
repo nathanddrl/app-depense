@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { computeExpense, contribution, computeBalance, reduceBalanceTwoMembers } from "./index";
-import type { BalanceExpense, ExpenseInput } from "./index";
+import type { BalanceExpense, ExpenseInput, SettlementForBalance } from "./index";
 
 const ratio5050 = [
   { memberId: "A", pct: 50 },
@@ -10,7 +10,7 @@ const ratio5050 = [
 // Assemble une BalanceExpense à partir du pipeline réel (usage nominal du moteur).
 function balanceExpense(
   input: ExpenseInput,
-  meta: Pick<BalanceExpense, "deletedAt" | "settlementConfirmed"> = {},
+  meta: Pick<BalanceExpense, "deletedAt"> = {},
 ): BalanceExpense {
   const c = computeExpense(input);
   return {
@@ -98,7 +98,7 @@ describe("solde — contribution & réconciliation payeur/répartiteur (4.2 / an
   });
 });
 
-describe("filtre du solde (4.2) — supprimé / régularisé confirmé", () => {
+describe("filtre du solde (4.2) — dépense supprimée", () => {
   const base = { grossCents: 80000, payerId: "A", ratio: ratio5050 } as const;
 
   it("dépense soft-deletée exclue du solde", () => {
@@ -107,19 +107,78 @@ describe("filtre du solde (4.2) — supprimé / régularisé confirmé", () => {
     expect(bal.A).toBe(0);
     expect(bal.B).toBe(0);
   });
+});
 
-  it("settlement confirmé exclut la dépense (solde → 0)", () => {
-    const expenses = [balanceExpense(base, { settlementConfirmed: true })];
-    const bal = computeBalance(expenses, ["A", "B"]);
-    expect(bal.A).toBe(0);
-    expect(bal.B).toBe(0);
+describe("solde — ajustements des règlements (4.2/4.5, modèle ledger D7/D15 révisés)", () => {
+  const base = { grossCents: 80000, payerId: "A", ratio: ratio5050 } as const; // B doit 40000 à A
+
+  function settlement(
+    amountCents: number,
+    status: SettlementForBalance["status"],
+    overrides: Partial<SettlementForBalance> = {},
+  ): SettlementForBalance {
+    return { fromMemberId: "B", toMemberId: "A", amountCents, status, ...overrides };
+  }
+
+  it("règlement confirmé partiel réduit le solde sans l'annuler", () => {
+    const expenses = [balanceExpense(base)];
+    const bal = computeBalance(expenses, ["A", "B"], [settlement(10000, "confirmed")]);
+    expect(bal.A).toBe(30000);
+    expect(bal.B).toBe(-30000);
   });
 
-  it("settlement pending (non confirmé) → la dette reste comptée", () => {
-    const expenses = [balanceExpense(base, { settlementConfirmed: false })];
-    const bal = computeBalance(expenses, ["A", "B"]);
+  it("plusieurs règlements confirmés se cumulent", () => {
+    const expenses = [balanceExpense(base)];
+    const bal = computeBalance(
+      expenses,
+      ["A", "B"],
+      [settlement(10000, "confirmed"), settlement(5000, "confirmed")],
+    );
+    expect(bal.A).toBe(25000);
+    expect(bal.B).toBe(-25000);
+  });
+
+  it("règlement confirmé total ramène le solde à zéro", () => {
+    const expenses = [balanceExpense(base)];
+    const bal = computeBalance(expenses, ["A", "B"], [settlement(40000, "confirmed")]);
+    expect(bal.A).toBe(0);
+    expect(bal.B).toBe(0);
+    expect(reduceBalanceTwoMembers(bal)).toBeNull();
+  });
+
+  it("règlement pending n'affecte pas encore le solde", () => {
+    const expenses = [balanceExpense(base)];
+    const bal = computeBalance(expenses, ["A", "B"], [settlement(10000, "pending")]);
     expect(bal.A).toBe(40000);
     expect(bal.B).toBe(-40000);
+  });
+
+  it("règlement cancelled est ignoré", () => {
+    const expenses = [balanceExpense(base)];
+    const bal = computeBalance(expenses, ["A", "B"], [settlement(10000, "cancelled")]);
+    expect(bal.A).toBe(40000);
+    expect(bal.B).toBe(-40000);
+  });
+
+  it("Σ solde = 0 avec un mélange de statuts et de sens inversés", () => {
+    const expenses = [balanceExpense(base)]; // B doit 40000 à A
+    const settlements = [
+      settlement(10000, "confirmed"), // B→A confirmé : reste B doit 30000
+      settlement(50000, "pending"), // ignoré
+      settlement(20000, "cancelled"), // ignoré
+      settlement(5000, "confirmed", { fromMemberId: "A", toMemberId: "B" }), // A rembourse un trop-perçu
+    ];
+    const bal = computeBalance(expenses, ["A", "B"], settlements);
+    expect(bal.A + bal.B).toBe(0);
+    expect(bal.A).toBe(35000);
+    expect(bal.B).toBe(-35000);
+  });
+
+  it("nouvelle dépense saisie après un règlement pending compte normalement (pas de cas spécial)", () => {
+    const expenses = [balanceExpense(base), balanceExpense({ ...base, grossCents: 6000 })];
+    const bal = computeBalance(expenses, ["A", "B"], [settlement(10000, "pending")]);
+    expect(bal.A).toBe(40000 + 3000);
+    expect(bal.B).toBe(-40000 - 3000);
   });
 });
 

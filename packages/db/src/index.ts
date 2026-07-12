@@ -16,7 +16,6 @@ export type {
   StoredExpense,
   BalanceAid,
   BalanceExpenseRow,
-  SettlementStatus,
 } from "./expense-repository";
 
 export { SupabaseAidRepository } from "./aid-repository";

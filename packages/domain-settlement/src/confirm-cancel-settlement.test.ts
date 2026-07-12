@@ -5,20 +5,18 @@ import type { NewSettlement, SettlementRepository } from "./repository";
 import type { Settlement, SettlementContext, SettlementStatus } from "./types";
 
 // ── FakeSettlementRepository : ne porte que ce dont confirm/cancel ont besoin
-// (DA11, tests légers). getPendingSettlement/createSettlementAndFreezeExpenses
-// sont hors périmètre ici (T-C6.2). ──────────────────────────────────────────
+// (DA11, tests légers). getPendingSettlement/createSettlement/
+// listConfirmedSettlements sont hors périmètre ici (T-C6.2). Modèle ledger
+// (D7 révisé) : plus de dépenses à gérer, confirm/cancel ne touchent que le
+// statut du settlement. ──────────────────────────────────────────
 class FakeSettlementRepository implements SettlementRepository {
   private settlements = new Map<string, Settlement>();
 
   confirmCount = 0;
   cancelCount = 0;
-  expenseSettlementIds = new Map<string, string | null>();
 
-  seed(settlement: Settlement, expenseIds: string[] = []): void {
+  seed(settlement: Settlement): void {
     this.settlements.set(settlement.id, settlement);
-    for (const expenseId of expenseIds) {
-      this.expenseSettlementIds.set(expenseId, settlement.id);
-    }
   }
 
   async getSettlementById(settlementId: string): Promise<Settlement | null> {
@@ -49,16 +47,16 @@ class FakeSettlementRepository implements SettlementRepository {
       cancelledAt: new Date().toISOString(),
     };
     this.settlements.set(settlementId, updated);
-    for (const [expenseId, sid] of this.expenseSettlementIds) {
-      if (sid === settlementId) this.expenseSettlementIds.set(expenseId, null);
-    }
     return updated;
   }
 
   async getPendingSettlement(_householdId: string): Promise<{ id: string } | null> {
     throw new Error("non utilisé par ces tests");
   }
-  async createSettlementAndFreezeExpenses(_newSettlement: NewSettlement): Promise<Settlement> {
+  async createSettlement(_newSettlement: NewSettlement): Promise<Settlement> {
+    throw new Error("non utilisé par ces tests");
+  }
+  async listConfirmedSettlements(_householdId: string): Promise<Settlement[]> {
     throw new Error("non utilisé par ces tests");
   }
 }
@@ -92,7 +90,7 @@ beforeEach(() => {
 
 describe("confirmSettlement — confirmation par le créancier (ch.5.3, D16 v0.3)", () => {
   it("pending, A (créancier) confirme → confirmed", async () => {
-    repo.seed(baseSettlement(), ["exp-1", "exp-2"]);
+    repo.seed(baseSettlement());
 
     const res = await confirmSettlement(repo, ctxCreditor, { settlementId: SETTLEMENT_ID });
 
@@ -135,9 +133,9 @@ describe("confirmSettlement — confirmation par le créancier (ch.5.3, D16 v0.3
   });
 });
 
-describe("cancelSettlement — annulation/refus (ch.5.3, D16 v0.3)", () => {
-  it("pending, A (créancier) refuse → cancelled, dépenses rouvertes, solde inchangé", async () => {
-    repo.seed(baseSettlement(), ["exp-1", "exp-2"]);
+describe("cancelSettlement — annulation/refus (ch.5.3, D7 révisé, D16 v0.3)", () => {
+  it("pending, A (créancier) refuse → cancelled, solde inchangé (aucune dépense touchée)", async () => {
+    repo.seed(baseSettlement());
 
     const res = await cancelSettlement(repo, ctxCreditor, { settlementId: SETTLEMENT_ID });
 
@@ -145,8 +143,6 @@ describe("cancelSettlement — annulation/refus (ch.5.3, D16 v0.3)", () => {
     if (!res.ok) return;
     expect(res.data.status).toBe("cancelled");
     expect(res.data.cancelledAt).not.toBeNull();
-    expect(repo.expenseSettlementIds.get("exp-1")).toBeNull();
-    expect(repo.expenseSettlementIds.get("exp-2")).toBeNull();
     expect(repo.cancelCount).toBe(1);
   });
 

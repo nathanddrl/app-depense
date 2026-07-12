@@ -7,14 +7,24 @@ export interface BalanceExpense {
   effectiveAids: EffectiveAid[];
   /** Filtre 4.2 : une dépense soft-deletée ne compte pas dans le solde. */
   deletedAt?: Date | string | null;
-  /** Filtre 4.2 : seul un settlement `confirmed` exclut la dépense du solde. */
-  settlementConfirmed?: boolean;
 }
 
 export interface TwoMemberBalance {
   from: MemberId;
   to: MemberId;
   amountCents: number;
+}
+
+/**
+ * Ajustement de solde porté par un règlement (spec 4.2/4.5, D7/D15 révisés,
+ * modèle ledger). Seuls les settlements `confirmed` affectent le solde ;
+ * `pending`/`cancelled` sont ignorés en interne.
+ */
+export interface SettlementForBalance {
+  fromMemberId: MemberId;
+  toMemberId: MemberId;
+  amountCents: number;
+  status: "pending" | "confirmed" | "cancelled";
 }
 
 /**
@@ -35,23 +45,32 @@ export function contribution(expense: BalanceExpense, memberId: MemberId): numbe
   return paid - aid - part;
 }
 
-/** Une dépense entre dans le solde si non supprimée ET non régularisée de façon confirmée (4.2). */
+/** Une dépense entre dans le solde si non supprimée (4.2, modèle ledger — D7 révisé). */
 function countsInBalance(expense: BalanceExpense): boolean {
-  return expense.deletedAt == null && expense.settlementConfirmed !== true;
+  return expense.deletedAt == null;
 }
 
 /**
- * Solde net de chaque membre (spec 4.2), somme des contributions sur les dépenses
- * éligibles. Propriété garantie : `Σ_m solde(m) = 0` (cf. property test).
+ * Solde net de chaque membre (spec 4.2, modèle ledger D7/D15 révisés) : somme des
+ * contributions sur les dépenses éligibles, puis ajustement de chaque règlement
+ * `confirmed` (le montant réglé se déplace du créancier vers le débiteur).
+ * Propriété garantie : `Σ_m solde(m) = 0` (cf. property test) — chaque ajustement
+ * déplace un montant égal et opposé entre `fromMemberId` et `toMemberId`.
  */
 export function computeBalance(
   expenses: BalanceExpense[],
   memberIds: MemberId[],
+  settlements: SettlementForBalance[] = [],
 ): Record<MemberId, number> {
   const eligible = expenses.filter(countsInBalance);
   const balances: Record<MemberId, number> = {};
   for (const id of memberIds) {
     balances[id] = eligible.reduce((sum, e) => sum + contribution(e, id), 0);
+  }
+  for (const settlement of settlements) {
+    if (settlement.status !== "confirmed") continue;
+    balances[settlement.toMemberId] -= settlement.amountCents;
+    balances[settlement.fromMemberId] += settlement.amountCents;
   }
   return balances;
 }

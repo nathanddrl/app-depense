@@ -80,10 +80,10 @@ export type SettlementStatus = "pending" | "confirmed" | "cancelled";
 export type BalanceAid = { beneficiaryId: string; amountCents: number; label: string };
 
 /**
- * Vue d'une dépense active pour le calcul du solde (spec 4.2). Le statut du
- * settlement rattaché (`null` si aucun) permet au domaine d'appliquer le filtre
- * « seul un settlement confirmé exclut la dépense ». `label` sert au détail de
- * transparence dépliable (8.3, T-C4.4).
+ * Vue d'une dépense active pour le calcul du solde (spec 4.2, modèle ledger —
+ * D7 révisé). Plus de statut de settlement rattaché : seules les dépenses non
+ * supprimées sont chargées (filtre déjà appliqué par le repo). `label` sert au
+ * détail de transparence dépliable (8.3, T-C4.4).
  */
 export type BalanceExpenseRow = {
   label: string;
@@ -91,18 +91,21 @@ export type BalanceExpenseRow = {
   payerId: string;
   shares: { memberId: string; cents: number; pctSnapshot: number }[];
   aids: BalanceAid[];
-  settlementStatus: SettlementStatus | null;
   source: ExpenseSource;
 };
 
 export type RawBalanceExpenseRow = Omit<BalanceExpenseRow, "source"> & { source: string };
 
-/** Solde courant réduit à deux membres (6.2 `getBalance`). */
+/**
+ * Solde courant réduit à deux membres (6.2 `getBalance`, D7 révisé). Ne porte
+ * plus `pendingSettlement` : ce champ se déduisait d'une jointure expense→
+ * settlement qui n'existe plus (modèle ledger) — l'appelant (web) le calcule
+ * séparément via `getCurrentSettlement` (@app/domain-settlement, DA4).
+ */
 export type Balance = {
   from: string;
   to: string;
   amountCents: number;
-  pendingSettlement?: boolean;
 };
 
 /** Une ligne d'ajustement « aide » du détail dépliable (spec 8.3, 2e temps). */

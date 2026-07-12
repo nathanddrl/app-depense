@@ -1,9 +1,12 @@
 "use client";
 
-// Parcours de régularisation (spec 8.1/5.3, T-C6.6) : le débiteur déclenche
-// (« Solder »), le créancier confirme (« J'ai reçu »). Vocabulaire strict :
-// jamais « régularisation »/« settlement » à l'écran — seulement qui doit
-// confirmer quoi à qui, en langage humain.
+// Parcours de régularisation (spec 8.1/5.3, T-C6.6, D15 révisé). Le débiteur
+// déclenche (« Solder » pour tout, ou un montant partiel via un flux replié),
+// le créancier confirme (« J'ai reçu »). Vocabulaire strict : jamais
+// « régularisation »/« settlement » à l'écran — seulement qui doit confirmer
+// quoi à qui, en langage humain. Le montant confirmé peut être partiel : les
+// bannières communiquent le montant échangé, jamais que le solde retombe à
+// zéro (ce qui peut être faux si de nouvelles dépenses sont apparues entre-temps).
 //
 // Pas d'état local optimiste sur le settlement lui-même : après chaque action
 // réussie, `router.refresh()` refait tourner `BalancePanel` (RSC) avec des
@@ -18,10 +21,11 @@ import {
   confirmSettlementAction,
   cancelSettlementAction,
 } from "../../actions";
+import { parseAmountToCents } from "../../../lib/amount";
 import { formatAmountEUR } from "@app/shared";
 import type { ActionResult } from "@app/shared";
 import type { Settlement } from "@app/domain-settlement";
-import { Button } from "../design-system/core";
+import { Button, Input } from "../design-system/core";
 import { AmountDisplay } from "../design-system/balance";
 import { Notice } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
@@ -46,12 +50,17 @@ function bannerMessage(
   amount: string,
 ): ReactNode {
   if (isInitiator) {
-    return <>tu as marqué l&apos;écart comme résorbé auprès de {creditorName} — en attente de sa confirmation.</>;
+    return (
+      <>
+        tu as dit avoir remboursé <AmountDisplay value={amount} /> à {creditorName} — en attente de
+        sa confirmation.
+      </>
+    );
   }
   if (isCreditor) {
     return (
       <>
-        {debtorName} dit avoir résorbé l&apos;écart de <AmountDisplay value={amount} /> avec toi.
+        {debtorName} dit t&apos;avoir remboursé <AmountDisplay value={amount} />.
       </>
     );
   }
@@ -72,6 +81,8 @@ export function SettlementControls({
 }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [showPartialForm, setShowPartialForm] = useState(false);
+  const [partialAmount, setPartialAmount] = useState("");
   const router = useRouter();
 
   function run(action: () => Promise<ActionResult<Settlement>>) {
@@ -82,8 +93,23 @@ export function SettlementControls({
         setError(res.error.message);
         return;
       }
+      setShowPartialForm(false);
+      setPartialAmount("");
       router.refresh();
     });
+  }
+
+  function submitPartial() {
+    const parsed = parseAmountToCents(partialAmount);
+    if (parsed === null || parsed <= 0) {
+      setError("montant invalide");
+      return;
+    }
+    if (parsed > amountCents) {
+      setError("tu ne peux pas rembourser plus que ce que tu dois actuellement");
+      return;
+    }
+    run(() => initiateSettlementAction({ amountCents: parsed }));
   }
 
   // Stack column : stretch (comportement par défaut de l'axe transverse en
@@ -128,11 +154,54 @@ export function SettlementControls({
   // déjà nul (désactivée si solde nul, spec 8.1).
   if (currentMemberId !== debtorId || amountCents === 0) return null;
 
+  if (showPartialForm) {
+    return (
+      <Stack gap={1}>
+        {error ? <Notice tone="error">{error}</Notice> : null}
+        <Input
+          label="montant remboursé"
+          value={partialAmount}
+          onChange={(e) => setPartialAmount(e.target.value)}
+          placeholder="0,00"
+          inputMode="decimal"
+          suffix="€"
+        />
+        <Stack direction="row" gap={1}>
+          <Button disabled={isPending} onClick={submitPartial}>
+            envoyer ce remboursement
+          </Button>
+          <Button
+            disabled={isPending}
+            onClick={() => {
+              setError(null);
+              setShowPartialForm(false);
+              setPartialAmount("");
+            }}
+          >
+            annuler
+          </Button>
+        </Stack>
+      </Stack>
+    );
+  }
+
   return (
     <Stack gap={1}>
       {error ? <Notice tone="error">{error}</Notice> : null}
-      <Button disabled={isPending} onClick={() => run(() => initiateSettlementAction())}>
+      <Button
+        disabled={isPending}
+        onClick={() => run(() => initiateSettlementAction({ amountCents }))}
+      >
         solder
+      </Button>
+      <Button
+        disabled={isPending}
+        onClick={() => {
+          setError(null);
+          setShowPartialForm(true);
+        }}
+      >
+        rembourser un autre montant
       </Button>
     </Stack>
   );

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { computeExpense, computeBalance } from "./index";
-import type { BalanceExpense, SharePct } from "./index";
+import type { BalanceExpense, SettlementForBalance, SharePct } from "./index";
 
 // Convertit des poids entiers arbitraires en un ratio dont Σ pct = 100 exact
 // (via centièmes entiers + reliquat sur la 1re ligne). Garantit une entrée valide.
@@ -28,18 +28,30 @@ const householdArb = fc.integer({ min: 2, max: 4 }).chain((n) => {
       { maxLength: 3 },
     ),
     deletedAt: fc.boolean(),
-    settlementConfirmed: fc.boolean(),
+  });
+  // Règlements arbitraires (montants et statuts non contraints par rapport au
+  // solde réel — computeBalance ne valide rien, c'est domain-settlement qui
+  // valide à la création). Sert à vérifier que Σ solde = 0 tient quel que soit
+  // le mélange de statuts/sens, même avec des montants "faux".
+  const settlementArb = fc.record({
+    fromIdx: memberIdx,
+    toIdx: memberIdx,
+    amountCents: fc.integer({ min: 1, max: 1_000_000 }),
+    status: fc.constantFrom("pending", "confirmed", "cancelled") as fc.Arbitrary<
+      SettlementForBalance["status"]
+    >,
   });
   return fc.record({
     ids: fc.constant(ids),
     expenses: fc.array(expenseArb, { minLength: 1, maxLength: 12 }),
+    settlements: fc.array(settlementArb, { maxLength: 5 }),
   });
 });
 
 describe("PROPERTY — invariant produit #1 : Σ solde(m) = 0 (spec 4.2)", () => {
   it("sur des dépenses aléatoires (payeurs, ratios, aides, dépassements), Σ solde = 0 et Σ parts = net", () => {
     fc.assert(
-      fc.property(householdArb, ({ ids, expenses }) => {
+      fc.property(householdArb, ({ ids, expenses, settlements }) => {
         const balanceExpenses: BalanceExpense[] = expenses.map((e) => {
           const payerId = ids[e.payer];
           const ratio = toRatio(ids, e.weights);
@@ -59,13 +71,19 @@ describe("PROPERTY — invariant produit #1 : Σ solde(m) = 0 (spec 4.2)", () =>
             shares: c.shares.map((s) => ({ memberId: s.memberId, cents: s.cents })),
             effectiveAids: c.effectiveAids,
             deletedAt: e.deletedAt ? new Date() : null,
-            settlementConfirmed: e.settlementConfirmed,
           };
         });
 
-        // Le filtre (supprimé / confirmé) ne casse jamais l'invariant : tout
-        // sous-ensemble de dépenses somme encore à 0.
-        const bal = computeBalance(balanceExpenses, ids);
+        const settlementsForBalance: SettlementForBalance[] = settlements.map((s) => ({
+          fromMemberId: ids[s.fromIdx],
+          toMemberId: ids[s.toIdx],
+          amountCents: s.amountCents,
+          status: s.status,
+        }));
+
+        // Ni le filtre (dépense supprimée) ni les ajustements de règlements
+        // (quel que soit leur statut/montant) ne cassent l'invariant.
+        const bal = computeBalance(balanceExpenses, ids, settlementsForBalance);
         const total = ids.reduce((s, id) => s + bal[id], 0);
         expect(total).toBe(0);
       }),

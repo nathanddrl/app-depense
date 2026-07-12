@@ -18,7 +18,7 @@ class FakeSettlementRepository implements SettlementRepository {
     return this.pendingByHousehold.get(householdId) ?? null;
   }
 
-  async createSettlementAndFreezeExpenses(newSettlement: NewSettlement): Promise<Settlement> {
+  async createSettlement(newSettlement: NewSettlement): Promise<Settlement> {
     this.createCount += 1;
     this.lastCreate = newSettlement;
     this.seq += 1;
@@ -49,6 +49,9 @@ class FakeSettlementRepository implements SettlementRepository {
   async cancelSettlement(_settlementId: string): Promise<Settlement> {
     throw new Error("non utilisé par ces tests");
   }
+  async listConfirmedSettlements(_householdId: string): Promise<Settlement[]> {
+    throw new Error("non utilisé par ces tests");
+  }
 }
 
 const HOUSEHOLD = "H";
@@ -59,13 +62,14 @@ beforeEach(() => {
   repo = new FakeSettlementRepository();
 });
 
-describe("initiateSettlement — déclenchement (ch.5.3, D16 v0.3)", () => {
-  it("B doit 300 € à A, B déclenche → settlement pending (from B, to A, 30000 c)", async () => {
+describe("initiateSettlement — déclenchement (ch.5.3, D15 révisé, D16 v0.3)", () => {
+  it("B doit 300 € à A, B déclenche pour le total → settlement pending (from B, to A, 30000 c)", async () => {
     const res = await initiateSettlement(repo, ctxDebtor, {
       householdId: HOUSEHOLD,
       fromMemberId: "B",
       toMemberId: "A",
       amountCents: 30000,
+      balanceAmountCents: 30000,
     });
 
     expect(res.ok).toBe(true);
@@ -78,17 +82,63 @@ describe("initiateSettlement — déclenchement (ch.5.3, D16 v0.3)", () => {
     expect(repo.createCount).toBe(1);
   });
 
+  it("B doit 300 € à A, B déclenche un remboursement partiel de 100 € → settlement pending 10000 c", async () => {
+    const res = await initiateSettlement(repo, ctxDebtor, {
+      householdId: HOUSEHOLD,
+      fromMemberId: "B",
+      toMemberId: "A",
+      amountCents: 10000,
+      balanceAmountCents: 30000,
+    });
+
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data.amountCents).toBe(10000);
+    expect(repo.createCount).toBe(1);
+  });
+
   it("solde nul → BALANCE_ALREADY_ZERO, pas de création", async () => {
     const res = await initiateSettlement(repo, ctxDebtor, {
       householdId: HOUSEHOLD,
       fromMemberId: "B",
       toMemberId: "A",
       amountCents: 0,
+      balanceAmountCents: 0,
     });
 
     expect(res.ok).toBe(false);
     if (res.ok) return;
     expect(res.error.code).toBe("BALANCE_ALREADY_ZERO");
+    expect(repo.createCount).toBe(0);
+  });
+
+  it("montant demandé > solde courant → AMOUNT_EXCEEDS_BALANCE, pas de création", async () => {
+    const res = await initiateSettlement(repo, ctxDebtor, {
+      householdId: HOUSEHOLD,
+      fromMemberId: "B",
+      toMemberId: "A",
+      amountCents: 40000,
+      balanceAmountCents: 30000,
+    });
+
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.code).toBe("AMOUNT_EXCEEDS_BALANCE");
+    expect(repo.createCount).toBe(0);
+  });
+
+  it("montant demandé négatif ou nul (solde non nul) → AMOUNT_EXCEEDS_BALANCE, pas de création", async () => {
+    const res = await initiateSettlement(repo, ctxDebtor, {
+      householdId: HOUSEHOLD,
+      fromMemberId: "B",
+      toMemberId: "A",
+      amountCents: 0,
+      balanceAmountCents: 30000,
+    });
+
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.code).toBe("AMOUNT_EXCEEDS_BALANCE");
     expect(repo.createCount).toBe(0);
   });
 
@@ -99,6 +149,7 @@ describe("initiateSettlement — déclenchement (ch.5.3, D16 v0.3)", () => {
       fromMemberId: "B",
       toMemberId: "A",
       amountCents: 30000,
+      balanceAmountCents: 30000,
     });
 
     expect(res.ok).toBe(false);
@@ -114,6 +165,7 @@ describe("initiateSettlement — déclenchement (ch.5.3, D16 v0.3)", () => {
       fromMemberId: "B",
       toMemberId: "A",
       amountCents: 30000,
+      balanceAmountCents: 30000,
     });
 
     expect(res.ok).toBe(false);
@@ -128,6 +180,7 @@ describe("initiateSettlement — déclenchement (ch.5.3, D16 v0.3)", () => {
       fromMemberId: "B",
       toMemberId: "A",
       amountCents: 30000,
+      balanceAmountCents: 30000,
     });
 
     expect(res.ok).toBe(false);

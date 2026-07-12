@@ -10,11 +10,6 @@ import type { ActionResult } from "@app/shared";
 import type { ExpenseRepository } from "./repository";
 import type { BalanceDetailLine, ExpenseContext, ExpenseSource } from "./types";
 
-/** Même filtre que `getBalance` (4.2) : non supprimée, settlement pas confirmé. */
-function countsInBalance(settlementStatus: string | null): boolean {
-  return settlementStatus !== "confirmed";
-}
-
 function toExpenseSource(source: string): ExpenseSource {
   if (source === "manual" || source === "recurring") return source;
   throw new Error(`Source de dépense inconnue: ${source}`);
@@ -31,31 +26,29 @@ export async function getBalanceDetail(
 
   const rows = await repo.listExpensesForBalance(householdId);
 
-  const lines: BalanceDetailLine[] = rows
-    .filter((r) => countsInBalance(r.settlementStatus))
-    .map((row) => {
-      const aids: LabelledAidInput[] = row.aids.map((a) => ({
-        beneficiaryId: a.beneficiaryId,
-        amountCents: a.amountCents,
-        label: a.label,
-      }));
-      const breakdown = computeExpenseBreakdown({
-        grossCents: row.grossCents,
-        payerId: row.payerId,
-        ratio: row.shares.map((s) => ({ memberId: s.memberId, pct: s.pctSnapshot })),
-        aids,
-      });
-      return {
-        label: row.label,
-        grossCents: row.grossCents,
-        payerId: breakdown.payerId,
-        otherId: breakdown.otherId,
-        baseOwedCents: breakdown.baseOwedCents,
-        aidLines: breakdown.aidLines,
-        totalOwedCents: breakdown.totalOwedCents,
-        source: toExpenseSource(row.source),
-      };
+  const lines: BalanceDetailLine[] = rows.map((row) => {
+    const aids: LabelledAidInput[] = row.aids.map((a) => ({
+      beneficiaryId: a.beneficiaryId,
+      amountCents: a.amountCents,
+      label: a.label,
+    }));
+    const breakdown = computeExpenseBreakdown({
+      grossCents: row.grossCents,
+      payerId: row.payerId,
+      ratio: row.shares.map((s) => ({ memberId: s.memberId, pct: s.pctSnapshot })),
+      aids,
     });
+    return {
+      label: row.label,
+      grossCents: row.grossCents,
+      payerId: breakdown.payerId,
+      otherId: breakdown.otherId,
+      baseOwedCents: breakdown.baseOwedCents,
+      aidLines: breakdown.aidLines,
+      totalOwedCents: breakdown.totalOwedCents,
+      source: toExpenseSource(row.source),
+    };
+  });
 
   return ok(lines);
 }

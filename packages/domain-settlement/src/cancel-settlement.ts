@@ -1,7 +1,7 @@
 // @app/domain-settlement — annulation/refus d'une régularisation (spec ch.5.3,
-// D16 v0.3, T-C6.3). L'initiateur (débiteur) ou le créancier peut annuler : les
-// dépenses gelées sont dé-stampées (`settlement_id` → null) et se rouvrent, le
-// solde reste inchangé (rien n'a jamais été soustrait tant que non confirmé).
+// D7 révisé, D16 v0.3, T-C6.3). L'initiateur (débiteur) ou le créancier peut
+// annuler : simple changement de statut (`pending → cancelled`), le solde reste
+// inchangé (aucune dépense n'a jamais été touchée, modèle ledger).
 
 import { err, ok } from "@app/shared";
 import type { ActionResult } from "@app/shared";

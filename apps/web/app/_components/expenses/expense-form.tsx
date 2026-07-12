@@ -25,10 +25,9 @@ import { useState } from "react";
 import type { Category } from "@app/domain-expense";
 import type { MemberShare } from "../../../lib/household";
 import { parseAmountToCents } from "../../../lib/amount";
-import { CATEGORIES } from "./categories";
 import { BOTH_BENEFICIARIES } from "./aid-split";
+import { CategorySelect } from "./category-select";
 import { Button, Card, Input, Checkbox } from "../design-system/core";
-import { CategoryChip } from "../design-system/balance";
 import { Notice } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
 import nativeSelectStyles from "../design-system/core/native-select.module.css";
@@ -66,6 +65,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
   const [payerId, setPayerId] = useState(currentMemberId);
   const [incurredOn, setIncurredOn] = useState(today());
   const [payerPct, setPayerPct] = useState(initialPayerPct);
+  const [customSplit, setCustomSplit] = useState(initialPayerPct !== 50);
   const [aideOn, setAideOn] = useState(false);
   const [aideAmount, setAideAmount] = useState("");
   const [aideBeneficiary, setAideBeneficiary] = useState<string>(currentMemberId);
@@ -116,6 +116,8 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
       setAideOn(false);
       setAideAmount("");
       setAideBeneficiary(currentMemberId);
+      setPayerPct(initialPayerPct);
+      setCustomSplit(initialPayerPct !== 50);
     }
   }
 
@@ -158,46 +160,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
           </div>
         </Stack>
 
-        <Stack gap={1}>
-          <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
-            catégorie
-          </span>
-          {/* 20px : entre --space-2 (16px) et --space-3 (32px), écart notable
-              (20-25%) des deux côtés — conservé en dur (audit T-CD3) */}
-          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-            {CATEGORIES.map((c) => (
-              <button
-                key={c.value}
-                type="button"
-                aria-pressed={category === c.value}
-                onClick={() => setCategory(c.value)}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  // 6px : écart notable avec --space-1 (8px, +33%) — conservé en dur (audit T-CD3)
-                  gap: "6px",
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  cursor: "pointer",
-                  opacity: category === c.value ? 1 : 0.45,
-                  transition: "opacity var(--motion-micro-duration) var(--motion-micro-easing)",
-                }}
-              >
-                <CategoryChip name={c.label} size={32} />
-                <span
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: category === c.value ? "var(--text-primary)" : "var(--text-secondary)",
-                  }}
-                >
-                  {c.label.toLowerCase()}
-                </span>
-              </button>
-            ))}
-          </div>
-        </Stack>
+        <CategorySelect value={category} onChange={setCategory} />
 
         <label className={nativeSelectStyles.wrapper}>
           <span className={nativeSelectStyles.label}>qui a payé</span>
@@ -230,24 +193,42 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
                 gap: "var(--space-2)",
               }}
             >
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={payerPct}
-                onChange={(e) => setPayerPct(Number(e.target.value))}
-                style={{ flex: "1 1 auto", minWidth: 0, accentColor: "var(--text-primary)" }}
-              />
+              {customSplit ? (
+                <div style={{ width: "88px" }}>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    suffix="%"
+                    value={String(payerPct)}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      if (Number.isNaN(n)) return;
+                      setPayerPct(Math.min(100, Math.max(0, n)));
+                    }}
+                  />
+                </div>
+              ) : null}
               <span
                 className="tabular-nums"
-                style={{
-                  fontSize: "var(--text-sm)",
-                  color: "var(--text-primary)",
-                  marginLeft: "auto",
-                }}
+                style={{ fontSize: "var(--text-sm)", color: "var(--text-primary)" }}
               >
                 toi {payerPct}% · {otherMember.displayName} {100 - payerPct}%
               </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (customSplit) {
+                    setCustomSplit(false);
+                    setPayerPct(50);
+                  } else {
+                    setCustomSplit(true);
+                  }
+                }}
+              >
+                {customSplit ? "revenir à 50/50" : "personnaliser"}
+              </Button>
             </div>
           </Stack>
         ) : null}

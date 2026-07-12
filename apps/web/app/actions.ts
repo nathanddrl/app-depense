@@ -37,6 +37,7 @@ import type {
   ConfirmSettlementInput,
   Settlement,
 } from "@app/domain-settlement";
+import type { SettlementForBalance } from "@app/calc-engine";
 import {
   createRecurringTemplate,
   updateRecurringTemplate,
@@ -55,6 +56,7 @@ import {
   SupabaseSettlementRepository,
   SupabaseRecurringTemplateRepository,
 } from "@app/db";
+import { ok } from "@app/shared";
 import type { ActionResult } from "@app/shared";
 
 export async function signOut(): Promise<void> {
@@ -83,14 +85,25 @@ export async function listExpensesAction(
   return listExpenses(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, filters);
 }
 
+// Seul endroit légitime pour la composition getBalance (@app/domain-expense) ×
+// listConfirmedSettlements (@app/domain-settlement) : un domaine n'important
+// jamais un autre domain-* (DA4). Modèle ledger (D7/D15 révisés) : le solde
+// affiché intègre les ajustements des règlements confirmés.
 export async function getBalanceAction(): Promise<ActionResult<Balance>> {
   const ctx = await getCurrentContext();
+  const domainCtx = { memberId: ctx.member.id, householdId: ctx.householdId };
+
+  const settlementRepo = new SupabaseSettlementRepository(ctx.supabase);
+  const confirmedSettlements = await settlementRepo.listConfirmedSettlements(ctx.householdId);
+  const settlements: SettlementForBalance[] = confirmedSettlements.map((s) => ({
+    fromMemberId: s.fromMemberId,
+    toMemberId: s.toMemberId,
+    amountCents: s.amountCents,
+    status: s.status,
+  }));
+
   const repo = new SupabaseExpenseRepository(ctx.supabase);
-  return getBalance(
-    repo,
-    { memberId: ctx.member.id, householdId: ctx.householdId },
-    { householdId: ctx.householdId },
-  );
+  return getBalance(repo, domainCtx, { householdId: ctx.householdId, settlements });
 }
 
 export async function getBalanceDetailAction(): Promise<ActionResult<BalanceDetailLine[]>> {
@@ -163,7 +176,12 @@ export async function getCurrentSettlementAction(): Promise<ActionResult<Settlem
 // Seul endroit légitime pour la composition getBalance (@app/domain-expense) →
 // initiateSettlement (@app/domain-settlement) : un domaine n'important jamais
 // un autre domain-* (DA4, cf. T-C6.2/T-C6.5), cette orchestration vit ici.
-export async function initiateSettlementAction(): Promise<ActionResult<Settlement>> {
+// D15 révisé : `amountCents` est désormais fourni par le client (montant total
+// ou partiel) — le solde réel (`getBalance`) ne sert plus qu'à border la
+// validation côté domaine (`balanceAmountCents`), jamais à imposer le montant.
+export async function initiateSettlementAction(input: {
+  amountCents: number;
+}): Promise<ActionResult<Settlement>> {
   const ctx = await getCurrentContext();
   const domainCtx = { memberId: ctx.member.id, householdId: ctx.householdId };
 
@@ -176,7 +194,8 @@ export async function initiateSettlementAction(): Promise<ActionResult<Settlemen
     householdId: ctx.householdId,
     fromMemberId: balance.data.from,
     toMemberId: balance.data.to,
-    amountCents: balance.data.amountCents,
+    amountCents: input.amountCents,
+    balanceAmountCents: balance.data.amountCents,
   });
 }
 
@@ -194,6 +213,15 @@ export async function cancelSettlementAction(
   const ctx = await getCurrentContext();
   const repo = new SupabaseSettlementRepository(ctx.supabase);
   return cancelSettlement(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, input);
+}
+
+// Historique des règlements confirmés du foyer (D15 révisé), pour le détail
+// dépliable « pourquoi ? » (fusionné avec les lignes de dépenses côté web).
+export async function getSettlementHistoryAction(): Promise<ActionResult<Settlement[]>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseSettlementRepository(ctx.supabase);
+  const settlements = await repo.listConfirmedSettlements(ctx.householdId);
+  return ok(settlements);
 }
 
 export async function createRecurringTemplateAction(

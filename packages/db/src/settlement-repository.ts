@@ -1,16 +1,17 @@
 // SupabaseSettlementRepository — implémentation concrète du port `SettlementRepository`
-// défini par `@app/domain-settlement` (archi ch.1.4 / DA4, spec ch.5.3, T-C6.2).
+// défini par `@app/domain-settlement` (archi ch.1.4 / DA4, spec ch.5.3, T-C6.2,
+// D7/D15 révisés — modèle ledger).
 //
 // `db` reste une couche feuille (garde ESLint `no-restricted-imports` sur
 // `@app/domain-*`) : ce fichier n'importe RIEN de `@app/domain-settlement`, pas
 // même le type du port — deux vues (snake_case DB / camelCase domaine) du même
 // schéma, comme `expense-repository.ts`/`aid-repository.ts`.
 //
-// `createSettlementAndFreezeExpenses` et `cancelSettlement` passent par des RPC
-// (`initiate_settlement`/`cancel_settlement`) pour l'atomicité multi-tables
-// (settlement + expense), même précédent que `create_expense_with_shares`.
-// `confirmSettlement` ne touche que `settlement` (dépenses déjà gelées, désormais
-// immuables) : un simple UPDATE est nativement atomique, pas besoin de RPC.
+// `createSettlement`/`cancelSettlement`/`confirmSettlement` ne touchent tous
+// que la table `settlement` (plus de gel/dé-gel des dépenses, D7 révisé) : de
+// simples `.insert()`/`.update()` sont nativement atomiques, plus besoin des
+// RPC `initiate_settlement`/`cancel_settlement` (supprimées, cf. migration
+// `20260712140000_partial_settlement.sql`).
 
 import type { DbClient } from "./client";
 import type { Enums, Tables } from "./index";
@@ -71,23 +72,19 @@ export class SupabaseSettlementRepository {
     return data ? { id: data.id } : null;
   }
 
-  async createSettlementAndFreezeExpenses(newSettlement: NewSettlement): Promise<Settlement> {
-    const { data: settlementId, error } = await this.supabase.rpc("initiate_settlement", {
-      p_household_id: newSettlement.householdId,
-      p_amount_cents: newSettlement.amountCents,
-      p_from_member_id: newSettlement.fromMemberId,
-      p_to_member_id: newSettlement.toMemberId,
-      p_initiated_by: newSettlement.initiatedBy,
-    });
-    if (error) throw error;
-
-    const { data: row, error: fetchError } = await this.supabase
+  async createSettlement(newSettlement: NewSettlement): Promise<Settlement> {
+    const { data: row, error } = await this.supabase
       .from("settlement")
-      .select("*")
-      .eq("id", settlementId)
-      .maybeSingle();
-    if (fetchError) throw fetchError;
-    if (!row) throw new Error("Settlement introuvable juste après création.");
+      .insert({
+        household_id: newSettlement.householdId,
+        amount_cents: newSettlement.amountCents,
+        from_member_id: newSettlement.fromMemberId,
+        to_member_id: newSettlement.toMemberId,
+        initiated_by: newSettlement.initiatedBy,
+      })
+      .select()
+      .single();
+    if (error) throw error;
     return toSettlement(row);
   }
 
@@ -119,18 +116,25 @@ export class SupabaseSettlementRepository {
   }
 
   async cancelSettlement(settlementId: string): Promise<Settlement> {
-    const { data: cancelledId, error } = await this.supabase.rpc("cancel_settlement", {
-      p_settlement_id: settlementId,
-    });
+    const { data, error } = await this.supabase
+      .from("settlement")
+      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+      .eq("id", settlementId)
+      .eq("status", "pending")
+      .select()
+      .maybeSingle();
     if (error) throw error;
+    if (!data) throw new Error("Settlement introuvable ou déjà traité.");
+    return toSettlement(data);
+  }
 
-    const { data: row, error: fetchError } = await this.supabase
+  async listConfirmedSettlements(householdId: string): Promise<Settlement[]> {
+    const { data, error } = await this.supabase
       .from("settlement")
       .select("*")
-      .eq("id", cancelledId)
-      .maybeSingle();
-    if (fetchError) throw fetchError;
-    if (!row) throw new Error("Settlement introuvable juste après annulation.");
-    return toSettlement(row);
+      .eq("household_id", householdId)
+      .eq("status", "confirmed");
+    if (error) throw error;
+    return (data ?? []).map(toSettlement);
   }
 }

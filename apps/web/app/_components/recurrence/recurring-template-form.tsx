@@ -2,10 +2,8 @@
 
 // Formulaire de création d'une charge récurrente (spec ch.5.4, T-CR1). Même
 // pattern que `expense-form.tsx` : Card/Input/Button du kit, state contrôlé.
-// La catégorie utilise cette fois un `<select>` natif (classes partagées
-// `native-select.module.css`, T-CD2.2) + un `CategoryChip` en aperçu — pas la
-// grille de boutons d'`expense-form.tsx`, ce formulaire reste volontairement
-// plus dense.
+// La catégorie utilise `CategorySelect` (mutualisé avec `expense-form.tsx`,
+// T-CD3 : select natif + aperçu `CategoryChip` aligné sur la boîte du champ).
 //
 // Décision produit du 09/07 (`decisions-techniques.md`, T-CR4) : le champ
 // Aide n'apparaît que pour la catégorie loyer, avec un sélecteur bénéficiaire
@@ -25,8 +23,8 @@ import type { MemberShare } from "../../../lib/household";
 import { parseAmountToCents } from "../../../lib/amount";
 import { CATEGORIES } from "../expenses/categories";
 import { BOTH_BENEFICIARIES, splitBothCents } from "../expenses/aid-split";
+import { CategorySelect } from "../expenses/category-select";
 import { Button, Card, Input, Checkbox } from "../design-system/core";
-import { CategoryChip } from "../design-system/balance";
 import { Notice } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
 import nativeSelectStyles from "../design-system/core/native-select.module.css";
@@ -160,23 +158,7 @@ export function RecurringTemplateForm({ currentMemberId, defaultShares }: Props)
         <Input label="libellé" value={label} onChange={(e) => setLabel(e.target.value)} />
 
         <Stack direction="row" gap={2} wrap>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: "var(--space-2)" }}>
-            <label className={nativeSelectStyles.wrapper}>
-              <span className={nativeSelectStyles.label}>catégorie</span>
-              <select
-                className={nativeSelectStyles.select}
-                value={category}
-                onChange={(e) => setCategory(e.target.value as Category)}
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <CategoryChip name={CATEGORIES.find((c) => c.value === category)?.label ?? category} />
-          </div>
+          <CategorySelect value={category} onChange={setCategory} />
         </Stack>
 
         <Stack direction="row" gap={2} wrap>

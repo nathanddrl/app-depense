@@ -19,6 +19,7 @@ import {
   SupabaseRecurringTemplateRepository,
 } from "@app/db";
 import { createExpense, getBalance, type ExpenseContext, type Category } from "@app/domain-expense";
+import type { SettlementForBalance } from "@app/calc-engine";
 import { addAid, type AidContext } from "@app/domain-aid";
 import {
   createRecurringTemplate,
@@ -82,6 +83,26 @@ function unwrap<T>(result: Result<T>, label: string): T {
   return result.data;
 }
 
+// Composition getBalance × listConfirmedSettlements (modèle ledger, D7/D15
+// révisés) : même pattern que `apps/web/app/actions.ts` — seul l'app web a le
+// droit de composer plusieurs domain-*.
+async function currentBalance(memberId: string) {
+  const confirmed = await settlementRepo.listConfirmedSettlements(HOUSEHOLD_ID);
+  const settlements: SettlementForBalance[] = confirmed.map((s) => ({
+    fromMemberId: s.fromMemberId,
+    toMemberId: s.toMemberId,
+    amountCents: s.amountCents,
+    status: s.status,
+  }));
+  return unwrap(
+    await getBalance(expenseRepo, expenseCtx(memberId), {
+      householdId: HOUSEHOLD_ID,
+      settlements,
+    }),
+    "getBalance",
+  );
+}
+
 /** Décale la date "maintenant" à un jour donné d'un mois relatif à aujourd'hui. */
 function relativeMonth(monthsAgo: number, day: number, hour = 12): Date {
   const now = new Date();
@@ -98,7 +119,9 @@ function relativeMonth(monthsAgo: number, day: number, hour = 12): Date {
  */
 function lastDayOfRelativeMonth(monthsAgo: number): number {
   const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsAgo + 1, 0)).getUTCDate();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsAgo + 1, 0),
+  ).getUTCDate();
 }
 
 /** `YYYY-MM-DD` pour une date calendaire, sans dérive de fuseau. */
@@ -125,10 +148,7 @@ async function generateMonth(
 }
 
 /** Retrouve l'`expenseId` de l'occurrence générée pour un template donné ce mois-là. */
-function expenseIdForTemplate(
-  results: RecurringGenerationOutcome[],
-  templateId: string,
-): string {
+function expenseIdForTemplate(results: RecurringGenerationOutcome[], templateId: string): string {
   const found = results.find((r) => r.templateId === templateId);
   if (!found || found.status !== "generated") {
     throw new Error(`Aucune occurrence générée pour le template ${templateId} ce mois-ci.`);
@@ -215,10 +235,7 @@ async function main(): Promise<void> {
 
   console.log("  Régularisation A — cycle complet confirmé sur M-5…");
   {
-    const balance = unwrap(
-      await getBalance(expenseRepo, expenseCtx(NATHAN), { householdId: HOUSEHOLD_ID }),
-      "getBalance (avant règlement A)",
-    );
+    const balance = await currentBalance(NATHAN);
     if (balance.amountCents > 0) {
       const settlement = unwrap(
         await initiateSettlement(settlementRepo, settlementCtx(balance.from), {
@@ -226,6 +243,7 @@ async function main(): Promise<void> {
           fromMemberId: balance.from,
           toMemberId: balance.to,
           amountCents: balance.amountCents,
+          balanceAmountCents: balance.amountCents,
         }),
         "initiateSettlement A",
       );
@@ -236,7 +254,7 @@ async function main(): Promise<void> {
         "confirmSettlement A",
       );
       console.log(
-        `  Settlement A confirmé (${settlement.amountCents / 100}€, ${balance.from.slice(0, 8)}…→${balance.to.slice(0, 8)}…) — dépenses M-5 verrouillées durablement.`,
+        `  Settlement A confirmé (${settlement.amountCents / 100}€, ${balance.from.slice(0, 8)}…→${balance.to.slice(0, 8)}…) — ajustement ledger durable (modèle D7 révisé, plus de gel de dépenses).`,
       );
     } else {
       console.log("  Solde nul après M-5, pas de régularisation A possible (cas improbable).");
@@ -265,7 +283,9 @@ async function main(): Promise<void> {
     ratio: RATIO_7030,
   });
 
-  console.log("  Changement de montant de l'assurance (effectif seulement sur les occurrences futures, D13)…");
+  console.log(
+    "  Changement de montant de l'assurance (effectif seulement sur les occurrences futures, D13)…",
+  );
   unwrap(
     await updateRecurringTemplate(recurringRepo, recurrenceCtx(NATHAN), {
       templateId: assurance.id,
@@ -295,12 +315,9 @@ async function main(): Promise<void> {
     payerId: OKSANA,
   });
 
-  console.log("  Régularisation B — déclenchée puis annulée sur M-3/M-4 réouverts…");
+  console.log("  Régularisation B — déclenchée puis annulée sur M-3/M-4…");
   {
-    const balance = unwrap(
-      await getBalance(expenseRepo, expenseCtx(NATHAN), { householdId: HOUSEHOLD_ID }),
-      "getBalance (avant règlement B)",
-    );
+    const balance = await currentBalance(NATHAN);
     if (balance.amountCents > 0) {
       const settlement = unwrap(
         await initiateSettlement(settlementRepo, settlementCtx(balance.from), {
@@ -308,6 +325,7 @@ async function main(): Promise<void> {
           fromMemberId: balance.from,
           toMemberId: balance.to,
           amountCents: balance.amountCents,
+          balanceAmountCents: balance.amountCents,
         }),
         "initiateSettlement B",
       );
@@ -318,7 +336,7 @@ async function main(): Promise<void> {
         "cancelSettlement B",
       );
       console.log(
-        `  Settlement B annulé (${settlement.amountCents / 100}€) — dépenses M-3/M-4 réouvertes, éditables.`,
+        `  Settlement B annulé (${settlement.amountCents / 100}€) — solde inchangé (modèle ledger, D7 révisé : aucune dépense n'a jamais été touchée).`,
       );
     } else {
       console.log("  Solde nul, pas de régularisation B possible (cas improbable).");
@@ -432,10 +450,7 @@ async function main(): Promise<void> {
 
   // ── 8) Régularisation C — pending, non confirmée, au présent ─────────────
   console.log("Régularisation C — déclenchée maintenant, laissée PENDING…");
-  const finalBalance = unwrap(
-    await getBalance(expenseRepo, expenseCtx(NATHAN), { householdId: HOUSEHOLD_ID }),
-    "getBalance (avant règlement C)",
-  );
+  const finalBalance = await currentBalance(NATHAN);
   if (finalBalance.amountCents === 0) {
     throw new Error(
       "Solde nul au présent — contraire à la contrainte du seed (le passage à zéro doit être provoqué manuellement en Partie 2). Ajuster les montants du seed.",
@@ -447,6 +462,7 @@ async function main(): Promise<void> {
       fromMemberId: finalBalance.from,
       toMemberId: finalBalance.to,
       amountCents: finalBalance.amountCents,
+      balanceAmountCents: finalBalance.amountCents,
     }),
     "initiateSettlement C",
   );
@@ -458,11 +474,7 @@ async function main(): Promise<void> {
   await printSummary(finalBalance.amountCents, finalBalance.from, finalBalance.to);
 }
 
-async function printSummary(
-  balanceCents: number,
-  from: string,
-  to: string,
-): Promise<void> {
+async function printSummary(balanceCents: number, from: string, to: string): Promise<void> {
   console.log("── Résumé du seed ──────────────────────────────────────────");
 
   const { data: members } = await supabase.from("member").select("id, display_name");

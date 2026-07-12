@@ -1,4 +1,5 @@
-// Suite d'intégration — machine à états régularisation (spec §5.6, T-C6.5).
+// Suite d'intégration — machine à états régularisation, modèle ledger (spec
+// §5.6, D7/D15 révisés, T-C6.5).
 //
 // Ne recode AUCUNE logique métier : elle prouve que `@app/domain-expense`
 // (getBalance/updateExpense/deleteExpense) et `@app/domain-settlement`
@@ -9,15 +10,19 @@
 // un autre `domain-*`, y compris dans ses propres tests. `apps/web` n'a pas
 // cette restriction (seule la garde « API publique » s'applique) : c'est ici,
 // et seulement ici, que la composition peut être exercée en clair — exactement
-// le rôle que jouera la future Server Action (composition getBalance →
-// initiateSettlement décrite en T-C6.2).
+// le rôle que joue la Server Action `actions.ts` (composition getBalance ↔
+// initiateSettlement/listConfirmedSettlements, T-C6.2, D15 révisé).
+//
+// Modèle ledger : plus de gel des dépenses (D7 révisé) — elles restent
+// éditables tout au long du cycle de vie d'un règlement, partiel ou total. Le
+// solde intègre les règlements `confirmed` via `computeBalance` (calc-engine).
 //
 // Les critères unitaires (validations individuelles de chaque action, formes
 // des erreurs) restent couverts dans les suites de `domain-settlement` et
 // `domain-expense` — pas dupliqués ici.
 
 import { describe, it, expect } from "vitest";
-import { getBalance, updateExpense, deleteExpense } from "@app/domain-expense";
+import { getBalance, updateExpense } from "@app/domain-expense";
 import type {
   BalanceExpenseRow,
   Category,
@@ -35,6 +40,7 @@ import type {
   SettlementContext,
   SettlementRepository,
 } from "@app/domain-settlement";
+import type { SettlementForBalance } from "@app/calc-engine";
 
 // ── État partagé unique (un foyer, deux membres) entre les deux fakes ──────
 type Store = {
@@ -55,6 +61,19 @@ function makeStore(): Store {
 function strip(e: StoredExpense): Expense {
   const { deletedAt: _deletedAt, ...rest } = e;
   return rest;
+}
+
+/** Ajustements ledger (D7/D15 révisés) : les settlements `confirmed` du foyer,
+ * transmis explicitement à `getBalance` — même composition que `actions.ts`. */
+function confirmedSettlements(store: Store, householdId: string): SettlementForBalance[] {
+  return [...store.settlements.values()]
+    .filter((s) => s.householdId === householdId && s.status === "confirmed")
+    .map((s) => ({
+      fromMemberId: s.fromMemberId,
+      toMemberId: s.toMemberId,
+      amountCents: s.amountCents,
+      status: s.status,
+    }));
 }
 
 class FakeExpenseRepository implements ExpenseRepository {
@@ -101,9 +120,6 @@ class FakeExpenseRepository implements ExpenseRepository {
         payerId: e.payerId,
         shares: e.shares,
         aids: e.aids,
-        settlementStatus: e.settlementId
-          ? (this.store.settlements.get(e.settlementId)?.status ?? null)
-          : null,
         source: toExpenseSource(e.source),
       }));
   }
@@ -129,7 +145,8 @@ class FakeSettlementRepository implements SettlementRepository {
     return null;
   }
 
-  async createSettlementAndFreezeExpenses(newSettlement: NewSettlement): Promise<Settlement> {
+  // Modèle ledger (D7 révisé) : plus de gel des dépenses, création simple.
+  async createSettlement(newSettlement: NewSettlement): Promise<Settlement> {
     const id = `settlement-${this.store.settlements.size + 1}`;
     const settlement: Settlement = {
       id,
@@ -145,15 +162,6 @@ class FakeSettlementRepository implements SettlementRepository {
       cancelledAt: null,
     };
     this.store.settlements.set(id, settlement);
-    for (const [expenseId, expense] of this.store.expenses) {
-      if (
-        expense.householdId === newSettlement.householdId &&
-        expense.deletedAt === null &&
-        expense.settlementId === null
-      ) {
-        this.store.expenses.set(expenseId, { ...expense, settlementId: id });
-      }
-    }
     return settlement;
   }
 
@@ -174,6 +182,7 @@ class FakeSettlementRepository implements SettlementRepository {
     return updated;
   }
 
+  // Modèle ledger (D7 révisé) : simple update de statut, plus de dé-gel.
   async cancelSettlement(settlementId: string): Promise<Settlement> {
     const existing = this.store.settlements.get(settlementId);
     if (!existing) throw new Error("test: settlement inconnu");
@@ -183,12 +192,13 @@ class FakeSettlementRepository implements SettlementRepository {
       cancelledAt: new Date().toISOString(),
     };
     this.store.settlements.set(settlementId, updated);
-    for (const [expenseId, expense] of this.store.expenses) {
-      if (expense.settlementId === settlementId) {
-        this.store.expenses.set(expenseId, { ...expense, settlementId: null });
-      }
-    }
     return updated;
+  }
+
+  async listConfirmedSettlements(householdId: string): Promise<Settlement[]> {
+    return [...this.store.settlements.values()].filter(
+      (s) => s.householdId === householdId && s.status === "confirmed",
+    );
   }
 }
 
@@ -220,8 +230,8 @@ function seedRentExpense(store: Store): void {
   });
 }
 
-describe("machine à états régularisation — intégration bout en bout (spec §5.6)", () => {
-  it("pending → confirmed : solde affiché pendant pending, figé à 0 après confirmation, dépense immuable", async () => {
+describe("machine à états régularisation — intégration bout en bout (spec §5.6, modèle ledger)", () => {
+  it("pending → confirmed (total) : solde affiché pendant pending, réduit à 0 après confirmation, dépense toujours éditable", async () => {
     const store = makeStore();
     seedRentExpense(store);
     const expenseRepo = new FakeExpenseRepository(store);
@@ -234,28 +244,28 @@ describe("machine à états régularisation — intégration bout en bout (spec 
     expect(before.data).toMatchObject({ from: "B", to: "A", amountCents: 30000 });
 
     // Le débiteur déclenche, en réutilisant le solde tel quel (composition
-    // Server Action getBalance → initiateSettlement, T-C6.2).
+    // Server Action getBalance → initiateSettlement, T-C6.2, D15 révisé).
     const initiated = await initiateSettlement(settlementRepo, ctxB, {
       householdId: HOUSEHOLD,
       fromMemberId: before.data.from,
       toMemberId: before.data.to,
       amountCents: before.data.amountCents,
+      balanceAmountCents: before.data.amountCents,
     });
     expect(initiated.ok).toBe(true);
     if (!initiated.ok) return;
     expect(initiated.data.status).toBe("pending");
     const settlementId = initiated.data.id;
 
-    // Le solde reste affiché à l'identique tant que `pending` (§4.2).
-    const duringPending = await getBalance(expenseRepo, ctxB, { householdId: HOUSEHOLD });
+    // Le solde reste affiché à l'identique tant que `pending` (§4.2) : le
+    // settlement pending n'entre pas encore dans les ajustements confirmés.
+    const duringPending = await getBalance(expenseRepo, ctxB, {
+      householdId: HOUSEHOLD,
+      settlements: confirmedSettlements(store, HOUSEHOLD),
+    });
     expect(duringPending.ok).toBe(true);
     if (!duringPending.ok) return;
-    expect(duringPending.data).toMatchObject({
-      from: "B",
-      to: "A",
-      amountCents: 30000,
-      pendingSettlement: true,
-    });
+    expect(duringPending.data).toMatchObject({ from: "B", to: "A", amountCents: 30000 });
 
     // L'initiateur (débiteur) ne peut pas s'auto-confirmer.
     const selfConfirm = await confirmSettlement(settlementRepo, ctxB, { settlementId });
@@ -263,25 +273,26 @@ describe("machine à états régularisation — intégration bout en bout (spec 
     if (selfConfirm.ok) return;
     expect(selfConfirm.error.code).toBe("FORBIDDEN");
 
-    // Une seule régularisation pending par foyer.
+    // Une seule régularisation pending par foyer (inchangé, D16).
     const secondInitiate = await initiateSettlement(settlementRepo, ctxB, {
       householdId: HOUSEHOLD,
       fromMemberId: "B",
       toMemberId: "A",
       amountCents: 30000,
+      balanceAmountCents: 30000,
     });
     expect(secondInitiate.ok).toBe(false);
     if (secondInitiate.ok) return;
     expect(secondInitiate.error.code).toBe("SETTLEMENT_PENDING_EXISTS");
 
-    // La dépense gelée refuse toute édition, même pendant `pending`.
+    // Modèle ledger (D7 révisé) : la dépense reste éditable même pendant `pending`.
     const editWhilePending = await updateExpense(expenseRepo, ctxA, {
       expenseId: "exp-1",
       patch: { grossCents: 70000 },
     });
-    expect(editWhilePending.ok).toBe(false);
-    if (editWhilePending.ok) return;
-    expect(editWhilePending.error.code).toBe("EXPENSE_LOCKED");
+    expect(editWhilePending.ok).toBe(true);
+    // On revient au montant initial pour ne pas fausser la suite du scénario.
+    await updateExpense(expenseRepo, ctxA, { expenseId: "exp-1", patch: { grossCents: 60000 } });
 
     // Le créancier confirme.
     const confirmed = await confirmSettlement(settlementRepo, ctxA, { settlementId });
@@ -290,28 +301,90 @@ describe("machine à états régularisation — intégration bout en bout (spec 
     expect(confirmed.data.status).toBe("confirmed");
     expect(confirmed.data.confirmedBy).toBe("A");
 
-    // Le solde est désormais figé à 0 (dépense exclue, settlement confirmed).
-    const afterConfirm = await getBalance(expenseRepo, ctxA, { householdId: HOUSEHOLD });
+    // Le solde est désormais réduit à 0 (ajustement du règlement confirmé, total ici).
+    const afterConfirm = await getBalance(expenseRepo, ctxA, {
+      householdId: HOUSEHOLD,
+      settlements: confirmedSettlements(store, HOUSEHOLD),
+    });
     expect(afterConfirm.ok).toBe(true);
     if (!afterConfirm.ok) return;
     expect(afterConfirm.data.amountCents).toBe(0);
 
-    // La dépense reste définitivement immuable (édition ET suppression).
+    // La dépense reste éditable après confirmation (modèle ledger, D7 révisé :
+    // seul le montant du settlement confirmé est immuable, pas les dépenses).
     const editAfterConfirm = await updateExpense(expenseRepo, ctxA, {
       expenseId: "exp-1",
-      patch: { grossCents: 70000 },
+      patch: { grossCents: 60000 },
     });
-    expect(editAfterConfirm.ok).toBe(false);
-    if (editAfterConfirm.ok) return;
-    expect(editAfterConfirm.error.code).toBe("EXPENSE_LOCKED");
-
-    const deleteAfterConfirm = await deleteExpense(expenseRepo, ctxA, { expenseId: "exp-1" });
-    expect(deleteAfterConfirm.ok).toBe(false);
-    if (deleteAfterConfirm.ok) return;
-    expect(deleteAfterConfirm.error.code).toBe("EXPENSE_LOCKED");
+    expect(editAfterConfirm.ok).toBe(true);
   });
 
-  it("pending → cancelled : dépense rouverte, solde inchangé", async () => {
+  it("pending → confirmed (partiel) : solde réduit sans être annulé, reliquat correct", async () => {
+    const store = makeStore();
+    seedRentExpense(store);
+    const expenseRepo = new FakeExpenseRepository(store);
+    const settlementRepo = new FakeSettlementRepository(store);
+
+    const before = await getBalance(expenseRepo, ctxB, { householdId: HOUSEHOLD });
+    expect(before.ok).toBe(true);
+    if (!before.ok) return;
+    expect(before.data.amountCents).toBe(30000);
+
+    // B rembourse 100 € sur les 300 € dus.
+    const initiated = await initiateSettlement(settlementRepo, ctxB, {
+      householdId: HOUSEHOLD,
+      fromMemberId: before.data.from,
+      toMemberId: before.data.to,
+      amountCents: 10000,
+      balanceAmountCents: before.data.amountCents,
+    });
+    expect(initiated.ok).toBe(true);
+    if (!initiated.ok) return;
+
+    const confirmed = await confirmSettlement(settlementRepo, ctxA, {
+      settlementId: initiated.data.id,
+    });
+    expect(confirmed.ok).toBe(true);
+
+    const after = await getBalance(expenseRepo, ctxB, {
+      householdId: HOUSEHOLD,
+      settlements: confirmedSettlements(store, HOUSEHOLD),
+    });
+    expect(after.ok).toBe(true);
+    if (!after.ok) return;
+    expect(after.data).toMatchObject({ from: "B", to: "A", amountCents: 20000 });
+
+    // Une nouvelle dépense saisie après ce règlement confirmé s'ajoute
+    // immédiatement au solde restant (pas de gel, conséquence du modèle ledger).
+    store.expenses.set("exp-2", {
+      id: "exp-2",
+      householdId: HOUSEHOLD,
+      label: "Courses",
+      category: "courses",
+      grossCents: 4000,
+      payerId: "A",
+      incurredOn: "2026-07-05",
+      source: "manual",
+      settlementId: null,
+      createdAt: "2026-07-05T10:00:00.000Z",
+      updatedAt: "2026-07-05T10:00:00.000Z",
+      shares: [
+        { memberId: "A", cents: 2000, pctSnapshot: 50 },
+        { memberId: "B", cents: 2000, pctSnapshot: 50 },
+      ],
+      aids: [],
+      deletedAt: null,
+    });
+    const afterNewExpense = await getBalance(expenseRepo, ctxB, {
+      householdId: HOUSEHOLD,
+      settlements: confirmedSettlements(store, HOUSEHOLD),
+    });
+    expect(afterNewExpense.ok).toBe(true);
+    if (!afterNewExpense.ok) return;
+    expect(afterNewExpense.data).toMatchObject({ from: "B", to: "A", amountCents: 22000 });
+  });
+
+  it("pending → cancelled : solde inchangé, dépense jamais touchée", async () => {
     const store = makeStore();
     seedRentExpense(store);
     const expenseRepo = new FakeExpenseRepository(store);
@@ -326,6 +399,7 @@ describe("machine à états régularisation — intégration bout en bout (spec 
       fromMemberId: before.data.from,
       toMemberId: before.data.to,
       amountCents: before.data.amountCents,
+      balanceAmountCents: before.data.amountCents,
     });
     expect(initiated.ok).toBe(true);
     if (!initiated.ok) return;
@@ -338,9 +412,9 @@ describe("machine à états régularisation — intégration bout en bout (spec 
     if (!cancelled.ok) return;
     expect(cancelled.data.status).toBe("cancelled");
 
-    // La dépense est dé-stampée : elle se rouvre (édition à nouveau possible).
-    const reopened = await expenseRepo.getExpenseById("exp-1");
-    expect(reopened?.settlementId).toBeNull();
+    // La dépense n'a jamais été touchée (modèle ledger, D7 révisé).
+    const untouched = await expenseRepo.getExpenseById("exp-1");
+    expect(untouched?.settlementId).toBeNull();
 
     const editAfterCancel = await updateExpense(expenseRepo, ctxA, {
       expenseId: "exp-1",
@@ -349,10 +423,35 @@ describe("machine à états régularisation — intégration bout en bout (spec 
     expect(editAfterCancel.ok).toBe(true);
 
     // Le solde est inchangé : rien n'a jamais été soustrait tant que non confirmé.
-    const afterCancel = await getBalance(expenseRepo, ctxB, { householdId: HOUSEHOLD });
+    const afterCancel = await getBalance(expenseRepo, ctxB, {
+      householdId: HOUSEHOLD,
+      settlements: confirmedSettlements(store, HOUSEHOLD),
+    });
     expect(afterCancel.ok).toBe(true);
     if (!afterCancel.ok) return;
     expect(afterCancel.data).toMatchObject({ from: "B", to: "A", amountCents: 30000 });
+  });
+
+  it("montant demandé > solde courant → AMOUNT_EXCEEDS_BALANCE (D15 révisé)", async () => {
+    const store = makeStore();
+    seedRentExpense(store);
+    const expenseRepo = new FakeExpenseRepository(store);
+    const settlementRepo = new FakeSettlementRepository(store);
+
+    const balance = await getBalance(expenseRepo, ctxB, { householdId: HOUSEHOLD });
+    expect(balance.ok).toBe(true);
+    if (!balance.ok) return;
+
+    const initiated = await initiateSettlement(settlementRepo, ctxB, {
+      householdId: HOUSEHOLD,
+      fromMemberId: balance.data.from,
+      toMemberId: balance.data.to,
+      amountCents: balance.data.amountCents + 10000,
+      balanceAmountCents: balance.data.amountCents,
+    });
+    expect(initiated.ok).toBe(false);
+    if (initiated.ok) return;
+    expect(initiated.error.code).toBe("AMOUNT_EXCEEDS_BALANCE");
   });
 
   it("solde nul → BALANCE_ALREADY_ZERO (aucune dépense ouverte dans le foyer)", async () => {
@@ -370,6 +469,7 @@ describe("machine à états régularisation — intégration bout en bout (spec 
       fromMemberId: balance.data.from,
       toMemberId: balance.data.to,
       amountCents: balance.data.amountCents,
+      balanceAmountCents: balance.data.amountCents,
     });
     expect(initiated.ok).toBe(false);
     if (initiated.ok) return;

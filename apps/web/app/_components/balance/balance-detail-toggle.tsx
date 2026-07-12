@@ -15,9 +15,10 @@
 // d'un coup d'œil.
 
 import { useState, useTransition, type ReactNode } from "react";
-import { getBalanceDetailAction } from "../../actions";
-import { formatAmountEUR } from "@app/shared";
+import { getBalanceDetailAction, getSettlementHistoryAction } from "../../actions";
+import { formatAmountEUR, formatDateFr } from "@app/shared";
 import type { BalanceDetailLine } from "@app/domain-expense";
+import type { Settlement } from "@app/domain-settlement";
 import { Button } from "../design-system/core";
 import { AmountDisplay, WaterLine } from "../design-system/balance";
 import { Dialog, Notice } from "../design-system/feedback";
@@ -137,8 +138,36 @@ function oneOffSummary(
     </>
   ) : (
     <>
-      au total, tes dépenses ponctuelles font que tu dois <AmountDisplay value={amount} size="sm" /> à{" "}
-      {otherDisplayName}
+      au total, tes dépenses ponctuelles font que tu dois <AmountDisplay value={amount} size="sm" />{" "}
+      à {otherDisplayName}
+    </>
+  );
+}
+
+/** Ligne d'un règlement confirmé (D15 révisé) : montant échangé, jamais "réglé
+ * en intégralité" ni "solde à zéro" — ce serait faux pour un partiel, ou si de
+ * nouvelles dépenses sont apparues depuis (ch.8.1/8.5). */
+function settlementLine(
+  settlement: Settlement,
+  currentMemberId: string,
+  otherDisplayName: string,
+): ReactNode {
+  const amount = formatAmountEUR(settlement.amountCents);
+  const date = settlement.confirmedAt ? formatDateFr(new Date(settlement.confirmedAt)) : "";
+  const isCurrentDebtor = settlement.fromMemberId === currentMemberId;
+  return (
+    <>
+      {date ? `${date} — ` : ""}
+      {isCurrentDebtor ? (
+        <>
+          tu as remboursé <AmountDisplay value={amount} size="sm" /> à {otherDisplayName}
+        </>
+      ) : (
+        <>
+          {otherDisplayName} t&apos;a remboursé <AmountDisplay value={amount} size="sm" />
+        </>
+      )}
+      .
     </>
   );
 }
@@ -146,6 +175,7 @@ function oneOffSummary(
 export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMessage }: Props) {
   const [open, setOpen] = useState(false);
   const [lines, setLines] = useState<BalanceDetailLine[] | null>(null);
+  const [settlements, setSettlements] = useState<Settlement[] | null>(null);
   const [isPending, startTransition] = useTransition();
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
@@ -153,8 +183,12 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
     setOpen((prev) => !prev);
     if (lines === null) {
       startTransition(async () => {
-        const res = await getBalanceDetailAction();
-        setLines(res.ok ? res.data : []);
+        const [detailRes, historyRes] = await Promise.all([
+          getBalanceDetailAction(),
+          getSettlementHistoryAction(),
+        ]);
+        setLines(detailRes.ok ? detailRes.data : []);
+        setSettlements(historyRes.ok ? historyRes.data : []);
       });
     }
   };
@@ -194,6 +228,15 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
                   ))}
                 </Notice>
               ))}
+              {settlements != null &&
+                settlements
+                  .slice()
+                  .sort((a, b) => (a.confirmedAt ?? "").localeCompare(b.confirmedAt ?? ""))
+                  .map((settlement) => (
+                    <Notice tone="neutral" key={settlement.id}>
+                      {settlementLine(settlement, currentMemberId, otherDisplayName)}
+                    </Notice>
+                  ))}
               <Notice tone="neutral">total : {totalMessage}</Notice>
             </>
           )}

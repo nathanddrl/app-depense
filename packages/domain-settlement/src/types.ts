@@ -26,16 +26,21 @@ export type Settlement = {
 export type SettlementContext = { memberId: string; householdId: string };
 
 /**
- * Entrée de `initiateSettlement` (T-C6.2). Le solde (`fromMemberId`/`toMemberId`/
- * `amountCents`) est calculé par l'appelant via `domain-expense.getBalance` — un
- * domaine n'important jamais un autre domain-* (DA4), cette composition vit à la
- * couche au-dessus (Server Action), jamais recalculée ici.
+ * Entrée de `initiateSettlement` (T-C6.2, D15 révisé — montant partiel autorisé).
+ * `fromMemberId`/`toMemberId` sont calculés par l'appelant via
+ * `domain-expense.getBalance` — un domaine n'important jamais un autre domain-*
+ * (DA4), cette composition vit à la couche au-dessus (Server Action), jamais
+ * recalculée ici. `amountCents` est le montant demandé par le débiteur (peut
+ * être inférieur au solde total). `balanceAmountCents` est le solde réel au
+ * moment de l'appel, transmis par l'appelant, et sert UNIQUEMENT de borne de
+ * validation (`amountCents <= balanceAmountCents`) — jamais imposé comme valeur.
  */
 export type InitiateSettlementInput = {
   householdId: string;
   fromMemberId: string;
   toMemberId: string;
   amountCents: number;
+  balanceAmountCents: number;
 };
 
 /** Entrée de `confirmSettlement` (T-C6.3, appelant = créancier). */

@@ -22,15 +22,18 @@ export interface SettlementRepository {
   /** Régularisation `pending` existante du foyer, s'il y en a une (une seule à la fois, D16). */
   getPendingSettlement(householdId: string): Promise<{ id: string } | null>;
 
-  /** Création atomique du settlement `pending` + gel (`settlement_id`) des dépenses ouvertes du foyer. */
-  createSettlementAndFreezeExpenses(newSettlement: NewSettlement): Promise<Settlement>;
+  /** Création du settlement `pending`. Ne touche plus aux dépenses (modèle ledger, D7 révisé) : le solde restant est recalculé dynamiquement. */
+  createSettlement(newSettlement: NewSettlement): Promise<Settlement>;
 
   /** Lecture pour confirmation/annulation (null si absente/hors périmètre RLS). */
   getSettlementById(settlementId: string): Promise<Settlement | null>;
 
-  /** `pending → confirmed` : ne touche pas les dépenses (déjà gelées, désormais immuables). */
+  /** `pending → confirmed` : simple update de statut. */
   confirmSettlement(settlementId: string, confirmedBy: string): Promise<Settlement>;
 
-  /** `pending → cancelled` + dé-stamp atomique (`settlement_id` → null) des dépenses concernées. */
+  /** `pending → cancelled` : simple update de statut, plus de dé-stamp (D7 révisé). */
   cancelSettlement(settlementId: string): Promise<Settlement>;
+
+  /** Règlements `confirmed` du foyer (D15 révisé) : ajustements du solde ledger + historique "pourquoi ?". */
+  listConfirmedSettlements(householdId: string): Promise<Settlement[]>;
 }

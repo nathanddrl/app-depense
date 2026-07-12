@@ -13,6 +13,7 @@ import type {
   ExpenseShareDTO,
   ListExpensesFilters,
 } from "./types";
+import type { SettlementForBalance } from "@app/calc-engine";
 
 // ── FakeExpenseRepository : ne porte que ce dont getBalance a besoin (DA11,
 // tests légers). Les autres méthodes du port sont hors périmètre ici. ──────────
@@ -65,7 +66,7 @@ const ratio5050Shares = (grossCents: number) => [
   { memberId: "B", cents: grossCents / 2, pctSnapshot: 50 },
 ];
 
-describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
+describe("getBalance — lecture du solde courant (6.2 / 4.2, modèle ledger D7 révisé)", () => {
   it("loyer 800€ payé A 50/50, APL 200€ perçue A → B doit 300€ à A", async () => {
     // Parts figées reflétant le net post-aide (60000), comme le ferait le domaine
     // au moment de la persistance : 30000/30000.
@@ -78,7 +79,6 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
           payerId: "A",
           shares: ratio5050Shares(60000),
           aids: [{ beneficiaryId: "A", amountCents: 20000, label: "APL" }],
-          settlementStatus: null,
           source: "manual",
         },
       ],
@@ -100,7 +100,6 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
           payerId: "A",
           shares: ratio5050Shares(60000),
           aids: [{ beneficiaryId: "B", amountCents: 20000, label: "APL" }],
-          settlementStatus: null,
           source: "manual",
         },
       ],
@@ -122,7 +121,6 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
           payerId: "A",
           shares: ratio5050Shares(80000),
           aids: [],
-          settlementStatus: null,
           source: "manual",
         },
         {
@@ -131,7 +129,6 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
           payerId: "B",
           shares: ratio5050Shares(6000),
           aids: [],
-          settlementStatus: null,
           source: "manual",
         },
       ],
@@ -144,7 +141,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
     expect(res.data).toEqual({ from: "B", to: "A", amountCents: 37000 });
   });
 
-  it("dépense rattachée à un settlement pending → compte encore, pendingSettlement: true", async () => {
+  it("règlement confirmé partiel transmis par l'appelant → solde réduit sans être annulé", async () => {
     const repo = new FakeExpenseRepository(
       ["A", "B"],
       [
@@ -154,19 +151,21 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
           payerId: "A",
           shares: ratio5050Shares(80000),
           aids: [],
-          settlementStatus: "pending",
           source: "manual",
         },
       ],
     );
+    const settlements: SettlementForBalance[] = [
+      { fromMemberId: "B", toMemberId: "A", amountCents: 10000, status: "confirmed" },
+    ];
 
-    const res = await getBalance(repo, ctx, { householdId: HOUSEHOLD });
+    const res = await getBalance(repo, ctx, { householdId: HOUSEHOLD, settlements });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.data).toEqual({ from: "B", to: "A", amountCents: 40000, pendingSettlement: true });
+    expect(res.data).toEqual({ from: "B", to: "A", amountCents: 30000 });
   });
 
-  it("dépense rattachée à un settlement confirmed → exclue du solde (0)", async () => {
+  it("règlement pending transmis par l'appelant → n'affecte pas encore le solde", async () => {
     const repo = new FakeExpenseRepository(
       ["A", "B"],
       [
@@ -176,13 +175,39 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
           payerId: "A",
           shares: ratio5050Shares(80000),
           aids: [],
-          settlementStatus: "confirmed",
           source: "manual",
         },
       ],
     );
+    const settlements: SettlementForBalance[] = [
+      { fromMemberId: "B", toMemberId: "A", amountCents: 10000, status: "pending" },
+    ];
 
-    const res = await getBalance(repo, ctx, { householdId: HOUSEHOLD });
+    const res = await getBalance(repo, ctx, { householdId: HOUSEHOLD, settlements });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data).toEqual({ from: "B", to: "A", amountCents: 40000 });
+  });
+
+  it("règlement confirmé total → solde nul", async () => {
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [
+        {
+          label: "Loyer",
+          grossCents: 80000,
+          payerId: "A",
+          shares: ratio5050Shares(80000),
+          aids: [],
+          source: "manual",
+        },
+      ],
+    );
+    const settlements: SettlementForBalance[] = [
+      { fromMemberId: "B", toMemberId: "A", amountCents: 40000, status: "confirmed" },
+    ];
+
+    const res = await getBalance(repo, ctx, { householdId: HOUSEHOLD, settlements });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.data).toEqual({ from: "A", to: "B", amountCents: 0 });
@@ -211,7 +236,6 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
             { memberId: "B", cents: 0, pctSnapshot: 50 },
           ],
           aids: [{ beneficiaryId: "A", amountCents: 90000, label: "APL" }],
-          settlementStatus: null,
           source: "manual",
         },
       ],
