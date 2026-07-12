@@ -5,6 +5,10 @@ import type { NextConfig } from "next";
 // @app/config est volontairement EXCLU : outillage (tsconfig/eslint/prettier),
 // jamais importé au runtime.
 const nextConfig: NextConfig = {
+  // Autorise l'accès au serveur de dev depuis un appareil sur le réseau local
+  // (sinon Next bloque les requêtes cross-origin — Server Actions, HMR — hors
+  // localhost, ce qui peut casser l'hydratation et rendre boutons/nav inertes).
+  allowedDevOrigins: ["192.168.1.38"],
   transpilePackages: [
     "@app/calc-engine",
     "@app/domain-expense",
