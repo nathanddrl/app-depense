@@ -1,0 +1,74 @@
+/* UndoToast — barre fixe ancrée en bas, au-dessus de la BottomNav. Surface
+   overlay mate, aucun box-shadow (--elevation-shadow: none partout), séparation
+   par la surface + le filet subtil. Entrée en glissé sobre (décélération
+   lourde, zéro overshoot — tokens motion). */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 110;
+  box-sizing: border-box;
+  width: min(420px, calc(100vw - var(--space-3) * 2));
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-subtle);
+  overflow: hidden;
+  animation: undo-enter var(--motion-micro-duration) var(--motion-micro-easing);
+}
+
+.message {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+/* Filet de compte à rebours : se rétracte de 100% à 0 sur la durée du minuteur.
+   Purement indicatif (aria-hidden) — le vrai minuteur est en JS. */
+.progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  transform-origin: left;
+  background: var(--border-strong);
+  animation-name: undo-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes undo-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, var(--space-2));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes undo-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+  .progress {
+    animation: none;
+    display: none;
+  }
+}
