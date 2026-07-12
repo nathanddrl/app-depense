@@ -114,7 +114,7 @@ function oneOffSummary(
     0,
   );
   if (netForCurrent === 0) {
-    return "au total, vos dépenses ponctuelles s'équilibrent";
+    return "au total, tes dépenses ponctuelles s'équilibrent";
   }
   const amount = formatAmountEUR(Math.abs(netForCurrent));
   return netForCurrent > 0 ? (
