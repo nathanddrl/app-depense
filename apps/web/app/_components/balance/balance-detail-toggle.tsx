@@ -119,7 +119,7 @@ function oneOffSummary(
   const amount = formatAmountEUR(Math.abs(netForCurrent));
   return netForCurrent > 0 ? (
     <>
-      au total, vos dépenses ponctuelles font que {otherDisplayName} te doit{" "}
+      au total, tes dépenses ponctuelles font que {otherDisplayName} te doit{" "}
       <AmountDisplay value={amount} size="sm" />
     </>
   ) : (
