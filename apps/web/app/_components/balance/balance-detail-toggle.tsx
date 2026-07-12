@@ -10,15 +10,17 @@
 // (récurrent et/ou ajusté par une aide) reste toujours détaillé en clair : c'est
 // là que la mécanique (répartition, aide) a besoin d'être visible ligne par ligne.
 // Un bouton « voir le détail » ouvre à la demande la même décomposition pour les
-// ponctuelles.
+// ponctuelles, dans une modal (par-dessus le reste, fermable) — chaque ligne y est
+// doublée d'un schéma WaterLine (7) plutôt que du seul texte, pour rester lisible
+// d'un coup d'œil.
 
 import { useState, useTransition, type ReactNode } from "react";
 import { getBalanceDetailAction } from "../../actions";
 import { formatAmountEUR } from "@app/shared";
 import type { BalanceDetailLine } from "@app/domain-expense";
 import { Button } from "../design-system/core";
-import { AmountDisplay } from "../design-system/balance";
-import { Notice } from "../design-system/feedback";
+import { AmountDisplay, WaterLine } from "../design-system/balance";
+import { Dialog, Notice } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
 
 type Props = {
@@ -39,6 +41,17 @@ function fractionWord(pct: number): string {
 
 function pctOf(part: number, total: number): number {
   return total === 0 ? 0 : Math.round((part / total) * 100);
+}
+
+/** Magnitude WaterLine (7) propre à une ligne : poids du solde final de cette
+ * dépense au sein de son propre montant (0 = neutre, ±1 = tout part d'un côté),
+ * signé selon la perspective du lecteur — même logique que water-line-magnitude.ts
+ * mais normalisée par la dépense elle-même, pas par un montant de référence global. */
+function oneOffLineMagnitude(line: BalanceDetailLine, currentMemberId: string): number {
+  if (line.grossCents === 0) return 0;
+  const normalized = Math.min(line.totalOwedCents / line.grossCents, 1);
+  if (normalized === 0) return 0;
+  return line.payerId === currentMemberId ? normalized : -normalized;
 }
 
 /** 1er temps (8.3) : répartition du montant brut, comme s'il n'y avait aucune aide.
@@ -134,7 +147,7 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
   const [open, setOpen] = useState(false);
   const [lines, setLines] = useState<BalanceDetailLine[] | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [showOneOffDetail, setShowOneOffDetail] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   const handleClick = () => {
     setOpen((prev) => !prev);
@@ -165,17 +178,11 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
                   {oneOffSummary(oneOffLines, currentMemberId, otherDisplayName)}
                 </Notice>
               )}
-              {oneOffLines.length > 0 && !showOneOffDetail && (
-                <Button variant="ghost" size="sm" onClick={() => setShowOneOffDetail(true)}>
+              {oneOffLines.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={() => setDetailModalOpen(true)}>
                   voir le détail
                 </Button>
               )}
-              {showOneOffDetail &&
-                oneOffLines.map((line, i) => (
-                  <Notice tone="neutral" key={`ponctuelle-${i}`}>
-                    {baseLine(line, currentMemberId, otherDisplayName)}
-                  </Notice>
-                ))}
               {regularLines.map((line, i) => (
                 <Notice tone="neutral" key={`reguliere-${i}`}>
                   {baseLine(line, currentMemberId, otherDisplayName)}
@@ -192,6 +199,20 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
           )}
         </Stack>
       )}
+      <Dialog
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        title="dépenses ponctuelles"
+      >
+        <Stack gap={3}>
+          {oneOffLines.map((line, i) => (
+            <Stack gap={1} key={`ponctuelle-modal-${i}`}>
+              <WaterLine magnitude={oneOffLineMagnitude(line, currentMemberId)} height={40} />
+              <Notice tone="neutral">{baseLine(line, currentMemberId, otherDisplayName)}</Notice>
+            </Stack>
+          ))}
+        </Stack>
+      </Dialog>
     </Stack>
   );
 }
