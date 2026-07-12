@@ -8,7 +8,7 @@
 // courant (le repo porte le client authentifié → la RLS s'applique au runtime).
 
 import type {
-  BalanceExpenseRow,
+  RawBalanceExpenseRow,
   Category,
   Expense,
   ExpenseShareDTO,
@@ -63,7 +63,7 @@ export interface ExpenseRepository {
   listExpenses(householdId: string, filters: ListExpensesFilters): Promise<Expense[]>;
 
   /** Dépenses actives (soft-deleted exclues) avec aides + statut settlement, pour le solde (4.2). */
-  listExpensesForBalance(householdId: string): Promise<BalanceExpenseRow[]>;
+  listExpensesForBalance(householdId: string): Promise<RawBalanceExpenseRow[]>;
 
   /**
    * TOUTES les dépenses du foyer, sans aucun filtre `deleted_at`/`settlement_id`

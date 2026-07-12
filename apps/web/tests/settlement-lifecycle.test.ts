@@ -23,6 +23,7 @@ import type {
   Category,
   Expense,
   ExpenseContext,
+  ExpenseSource,
   ExpenseRepository,
   ExpenseScalarPatch,
   StoredExpense,
@@ -41,6 +42,11 @@ type Store = {
   expenses: Map<string, StoredExpense>;
   settlements: Map<string, Settlement>;
 };
+
+function toExpenseSource(source: string): ExpenseSource {
+  if (source === "manual" || source === "recurring") return source;
+  throw new Error(`test: source de dépense inconnue (${source})`);
+}
 
 function makeStore(): Store {
   return { memberIds: { [HOUSEHOLD]: ["A", "B"] }, expenses: new Map(), settlements: new Map() };
@@ -98,7 +104,7 @@ class FakeExpenseRepository implements ExpenseRepository {
         settlementStatus: e.settlementId
           ? (this.store.settlements.get(e.settlementId)?.status ?? null)
           : null,
-        source: e.source,
+        source: toExpenseSource(e.source),
       }));
   }
 
