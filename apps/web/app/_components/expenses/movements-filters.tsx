@@ -30,7 +30,7 @@ export function MovementsFilters({ months, month, category }: Props) {
 
   function navigate(nextMonth: string, nextCategory?: Category) {
     const params = new URLSearchParams();
-    if (nextMonth !== ALL_MONTHS) params.set("mois", nextMonth);
+    params.set("mois", nextMonth);
     if (nextCategory) params.set("categorie", nextCategory);
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
