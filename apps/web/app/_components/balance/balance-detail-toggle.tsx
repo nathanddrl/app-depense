@@ -124,7 +124,7 @@ function oneOffSummary(
     </>
   ) : (
     <>
-      au total, vos dépenses ponctuelles font que tu dois <AmountDisplay value={amount} size="sm" /> à{" "}
+      au total, tes dépenses ponctuelles font que tu dois <AmountDisplay value={amount} size="sm" /> à{" "}
       {otherDisplayName}
     </>
   );
