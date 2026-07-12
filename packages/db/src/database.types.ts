@@ -505,7 +505,18 @@ export type Database = {
       }
     }
     Enums: {
-      expense_category: "loyer" | "courses" | "charges" | "sorties" | "autre"
+      expense_category:
+        | "loyer"
+        | "courses"
+        | "charges"
+        | "sorties"
+        | "autre"
+        | "abonnements"
+        | "assurances"
+        | "transports"
+        | "animaux"
+        | "restos"
+        | "shopping"
       settlement_status: "pending" | "confirmed" | "cancelled"
     }
     CompositeTypes: {
@@ -634,7 +645,19 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      expense_category: ["loyer", "courses", "charges", "sorties", "autre"],
+      expense_category: [
+        "loyer",
+        "courses",
+        "charges",
+        "sorties",
+        "autre",
+        "abonnements",
+        "assurances",
+        "transports",
+        "animaux",
+        "restos",
+        "shopping",
+      ],
       settlement_status: ["pending", "confirmed", "cancelled"],
     },
   },
