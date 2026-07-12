@@ -48,6 +48,7 @@ export async function getBalanceDetail(
         baseOwedCents: breakdown.baseOwedCents,
         aidLines: breakdown.aidLines,
         totalOwedCents: breakdown.totalOwedCents,
+        source: row.source,
       };
     });
 

@@ -72,6 +72,7 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           shares: ratio5050Shares(60000),
           aids: [{ beneficiaryId: "A", amountCents: 20000, label: "APL" }],
           settlementStatus: null,
+          source: "manual",
         },
       ],
     );
@@ -88,6 +89,7 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
         baseOwedCents: 40000,
         aidLines: [{ label: "APL", beneficiaryId: "A", aidCents: 20000, sharedCents: 10000 }],
         totalOwedCents: 30000,
+        source: "manual",
       },
     ]);
   });
@@ -103,6 +105,7 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           shares: ratio5050Shares(80000),
           aids: [],
           settlementStatus: null,
+          source: "manual",
         },
         {
           label: "Courses",
@@ -111,6 +114,7 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           shares: ratio5050Shares(6000),
           aids: [],
           settlementStatus: null,
+          source: "manual",
         },
       ],
     );
@@ -133,6 +137,7 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           shares: ratio5050Shares(80000),
           aids: [],
           settlementStatus: "confirmed",
+          source: "manual",
         },
       ],
     );
@@ -154,6 +159,7 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           shares: ratio5050Shares(80000),
           aids: [],
           settlementStatus: "pending",
+          source: "manual",
         },
       ],
     );
@@ -186,6 +192,7 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           ],
           aids: [{ beneficiaryId: "A", amountCents: 90000, label: "APL" }],
           settlementStatus: null,
+          source: "manual",
         },
       ],
     );
@@ -202,6 +209,7 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
         baseOwedCents: 40000,
         aidLines: [{ label: "APL", beneficiaryId: "A", aidCents: 80000, sharedCents: 40000 }],
         totalOwedCents: 0,
+        source: "manual",
       },
     ]);
   });

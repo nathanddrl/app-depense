@@ -91,6 +91,7 @@ export type BalanceExpenseRow = {
   shares: { memberId: string; cents: number; pctSnapshot: number }[];
   aids: BalanceAid[];
   settlementStatus: SettlementStatus | null;
+  source: string;
 };
 
 /** Solde courant réduit à deux membres (6.2 `getBalance`). */
@@ -121,6 +122,7 @@ export type BalanceDetailLine = {
   baseOwedCents: number;
   aidLines: BalanceDetailAidLine[];
   totalOwedCents: number;
+  source: string;
 };
 
 /**

@@ -76,6 +76,7 @@ export type BalanceExpenseRow = {
   shares: { memberId: string; cents: number; pctSnapshot: number }[];
   aids: BalanceAid[];
   settlementStatus: SettlementStatus | null;
+  source: string;
 };
 
 type ExpenseRow = Tables<"expense">;
@@ -343,6 +344,7 @@ export class SupabaseExpenseRepository {
         label: a.label,
       })),
       settlementStatus: row.settlement_id ? (statusById.get(row.settlement_id) ?? null) : null,
+      source: row.source,
     }));
   }
 

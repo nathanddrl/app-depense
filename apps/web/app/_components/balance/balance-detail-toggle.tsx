@@ -4,6 +4,13 @@
 // explicite « Pourquoi ? » (H5 — jamais une icône muette), toujours visible, replié
 // par défaut. Décomposition « en deux temps » par dépense contributive, en langage
 // humain uniquement : jamais "charge nette", "ratio", "contribution", ni équation.
+//
+// Les dépenses ponctuelles (une seule fois, sans aide) sont résumées en une phrase
+// agrégée plutôt que détaillées une par une — trop long sinon. Le « régulier »
+// (récurrent et/ou ajusté par une aide) reste toujours détaillé en clair : c'est
+// là que la mécanique (répartition, aide) a besoin d'être visible ligne par ligne.
+// Un bouton « voir le détail » ouvre à la demande la même décomposition pour les
+// ponctuelles.
 
 import { useState, useTransition, type ReactNode } from "react";
 import { getBalanceDetailAction } from "../../actions";
@@ -88,10 +95,46 @@ function aidLine(
   );
 }
 
+/** Une dépense reste toujours détaillée (2e temps compris) si elle revient chaque
+ * mois ou si une aide vient l'ajuster — le reste (ponctuel) n'est que résumé,
+ * pour ne pas noyer l'explication sous une décomposition dépense par dépense. */
+function isRegular(line: BalanceDetailLine): boolean {
+  return line.source === "recurring" || line.aidLines.length > 0;
+}
+
+/** Résumé du seul solde net des dépenses ponctuelles, même ton que le solde global. */
+function oneOffSummary(
+  oneOffLines: BalanceDetailLine[],
+  currentMemberId: string,
+  otherDisplayName: string,
+): ReactNode {
+  const netForCurrent = oneOffLines.reduce(
+    (sum, line) =>
+      sum + (line.payerId === currentMemberId ? line.totalOwedCents : -line.totalOwedCents),
+    0,
+  );
+  if (netForCurrent === 0) {
+    return "au total, vos dépenses ponctuelles s'équilibrent";
+  }
+  const amount = formatAmountEUR(Math.abs(netForCurrent));
+  return netForCurrent > 0 ? (
+    <>
+      au total, vos dépenses ponctuelles font que {otherDisplayName} te doit{" "}
+      <AmountDisplay value={amount} size="sm" />
+    </>
+  ) : (
+    <>
+      au total, vos dépenses ponctuelles font que tu dois <AmountDisplay value={amount} size="sm" /> à{" "}
+      {otherDisplayName}
+    </>
+  );
+}
+
 export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMessage }: Props) {
   const [open, setOpen] = useState(false);
   const [lines, setLines] = useState<BalanceDetailLine[] | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [showOneOffDetail, setShowOneOffDetail] = useState(false);
 
   const handleClick = () => {
     setOpen((prev) => !prev);
@@ -102,6 +145,9 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
       });
     }
   };
+
+  const regularLines = lines?.filter(isRegular) ?? [];
+  const oneOffLines = lines?.filter((line) => !isRegular(line)) ?? [];
 
   return (
     <Stack gap={2}>
@@ -114,8 +160,24 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
             <Notice tone="neutral">calcul en cours…</Notice>
           ) : (
             <>
-              {lines.map((line, i) => (
-                <Notice tone="neutral" key={i}>
+              {oneOffLines.length > 0 && (
+                <Notice tone="neutral">
+                  {oneOffSummary(oneOffLines, currentMemberId, otherDisplayName)}
+                </Notice>
+              )}
+              {oneOffLines.length > 0 && !showOneOffDetail && (
+                <Button variant="ghost" size="sm" onClick={() => setShowOneOffDetail(true)}>
+                  voir le détail
+                </Button>
+              )}
+              {showOneOffDetail &&
+                oneOffLines.map((line, i) => (
+                  <Notice tone="neutral" key={`ponctuelle-${i}`}>
+                    {baseLine(line, currentMemberId, otherDisplayName)}
+                  </Notice>
+                ))}
+              {regularLines.map((line, i) => (
+                <Notice tone="neutral" key={`reguliere-${i}`}>
                   {baseLine(line, currentMemberId, otherDisplayName)}
                   {line.aidLines.map((aid, j) => (
                     <span key={j}>

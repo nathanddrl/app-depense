@@ -98,6 +98,7 @@ class FakeExpenseRepository implements ExpenseRepository {
         settlementStatus: e.settlementId
           ? (this.store.settlements.get(e.settlementId)?.status ?? null)
           : null,
+        source: e.source,
       }));
   }
 
