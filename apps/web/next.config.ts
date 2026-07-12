@@ -8,7 +8,9 @@ const nextConfig: NextConfig = {
   // Autorise l'accès au serveur de dev depuis un appareil sur le réseau local
   // (sinon Next bloque les requêtes cross-origin — Server Actions, HMR — hors
   // localhost, ce qui peut casser l'hydratation et rendre boutons/nav inertes).
-  allowedDevOrigins: ["192.168.1.38"],
+  allowedDevOrigins: process.env.NEXT_ALLOWED_DEV_ORIGINS
+    ? process.env.NEXT_ALLOWED_DEV_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
+    : [],
   transpilePackages: [
     "@app/calc-engine",
     "@app/domain-expense",
