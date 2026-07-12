@@ -7,6 +7,7 @@ import type { Enums } from "@app/db";
 
 /** Catégorie figée (enum DB, D18) : 'loyer'|'courses'|'charges'|'sorties'|'autre'. */
 export type Category = Enums<"expense_category">;
+export type ExpenseSource = "manual" | "recurring";
 
 /** Une ligne de répartition en % à la saisie (aligné `calc-engine.SharePct` + 6.2). */
 export type ShareInput = { memberId: string; pct: number };
@@ -91,7 +92,10 @@ export type BalanceExpenseRow = {
   shares: { memberId: string; cents: number; pctSnapshot: number }[];
   aids: BalanceAid[];
   settlementStatus: SettlementStatus | null;
+  source: ExpenseSource;
 };
+
+export type RawBalanceExpenseRow = Omit<BalanceExpenseRow, "source"> & { source: string };
 
 /** Solde courant réduit à deux membres (6.2 `getBalance`). */
 export type Balance = {
@@ -121,6 +125,7 @@ export type BalanceDetailLine = {
   baseOwedCents: number;
   aidLines: BalanceDetailAidLine[];
   totalOwedCents: number;
+  source: ExpenseSource;
 };
 
 /**

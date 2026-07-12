@@ -79,6 +79,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
           shares: ratio5050Shares(60000),
           aids: [{ beneficiaryId: "A", amountCents: 20000, label: "APL" }],
           settlementStatus: null,
+          source: "manual",
         },
       ],
     );
@@ -100,6 +101,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
           shares: ratio5050Shares(60000),
           aids: [{ beneficiaryId: "B", amountCents: 20000, label: "APL" }],
           settlementStatus: null,
+          source: "manual",
         },
       ],
     );
@@ -121,6 +123,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
           shares: ratio5050Shares(80000),
           aids: [],
           settlementStatus: null,
+          source: "manual",
         },
         {
           label: "Courses",
@@ -129,6 +132,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
           shares: ratio5050Shares(6000),
           aids: [],
           settlementStatus: null,
+          source: "manual",
         },
       ],
     );
@@ -151,6 +155,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
           shares: ratio5050Shares(80000),
           aids: [],
           settlementStatus: "pending",
+          source: "manual",
         },
       ],
     );
@@ -172,6 +177,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
           shares: ratio5050Shares(80000),
           aids: [],
           settlementStatus: "confirmed",
+          source: "manual",
         },
       ],
     );
@@ -206,6 +212,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2)", () => {
           ],
           aids: [{ beneficiaryId: "A", amountCents: 90000, label: "APL" }],
           settlementStatus: null,
+          source: "manual",
         },
       ],
     );

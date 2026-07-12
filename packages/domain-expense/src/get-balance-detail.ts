@@ -8,11 +8,16 @@ import type { LabelledAidInput } from "@app/calc-engine";
 import { err, ok } from "@app/shared";
 import type { ActionResult } from "@app/shared";
 import type { ExpenseRepository } from "./repository";
-import type { BalanceDetailLine, ExpenseContext } from "./types";
+import type { BalanceDetailLine, ExpenseContext, ExpenseSource } from "./types";
 
 /** Même filtre que `getBalance` (4.2) : non supprimée, settlement pas confirmé. */
 function countsInBalance(settlementStatus: string | null): boolean {
   return settlementStatus !== "confirmed";
+}
+
+function toExpenseSource(source: string): ExpenseSource {
+  if (source === "manual" || source === "recurring") return source;
+  throw new Error(`Source de dépense inconnue: ${source}`);
 }
 
 export async function getBalanceDetail(
@@ -48,6 +53,7 @@ export async function getBalanceDetail(
         baseOwedCents: breakdown.baseOwedCents,
         aidLines: breakdown.aidLines,
         totalOwedCents: breakdown.totalOwedCents,
+        source: toExpenseSource(row.source),
       };
     });
 
