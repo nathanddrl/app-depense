@@ -38,9 +38,16 @@ type Props = {
   members: MemberShare[];
   currentMemberId: string;
   groupBy?: "day" | "month";
+  showLabel?: boolean;
 };
 
-export function MovementsList({ expenses, members, currentMemberId, groupBy = "day" }: Props) {
+export function MovementsList({
+  expenses,
+  members,
+  currentMemberId,
+  groupBy = "day",
+  showLabel = false,
+}: Props) {
   const router = useRouter();
   const groups = groupBy === "month" ? groupByMonth(expenses) : groupByDay(expenses);
   const labelOf = groupBy === "month" ? monthLabel : dayLabel;
@@ -61,6 +68,9 @@ export function MovementsList({ expenses, members, currentMemberId, groupBy = "d
           >
             {group.items.map((e) => (
               <Fragment key={e.id}>
+                {showLabel ? (
+                  <span style={{ gridColumn: "1 / -1", fontWeight: 500 }}>{e.label}</span>
+                ) : null}
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
                   <CategoryChip name={categoryLabelOf(e.category)} size={28} />
                   <span>{categoryLabelOf(e.category).toLowerCase()}</span>

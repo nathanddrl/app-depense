@@ -51,6 +51,7 @@ export default async function MouvementsPage({ searchParams }: Props) {
             members={defaultShares}
             currentMemberId={ctx.member.id}
             groupBy={month === ALL_MONTHS ? "month" : "day"}
+            showLabel
           />
         )}
       </Stack>
