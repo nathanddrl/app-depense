@@ -73,10 +73,10 @@ export function Dialog({ open, onClose, title, fullscreen = false, children }: P
             {title}
           </h2>
         ) : null}
-        {children}
+        <div className={styles.body}>{children}</div>
         {onClose ? (
           <div className={styles.close}>
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button variant="secondary" onClick={onClose}>
               fermer
             </Button>
           </div>
