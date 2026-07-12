@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "test:rls": "vitest run --config vitest.rls.config.ts"
+    "test:rls": "vitest run --config vitest.rls.config.ts",
+    "seed:realistic": "tsx scripts/seed-realistic.ts"
   },
   "dependencies": {
     "@app/calc-engine": "workspace:*",
@@ -31,6 +32,7 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "pg": "^8.22.0"
+    "pg": "^8.22.0",
+    "tsx": "^4.23.0"
   }
 }

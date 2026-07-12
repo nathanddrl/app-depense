@@ -56,6 +56,26 @@ Connecte-toi avec deux navigateurs (ou une fenêtre privée) pour tester les
   un template « Loyer 800€ jour 5 + APL 200€ », visible/modifiable seulement en
   base ou via Studio)
 
+## Seed réaliste de terrain (6 mois glissants)
+
+Le seed de base (`db:reset`) crée juste les comptes, le foyer et un template
+loyer. Pour un jeu de données crédible côté produit (test utilisateur, démo),
+un second script ajoute par-dessus 6 mois d'historique glissant : dépenses
+récurrentes (loyer + assurance + un abonnement `day_of_month=31` pour exposer
+le clamp de fin de mois), une dizaine de dépenses ponctuelles variées, des
+aides (dont un cas de plafonnement et un split « les deux »), et trois cycles
+de régularisation (confirmé, annulé, pending) :
+
+```bash
+pnpm --filter @app/db db:reset          # base propre + seed de base
+pnpm --filter @app/web seed:realistic   # ajoute la couche réaliste 6 mois
+```
+
+Le script (`apps/web/scripts/seed-realistic.ts`) orchestre les vrais
+`domain-*` (jamais d'insert SQL à la main pour la logique métier) et affiche
+un résumé en fin d'exécution (dépenses par mois, templates, régularisations,
+solde net). Rejouable à volonté après un `db:reset`.
+
 ## Tester la génération récurrente manuellement
 
 Pas de bouton dans l'UI : deux façons de la déclencher toi-même.
