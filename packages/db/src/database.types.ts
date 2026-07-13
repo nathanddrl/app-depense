@@ -66,6 +66,7 @@ export type Database = {
           settlement_id: string | null
           source: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           category?: Database["public"]["Enums"]["expense_category"]
@@ -81,6 +82,7 @@ export type Database = {
           settlement_id?: string | null
           source?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           category?: Database["public"]["Enums"]["expense_category"]
@@ -96,6 +98,7 @@ export type Database = {
           settlement_id?: string | null
           source?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -124,6 +127,13 @@ export type Database = {
             columns: ["settlement_id"]
             isOneToOne: false
             referencedRelation: "settlement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "member"
             referencedColumns: ["id"]
           },
         ]

@@ -45,6 +45,8 @@ export type ExpenseScalarPatch = Partial<{
   grossCents: number;
   payerId: string;
   incurredOn: string;
+  updatedAt: string;
+  updatedBy: string;
 }>;
 
 export type Expense = {
@@ -192,12 +194,16 @@ export class SupabaseExpenseRepository {
       gross_amount_cents?: number;
       payer_member_id?: string;
       incurred_on?: string;
+      updated_at?: string;
+      updated_by?: string;
     } = {};
     if (patch.label !== undefined) update.label = patch.label;
     if (patch.category !== undefined) update.category = patch.category;
     if (patch.grossCents !== undefined) update.gross_amount_cents = patch.grossCents;
     if (patch.payerId !== undefined) update.payer_member_id = patch.payerId;
     if (patch.incurredOn !== undefined) update.incurred_on = patch.incurredOn;
+    if (patch.updatedAt !== undefined) update.updated_at = patch.updatedAt;
+    if (patch.updatedBy !== undefined) update.updated_by = patch.updatedBy;
 
     if (Object.keys(update).length > 0) {
       const { error } = await this.supabase.from("expense").update(update).eq("id", expenseId);

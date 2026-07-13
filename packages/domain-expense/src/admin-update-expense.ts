@@ -6,11 +6,12 @@
 // de forme et même recompute des parts par calc-engine que le chemin normal —
 // seul le verrou de régularisation est contourné, pas la validation métier.
 //
-// Traçabilité (DA-OPEN1, decisions-techniques.md, tranché 07/07/2026) : PAS de
-// log dédié pour ces corrections. `updated_at` (patché ci-dessous comme pour
-// une édition normale) suffit à tracer grossièrement à l'échelle d'un foyer à
-// 2 utilisateurs. À reprendre seulement si un vrai back-office multi-admin
-// voit le jour (qui-a-fait-quoi, audit externe).
+// Traçabilité (DA-OPEN1, decisions-techniques.md, tranché 07/07/2026 ; renforcée
+// audit sécurité M3, 2026-07-13) : PAS de log dédié pour ces corrections.
+// `updated_at`/`updated_by` (patchés ci-dessous, SEULEMENT sur ce chemin admin —
+// `updateExpense` normal ne les touche pas) suffisent à tracer qui a fait quoi
+// à l'échelle d'un foyer à 2 utilisateurs. À reprendre seulement si un vrai
+// back-office multi-admin voit le jour (log dédié, audit externe).
 
 import { CalcPreconditionError } from "@app/calc-engine";
 import {
@@ -78,13 +79,16 @@ export async function adminUpdateExpense(
     throw e;
   }
 
-  // 6) Patch scalaire minimal (seuls les champs fournis).
+  // 6) Patch scalaire minimal (seuls les champs fournis) + traçabilité de la
+  // correction admin (updated_at/updated_by, audit sécurité M3).
   const scalarPatch: ExpenseScalarPatch = {};
   if (patch.label !== undefined) scalarPatch.label = patch.label;
   if (patch.category !== undefined) scalarPatch.category = patch.category;
   if (patch.grossCents !== undefined) scalarPatch.grossCents = patch.grossCents;
   if (patch.payerId !== undefined) scalarPatch.payerId = patch.payerId;
   if (patch.incurredOn !== undefined) scalarPatch.incurredOn = patch.incurredOn;
+  scalarPatch.updatedAt = new Date().toISOString();
+  scalarPatch.updatedBy = ctx.memberId;
 
   const expense = await repo.updateExpenseWithShares(input.expenseId, scalarPatch, shares);
   return ok(expense);

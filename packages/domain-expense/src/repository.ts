@@ -27,13 +27,20 @@ export type NewExpense = {
   createdBy: string;
 };
 
-/** Patch scalaire d'édition (aucun champ = inchangé). */
+/**
+ * Patch scalaire d'édition (aucun champ = inchangé). `updatedAt`/`updatedBy`
+ * ne sont renseignés que par `adminUpdateExpense` (traçabilité minimale des
+ * corrections post-régularisation, audit sécurité M3, 2026-07-13) — le chemin
+ * normal `updateExpense` ne les touche pas.
+ */
 export type ExpenseScalarPatch = Partial<{
   label: string;
   category: Category;
   grossCents: number;
   payerId: string;
   incurredOn: string;
+  updatedAt: string;
+  updatedBy: string;
 }>;
 
 /** Vue de lecture d'une dépense stockée, enrichie du soft-delete (verrou/scope). */
