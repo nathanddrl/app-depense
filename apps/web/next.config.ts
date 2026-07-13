@@ -20,6 +20,21 @@ const nextConfig: NextConfig = {
     "@app/db",
     "@app/shared",
   ],
+  // Headers de sécurité statiques (audit sécurité M1, 2026-07-13). La CSP
+  // (nonce par requête) vit dans middleware.ts, pas ici — headers() est évalué
+  // au build, incompatible avec un nonce par requête.
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

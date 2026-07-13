@@ -12,8 +12,15 @@ import type { Database } from "@app/db";
 /** Routes publiques (pas de session requise). */
 const PUBLIC_PATHS = ["/login"];
 
-export async function updateSession(request: NextRequest): Promise<NextResponse> {
-  let response = NextResponse.next({ request });
+// `nonce` : posé sur les headers de requête (`x-nonce`) pour que les Server
+// Components (layout.tsx) puissent le lire via `headers()` et l'appliquer au
+// script inline `<ThemeScript>`, en cohérence avec la CSP script-src stricte
+// posée dans proxy.ts (audit sécurité M1, 2026-07-13).
+export async function updateSession(request: NextRequest, nonce: string): Promise<NextResponse> {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,7 +32,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = NextResponse.next({ request: { headers: requestHeaders } });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           );

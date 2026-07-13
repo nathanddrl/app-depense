@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { fraunces, generalSans } from "./fonts";
 import { ThemeScript } from "./_components/design-system/theme";
 import "./styles/styles.css";
@@ -17,7 +18,9 @@ export const metadata: Metadata = {
 // de `<html>` avant que React hydrate, donc le DOM réel diffère légitimement
 // du HTML serveur sur cet unique attribut — pattern standard (next-themes
 // fait de même), pas une désactivation générale de la vérification.
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html
       lang="fr"
@@ -25,7 +28,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
     >
       <head>
-        <ThemeScript />
+        <ThemeScript nonce={nonce} />
       </head>
       <body>{children}</body>
     </html>

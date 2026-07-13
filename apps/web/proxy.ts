@@ -1,12 +1,23 @@
 import type { NextRequest } from "next/server";
 import { updateSession } from "./lib/supabase/middleware";
+import { buildCsp, supabaseOrigin } from "./lib/security/csp";
 
 // Rafraîchit la session Supabase à chaque navigation et protège les routes
 // (redirect /login si non authentifié). Le matcher exclut les assets statiques.
 // Convention Next 16 : middleware.ts renommé proxy.ts (pur renommage, doc officielle
 // "Migration to Proxy" — https://nextjs.org/docs/app/api-reference/file-conventions/proxy).
+//
+// Pose aussi la CSP (nonce par requête, audit sécurité M1, 2026-07-13) : header
+// posé ici plutôt que next.config.ts `headers()` car le nonce doit être généré
+// à chaque requête.
 export async function proxy(request: NextRequest) {
-  return updateSession(request);
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const csp = buildCsp(nonce, supabaseOrigin());
+
+  const response = await updateSession(request, nonce);
+  response.headers.set("Content-Security-Policy", csp);
+
+  return response;
 }
 
 export const config = {
