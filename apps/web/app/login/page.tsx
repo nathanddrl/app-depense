@@ -40,6 +40,9 @@ export default function LoginPage() {
               <Button type="submit" disabled={pending}>
                 {pending ? "connexion…" : "se connecter"}
               </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => {}}>
+                besoin d&apos;aide ?
+              </Button>
             </Stack>
           </form>
         </Card>
