@@ -1,6 +1,11 @@
 packages:
   - "apps/*"
   - "packages/*"
+overrides:
+  # GHSA-qx2v-qp2m-jg93 : next@16.2.10 pin postcss@8.4.31 (XSS via </style>
+  # non échappé). Forcé au-delà de la version patchée en attendant que next
+  # bump sa dépendance transitive.
+  postcss: ">=8.5.10"
 allowBuilds:
   esbuild: true
   sharp: false
