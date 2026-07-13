@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { fraunces, generalSans } from "./fonts";
 import { ThemeScript } from "./_components/design-system/theme";
+import { GlobalProgressProvider, GlobalProgressBar } from "./_components/design-system/feedback";
 import "./styles/styles.css";
 
 export const metadata: Metadata = {
@@ -56,7 +57,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <head>
         <ThemeScript nonce={nonce} />
       </head>
-      <body>{children}</body>
+      <body>
+        <GlobalProgressProvider>
+          {children}
+          <GlobalProgressBar />
+        </GlobalProgressProvider>
+      </body>
     </html>
   );
 }

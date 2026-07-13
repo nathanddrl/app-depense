@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import type { RecurringTemplate } from "@app/domain-recurrence";
 import { createExpenseAction, addAidAction } from "../../actions";
 import type { MemberShare } from "../../../lib/household";
@@ -11,7 +11,7 @@ import { RecurringTemplateForm } from "../recurrence/recurring-template-form";
 import { RecurringTemplateList } from "../recurrence/recurring-template-list";
 import { ADD_MODE_ONCE, ADD_MODE_RECURRENT } from "./add-mode";
 import { Button } from "../design-system/core";
-import { Dialog } from "../design-system/feedback";
+import { Dialog, useGlobalTransition } from "../design-system/feedback";
 import { Tabs, WaterSeparator } from "../design-system/navigation";
 import { Stack } from "../design-system/layout";
 
@@ -49,7 +49,7 @@ export function AddScreen({ currentMemberId, defaultShares, templates, closeTo, 
   const router = useRouter();
   const onClose = closeTo === "back" ? () => router.back() : () => router.push("/");
   const [mode, setMode] = useState(initialMode);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useGlobalTransition();
   const [error, setError] = useState<string | null>(null);
 
   function handleAdd(input: NewExpenseInput): Promise<boolean> {

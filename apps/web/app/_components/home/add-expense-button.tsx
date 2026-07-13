@@ -10,12 +10,14 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "../design-system/core";
+import { useGlobalTransition } from "../design-system/feedback";
 
 export function AddExpenseButton() {
   const router = useRouter();
+  const [, startTransition] = useGlobalTransition();
 
   return (
-    <Button variant="primary" onClick={() => router.push("/ajouter")}>
+    <Button variant="primary" onClick={() => startTransition(() => router.push("/ajouter"))}>
       ajouter une dépense
     </Button>
   );

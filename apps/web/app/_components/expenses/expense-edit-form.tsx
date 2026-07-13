@@ -11,13 +11,13 @@
 // `value`, donc état local par champ ; l'action est appelée via `useTransition`,
 // l'erreur serveur (dont EXPENSE_LOCKED) est affichée telle quelle.
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import type { Category, Expense } from "@app/domain-expense";
 import { parseAmountToCents } from "../../../lib/amount";
 import { updateExpenseAction } from "../../actions";
 import { CategorySelect } from "./category-select";
 import { Button, Input } from "../design-system/core";
-import { Dialog, Notice } from "../design-system/feedback";
+import { Dialog, Notice, useGlobalTransition } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
 
 type Props = {
@@ -31,7 +31,7 @@ export function ExpenseEditForm({ expense, onClose, onSaved }: Props) {
   const [category, setCategory] = useState<Category>(expense.category);
   const [amount, setAmount] = useState((expense.grossCents / 100).toFixed(2));
   const [formError, setFormError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useGlobalTransition();
 
   function handleSubmit() {
     setFormError(null);

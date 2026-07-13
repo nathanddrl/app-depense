@@ -4,7 +4,7 @@
 // utilisateur de cet écran : pas de vocabulaire membre à respecter (§8.1),
 // formulaire minimal (libellé/montant/date), pas de sur-ingénierie.
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminUpdateExpenseAction } from "../../actions";
 import type { AdminExpenseOverviewLine } from "@app/domain-expense";
@@ -13,7 +13,7 @@ import type { MemberShare } from "../../../lib/household";
 import { parseAmountToCents } from "../../../lib/amount";
 import { Button, Card, Input } from "../../_components/design-system/core";
 import { AmountDisplay } from "../../_components/design-system/balance";
-import { Notice } from "../../_components/design-system/feedback";
+import { Notice, useGlobalTransition } from "../../_components/design-system/feedback";
 import { Stack } from "../../_components/design-system/layout";
 
 type Props = {
@@ -99,7 +99,7 @@ export function AdminExpenseTable({ initialLines: lines, members }: Props) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useGlobalTransition();
 
   // Vue admin (debug/support) : fallback = id brut, volontairement distinct de
   // `memberDisplayName` (qui masque l'id) — ici on veut pouvoir identifier un

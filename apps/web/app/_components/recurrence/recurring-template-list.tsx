@@ -16,7 +16,7 @@
 // Vocabulaire strict (§8.1) : jamais « template »/« occurrence » à l'écran —
 // « charge récurrente » / « échéance ».
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateRecurringTemplateAction, deactivateRecurringTemplateAction } from "../../actions";
 import { formatAmountEUR } from "@app/shared";
@@ -26,7 +26,7 @@ import { parseAmountToCents } from "../../../lib/amount";
 import { categoryLabelOf } from "../expenses/categories";
 import { Button, Card, Input } from "../design-system/core";
 import { CategoryChip, AmountDisplay } from "../design-system/balance";
-import { Notice } from "../design-system/feedback";
+import { Notice, useGlobalTransition } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
 
 type Props = {
@@ -90,7 +90,7 @@ function TemplateRow({ template, currentMemberId, members }: RowProps) {
   );
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useGlobalTransition();
 
   function handleUpdateAmount() {
     setError(null);

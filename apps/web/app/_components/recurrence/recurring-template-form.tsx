@@ -16,7 +16,7 @@
 // ici — `createRecurringTemplate` (domain-recurrence) reste seul habilité,
 // calc-engine seul en aval à la génération d'occurrence.
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createRecurringTemplateAction } from "../../actions";
 import type { MemberShare } from "../../../lib/household";
@@ -25,7 +25,7 @@ import { CATEGORIES } from "../expenses/categories";
 import { BOTH_BENEFICIARIES, splitBothCents } from "../expenses/aid-split";
 import { CategorySelect } from "../expenses/category-select";
 import { Button, Card, Input, Checkbox } from "../design-system/core";
-import { Notice } from "../design-system/feedback";
+import { Notice, useGlobalTransition } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
 import nativeSelectStyles from "../design-system/core/native-select.module.css";
 
@@ -75,7 +75,7 @@ export function RecurringTemplateForm({ currentMemberId, defaultShares }: Props)
   const [aideAmount, setAideAmount] = useState("");
   const [aideBeneficiary, setAideBeneficiary] = useState<string>(currentMemberId);
 
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useGlobalTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 

@@ -14,14 +14,14 @@
 // doublée d'un schéma WaterLine (7) plutôt que du seul texte, pour rester lisible
 // d'un coup d'œil.
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { getBalanceDetailAction, getSettlementHistoryAction } from "../../actions";
 import { formatAmountEUR, formatDateFr } from "@app/shared";
 import type { BalanceDetailLine } from "@app/domain-expense";
 import type { Settlement } from "@app/domain-settlement";
 import { Button } from "../design-system/core";
 import { AmountDisplay, WaterLine } from "../design-system/balance";
-import { Dialog, Notice } from "../design-system/feedback";
+import { Dialog, Notice, useGlobalTransition } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
 
 type Props = {
@@ -176,7 +176,7 @@ export function BalanceDetailToggle({ currentMemberId, otherDisplayName, totalMe
   const [open, setOpen] = useState(false);
   const [lines, setLines] = useState<BalanceDetailLine[] | null>(null);
   const [settlements, setSettlements] = useState<Settlement[] | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useGlobalTransition();
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   const handleClick = () => {

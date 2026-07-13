@@ -12,6 +12,7 @@ import type { Category } from "@app/domain-expense";
 import { CATEGORIES, categoryLabelOf } from "./categories";
 import { CategoryChip } from "../design-system/balance";
 import { Button } from "../design-system/core";
+import { useGlobalTransition } from "../design-system/feedback";
 import nativeSelectStyles from "../design-system/core/native-select.module.css";
 import { Stack } from "../design-system/layout";
 
@@ -27,13 +28,14 @@ export function MovementsFilters({ months, month, category }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [categoryOpen, setCategoryOpen] = useState(false);
+  const [, startTransition] = useGlobalTransition();
 
   function navigate(nextMonth: string, nextCategory?: Category) {
     const params = new URLSearchParams();
     params.set("mois", nextMonth);
     if (nextCategory) params.set("categorie", nextCategory);
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    startTransition(() => router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false }));
   }
 
   return (

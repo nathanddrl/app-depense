@@ -48,7 +48,7 @@
 //    Même logique pour un « annuler » (la ligne réapparaît, les autres
 //    glissent pour lui refaire de la place) — le FLIP est symétrique.
 
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Expense } from "@app/domain-expense";
 import { formatAmountEUR } from "@app/shared";
@@ -61,7 +61,7 @@ import { AidSection } from "./aid-section";
 import { ExpenseActionSheet } from "./expense-action-sheet";
 import { ExpenseEditForm } from "./expense-edit-form";
 import { CategoryChip, AmountDisplay } from "../design-system/balance";
-import { UndoToast } from "../design-system/feedback";
+import { UndoToast, useGlobalTransition } from "../design-system/feedback";
 import { WaterSeparator } from "../design-system/navigation";
 import { Stack } from "../design-system/layout";
 
@@ -111,7 +111,7 @@ export function MovementsList({
   showLabel = false,
 }: Props) {
   const router = useRouter();
-  const [, startTransition] = useTransition();
+  const [, startTransition] = useGlobalTransition();
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);

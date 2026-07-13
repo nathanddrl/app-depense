@@ -14,7 +14,7 @@
 // affichage incohérent (ex. solde encore non nul juste après confirmation).
 
 import type { ReactNode } from "react";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   initiateSettlementAction,
@@ -27,7 +27,7 @@ import type { ActionResult } from "@app/shared";
 import type { Settlement } from "@app/domain-settlement";
 import { Button, Input } from "../design-system/core";
 import { AmountDisplay } from "../design-system/balance";
-import { Notice } from "../design-system/feedback";
+import { Notice, useGlobalTransition } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
 
 type Props = {
@@ -80,7 +80,7 @@ export function SettlementControls({
   amountCents,
 }: Props) {
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useGlobalTransition();
   const [showPartialForm, setShowPartialForm] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const router = useRouter();

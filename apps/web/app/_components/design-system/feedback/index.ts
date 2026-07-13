@@ -6,3 +6,4 @@ export { Notice } from "./Notice";
 export { Dialog } from "./Dialog";
 export { Tooltip } from "./Tooltip";
 export { UndoToast } from "./UndoToast";
+export { GlobalProgressProvider, GlobalProgressBar, useGlobalTransition } from "./GlobalProgress";

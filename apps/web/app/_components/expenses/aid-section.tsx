@@ -15,7 +15,7 @@
 // domaine) ; sélecteur bénéficiaire étendu avec « les 2 », raccourci de saisie
 // qui appelle `addAid` deux fois (`aid-split.ts`) — jamais un nouveau champ.
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { addAidAction, removeAidAction } from "../../actions";
 import { formatAmountEUR } from "@app/shared";
 import type { AidDTO } from "@app/domain-aid";
@@ -25,7 +25,7 @@ import { parseAmountToCents } from "../../../lib/amount";
 import { BOTH_BENEFICIARIES, splitBothCents } from "./aid-split";
 import { Button, Input } from "../design-system/core";
 import { AmountDisplay } from "../design-system/balance";
-import { Notice } from "../design-system/feedback";
+import { Notice, useGlobalTransition } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
 import nativeSelectStyles from "../design-system/core/native-select.module.css";
 
@@ -97,7 +97,7 @@ export function AidSection({
   const [aids, setAids] = useState<AidDTO[]>(initialAids);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useGlobalTransition();
   const [open, setOpen] = useState(false);
 
   // État contrôlé requis par `Input` (design-system/core, T-CD2.2) — même
