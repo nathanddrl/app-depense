@@ -4,6 +4,7 @@ import { getCurrentContext, isAdmin } from "../../../lib/auth/context";
 import { signOut } from "../../actions";
 import { Stack, PageTitle } from "../../_components/design-system/layout";
 import { ThemeToggle } from "../../_components/design-system/theme";
+import { InstallAppButton } from "../../_components/pwa";
 import styles from "./reglages.module.css";
 
 // Réglages d'app/profil uniquement (T-CN5, dernière carte du chantier CN) —
@@ -24,6 +25,7 @@ export default async function ReglagesPage() {
           <div className={styles.row}>
             <ThemeToggle />
           </div>
+          <InstallAppButton className={styles.rowButton} />
           {isAdmin(ctx) ? (
             <Link href="/admin" className={styles.row}>
               <span>administration</span>
