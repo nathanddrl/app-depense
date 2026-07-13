@@ -23,6 +23,8 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Toutes les routes SAUF les assets Next et les fichiers statiques courants.
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // `manifest.webmanifest` doit rester accessible sans session (critère
+    // d'installabilité PWA vérifié par le navigateur avant tout login, T-CP1.1).
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
