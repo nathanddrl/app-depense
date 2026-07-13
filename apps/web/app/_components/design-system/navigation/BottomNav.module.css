@@ -12,6 +12,12 @@
   border-top: 1px solid var(--border-subtle);
   /* Safe area iOS (PC-3) : sans ça la barre chevauche la home indicator. */
   padding-bottom: env(safe-area-inset-bottom);
+  /* Force sa propre couche de composition : sans ça, Chrome/Safari ne
+     repeignent pas toujours cet élément fixe quand la hauteur du document
+     change après le premier rendu (contenu qui arrive en streaming RSC) —
+     la barre reste alors invisible jusqu'au prochain scroll. */
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .list {
