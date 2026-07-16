@@ -18,6 +18,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { RecurringTemplate } from "@app/domain-recurrence";
 import { createRecurringTemplateAction } from "../../actions";
 import type { MemberShare } from "../../../lib/household";
 import { parseAmountToCents } from "../../../lib/amount";
@@ -34,6 +35,10 @@ type Category = (typeof CATEGORIES)[number]["value"];
 type Props = {
   currentMemberId: string;
   defaultShares: MemberShare[];
+  // Callback de création (T-CR-toast) : quand fourni, le parent prend en
+  // charge le feedback (toast + question de rattrapage) à la place du
+  // message inline `Notice` — évite le doublon des deux surfaces.
+  onCreated?: (template: RecurringTemplate) => void;
 };
 
 type NewAidInput = { beneficiaryId: string; label: string; amountCents: number };
@@ -59,7 +64,7 @@ function buildAids(
   return [{ beneficiaryId: aideBeneficiary, label: "aide", amountCents }];
 }
 
-export function RecurringTemplateForm({ currentMemberId, defaultShares }: Props) {
+export function RecurringTemplateForm({ currentMemberId, defaultShares, onCreated }: Props) {
   const router = useRouter();
   const otherMember = defaultShares.find((m) => m.memberId !== currentMemberId);
   const initialSharePct =
@@ -134,11 +139,16 @@ export function RecurringTemplateForm({ currentMemberId, defaultShares }: Props)
         return;
       }
 
+      resetForm();
+      router.refresh();
+
+      if (onCreated) {
+        onCreated(result.data);
+        return;
+      }
       setMessage(
         `Charge récurrente créée : ${result.data.label}, le ${result.data.dayOfMonth} de chaque mois.`,
       );
-      resetForm();
-      router.refresh();
     });
   }
 
