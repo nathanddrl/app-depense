@@ -36,10 +36,21 @@ import {
   type SettlementContext,
 } from "@app/domain-settlement";
 
-const API_URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:54521";
-const SERVICE_ROLE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+// Pas de fallback sur les clés demo Supabase CLI (`supabase status`) : un seed
+// réaliste qui se rejoue silencieusement contre les mauvaises env vars (ou
+// contre un projet Cloud si SUPABASE_URL est mal exporté) est un risque en
+// dur — échec explicite plutôt qu'un fallback qui masque l'erreur.
+const API_URL = process.env.SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!API_URL || !SERVICE_ROLE_KEY) {
+  console.error(
+    "Échec du seed réaliste : SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY doivent être définies " +
+      "(récupère-les avec `supabase status` après `pnpm --filter @app/db db:start`). " +
+      "Aucun fallback sur les clés demo Supabase CLI.",
+  );
+  process.exit(1);
+}
 
 // ── Identités fixes du seed de dogfooding (packages/db/supabase/seed.sql) ────
 const HOUSEHOLD_ID = "d0000000-0000-0000-0000-000000000001";
