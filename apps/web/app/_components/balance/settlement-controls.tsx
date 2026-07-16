@@ -13,13 +13,13 @@
 // frappe (« ce remboursement inverse le solde »), ton neutre, jamais alarmant.
 //
 // Pas d'état local optimiste sur le settlement lui-même : après chaque action
-// réussie, `router.refresh()` refait tourner `BalancePanel` (RSC) avec des
-// données fraîches (solde + régularisation courante), pour éviter tout
-// affichage incohérent (ex. solde encore non nul juste après confirmation).
+// réussie, `onSettled` (fourni par `BalanceCard`, T-CF1) rejoue un fetch ciblé
+// (solde + régularisation courante) et met à jour son propre state, pour
+// éviter tout affichage incohérent (ex. solde encore non nul juste après
+// confirmation) — sans jamais réinvalider toute la page (`router.refresh()`).
 
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   initiateSettlementAction,
   confirmSettlementAction,
@@ -42,6 +42,8 @@ type Props = {
   settlement: Settlement | null;
   /** Désactive le déclenchement quand le solde courant est nul (spec 8.1). */
   amountCents: number;
+  /** Fetch ciblé (solde + règlement courant) après une action réussie — T-CF1. */
+  onSettled: () => void;
 };
 
 /** Perspective du lecteur : jamais de « débiteur »/« créancier », que du « tu ».
@@ -82,6 +84,7 @@ export function SettlementControls({
   creditorName,
   settlement,
   amountCents,
+  onSettled,
 }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useGlobalTransition();
@@ -90,7 +93,6 @@ export function SettlementControls({
   // Montant en attente de confirmation explicite d'inversion (D15 v0.5) —
   // `null` tant que l'utilisateur n'a pas encore vu/validé l'avertissement.
   const [pendingInversionCents, setPendingInversionCents] = useState<number | null>(null);
-  const router = useRouter();
 
   function run(action: () => Promise<ActionResult<Settlement>>) {
     setError(null);
@@ -103,7 +105,7 @@ export function SettlementControls({
       setShowPartialForm(false);
       setPartialAmount("");
       setPendingInversionCents(null);
-      router.refresh();
+      onSettled();
     });
   }
 

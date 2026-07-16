@@ -48,12 +48,12 @@
 //    Même logique pour un « annuler » (la ligne réapparaît, les autres
 //    glissent pour lui refaire de la place) — le FLIP est symétrique.
 
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import type { Expense } from "@app/domain-expense";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { Expense, ListExpensesFilters } from "@app/domain-expense";
 import { formatAmountEUR } from "@app/shared";
-import { deleteExpenseAction } from "../../actions";
+import { deleteExpenseAction, listExpensesAction } from "../../actions";
 import { memberDisplayName, type MemberShare } from "../../../lib/household";
+import { notifyDataChanged, subscribeDataChanged } from "../data-refresh/data-refresh-bus";
 import { categoryLabelOf } from "./categories";
 import { dayLabel, monthLabel } from "./date-label";
 import { groupByDay, groupByMonth } from "./group-expenses";
@@ -71,6 +71,12 @@ type Props = {
   currentMemberId: string;
   groupBy?: "day" | "month";
   showLabel?: boolean;
+  /** Filtres à rejouer sur `listExpensesAction` lors d'un fetch ciblé (T-CF1) —
+   * mêmes filtres que ceux déjà appliqués par le Server Component parent. */
+  filters?: ListExpensesFilters;
+  /** Aperçu accueil (3 dernières, T-CN2.2) : appliqué après chaque refetch pour
+   * ne pas faire réapparaître tout l'historique après une mutation. */
+  previewLimit?: number;
 };
 
 // Seuil de déplacement (px) au-delà duquel l'appui est requalifié en scroll et
@@ -104,14 +110,30 @@ const PRESSABLE_CELL_INDICES = [CELL_LABEL, CELL_CATEGORY, CELL_PAYER, CELL_AMOU
 const HIGHLIGHT_PADDING_PX = 8;
 
 export function MovementsList({
-  expenses,
+  expenses: initialExpenses,
   members,
   currentMemberId,
   groupBy = "day",
   showLabel = false,
+  filters,
+  previewLimit,
 }: Props) {
-  const router = useRouter();
   const [, startTransition] = useGlobalTransition();
+
+  const [expenses, setExpenses] = useState(initialExpenses);
+
+  // Fetch ciblé (T-CF1) : rejoue `listExpensesAction` avec les mêmes filtres
+  // que le Server Component parent, puis réapplique le même aperçu tronqué
+  // (`previewLimit`, accueil) — jamais `router.refresh()`.
+  const refreshExpenses = useCallback(() => {
+    void (async () => {
+      const result = await listExpensesAction(filters ?? {});
+      if (!result.ok) return;
+      setExpenses(previewLimit ? result.data.slice(0, previewLimit) : result.data);
+    })();
+  }, [filters, previewLimit]);
+
+  useEffect(() => subscribeDataChanged("expenses", refreshExpenses), [refreshExpenses]);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -220,7 +242,7 @@ export function MovementsList({
   }
 
   // Nettoyage des refs (pas du state — une dépense retirée de `expenses` après
-  // `router.refresh()` reste inoffensive dans `goneIds`, elle ne correspond
+  // `refreshExpenses()` reste inoffensive dans `goneIds`, elle ne correspond
   // plus jamais à rien dans `group.items`) : évite d'accumuler des noeuds DOM
   // détachés dans les maps de suivi FLIP.
   useEffect(() => {
@@ -310,13 +332,14 @@ export function MovementsList({
     };
   }
 
-  // Suppression réelle (soft delete côté serveur) puis resync du Server Component.
-  // En cas d'échec (ex. dépense supprimée entre-temps), le refresh la fait
+  // Suppression réelle (soft delete côté serveur) puis fetch ciblé (T-CF1). En
+  // cas d'échec (ex. dépense supprimée entre-temps), le refetch la fait
   // réapparaître — l'optimisme est ainsi corrigé sans état d'erreur dédié.
   function commitDeletion(expenseId: string) {
     startTransition(async () => {
       await deleteExpenseAction({ expenseId });
-      router.refresh();
+      refreshExpenses();
+      notifyDataChanged(["balance"]);
     });
   }
 
@@ -460,7 +483,10 @@ export function MovementsList({
                           currentMemberId={currentMemberId}
                           members={members}
                           initialAids={e.aids}
-                          onSharesUpdated={() => router.refresh()}
+                          onSharesUpdated={() => {
+                            refreshExpenses();
+                            notifyDataChanged(["balance"]);
+                          }}
                         />
                       </div>
                     ) : null}
@@ -491,7 +517,8 @@ export function MovementsList({
           onClose={() => setEditingId(null)}
           onSaved={() => {
             setEditingId(null);
-            router.refresh();
+            refreshExpenses();
+            notifyDataChanged(["balance"]);
           }}
         />
       ) : null}

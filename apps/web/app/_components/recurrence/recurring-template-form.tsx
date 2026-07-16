@@ -17,7 +17,6 @@
 // calc-engine seul en aval à la génération d'occurrence.
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { RecurringTemplate } from "@app/domain-recurrence";
 import { createRecurringTemplateAction } from "../../actions";
 import type { MemberShare } from "../../../lib/household";
@@ -65,7 +64,6 @@ function buildAids(
 }
 
 export function RecurringTemplateForm({ currentMemberId, defaultShares, onCreated }: Props) {
-  const router = useRouter();
   const otherMember = defaultShares.find((m) => m.memberId !== currentMemberId);
   const initialSharePct =
     defaultShares.find((m) => m.memberId === currentMemberId)?.defaultSharePct ?? 50;
@@ -140,7 +138,6 @@ export function RecurringTemplateForm({ currentMemberId, defaultShares, onCreate
       }
 
       resetForm();
-      router.refresh();
 
       if (onCreated) {
         onCreated(result.data);
