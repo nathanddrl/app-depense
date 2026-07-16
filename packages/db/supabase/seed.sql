@@ -71,3 +71,22 @@ values
 
 insert into recurring_aid (template_id, beneficiary_member_id, label, amount_cents) values
   ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'APL', 20000);
+
+-- ── GRANT `service_role` pour le seed réaliste (LOCAL UNIQUEMENT) ───────────
+-- `apps/web/scripts/seed-realistic.ts` orchestre les VRAIS domain-* avec la
+-- clé service_role. Ces droits vivaient auparavant dans une migration
+-- versionnée (20260712120000_grant_service_role_seed.sql), poussée telle
+-- quelle en prod par `supabase db push` où le seed ne tourne jamais — révoqués
+-- par 20260716090000_revoke_service_role_seed_grants.sql. `seed.sql` n'est
+-- jamais poussé (seulement rejoué par `supabase db reset`), c'est donc ici sa
+-- place. Portée = strictement les tables touchées par le script (voir
+-- commentaire détaillé dans la migration cron 20260709090000 pour le
+-- raisonnement select-après-insert / RPC security invoker).
+grant select on public.membership to service_role;
+grant select on public.member to service_role;
+grant update on public.expense to service_role;
+grant select, delete on public.expense_share to service_role;
+grant select on public.aid to service_role;
+grant select, insert, update on public.settlement to service_role;
+grant insert, update on public.recurring_template to service_role;
+grant insert on public.recurring_aid to service_role;
