@@ -1,10 +1,13 @@
 // @app/domain-settlement — déclenchement d'une régularisation (spec ch.5.3, D15
-// révisé, D16 v0.3, T-C6.2). Le débiteur déclenche (« j'ai remboursé »), pour
-// tout ou partie du solde courant. Modèle ledger (D7 révisé) : plus de gel des
-// dépenses — le solde n'est réduit qu'à la confirmation (T-C6.3), via
-// l'ajustement du montant confirmé (cf. `@app/calc-engine.computeBalance`).
+// révisé v0.5, D16 v0.3, T-C6.2). Le débiteur déclenche (« j'ai remboursé »),
+// pour tout, partie, ou plus que le solde courant (D15 v0.5 : un montant
+// supérieur inverse le solde — le créancier d'origine devient débiteur du
+// surplus à la confirmation, cf. `@app/calc-engine.computeBalance`, l'algèbre
+// du solde le supporte nativement, `Σ solde = 0` reste vrai). Modèle ledger
+// (D7 révisé) : plus de gel des dépenses — le solde n'est réduit qu'à la
+// confirmation (T-C6.3).
 
-import { err, ok } from "@app/shared";
+import { err, ok, validateAmountCents } from "@app/shared";
 import type { ActionResult } from "@app/shared";
 import type { SettlementRepository } from "./repository";
 import type { InitiateSettlementInput, Settlement, SettlementContext } from "./types";
@@ -27,12 +30,13 @@ export async function initiateSettlement(
     );
   }
 
-  // 3) Montant demandé invalide ou supérieur au solde réel (D15 révisé — partiel autorisé).
-  if (input.amountCents <= 0 || input.amountCents > input.balanceAmountCents) {
-    return err(
-      "AMOUNT_EXCEEDS_BALANCE",
-      "Tu ne peux pas rembourser plus que ce que tu dois actuellement.",
-    );
+  // 3) Montant demandé : entier positif (forme, ch.7). Plus de plafond au
+  // solde courant (D15 v0.5) — un montant supérieur est accepté et inverse le
+  // solde à la confirmation ; `balanceAmountCents` ne sert donc plus qu'à la
+  // vérification de solde nul ci-dessus.
+  const amountError = validateAmountCents(input.amountCents);
+  if (amountError) {
+    return err("VALIDATION_ERROR", amountError.message, amountError.field);
   }
 
   // 4) Seul le débiteur peut déclencher (D16).

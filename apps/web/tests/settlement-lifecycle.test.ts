@@ -433,26 +433,43 @@ describe("machine à états régularisation — intégration bout en bout (spec 
     expect(afterCancel.data).toMatchObject({ from: "B", to: "A", amountCents: 30000 });
   });
 
-  it("montant demandé > solde courant → AMOUNT_EXCEEDS_BALANCE (D15 révisé)", async () => {
+  it("montant demandé > solde courant (D15 v0.5) → pending accepté, confirmation inverse le solde", async () => {
     const store = makeStore();
     seedRentExpense(store);
     const expenseRepo = new FakeExpenseRepository(store);
     const settlementRepo = new FakeSettlementRepository(store);
 
-    const balance = await getBalance(expenseRepo, ctxB, { householdId: HOUSEHOLD });
-    expect(balance.ok).toBe(true);
-    if (!balance.ok) return;
+    const before = await getBalance(expenseRepo, ctxB, { householdId: HOUSEHOLD });
+    expect(before.ok).toBe(true);
+    if (!before.ok) return;
+    expect(before.data).toMatchObject({ from: "B", to: "A", amountCents: 30000 });
 
+    // B doit 300 € à A, B rembourse 400 € : plus de refus bloquant (D15 v0.5).
     const initiated = await initiateSettlement(settlementRepo, ctxB, {
       householdId: HOUSEHOLD,
-      fromMemberId: balance.data.from,
-      toMemberId: balance.data.to,
-      amountCents: balance.data.amountCents + 10000,
-      balanceAmountCents: balance.data.amountCents,
+      fromMemberId: before.data.from,
+      toMemberId: before.data.to,
+      amountCents: before.data.amountCents + 10000,
+      balanceAmountCents: before.data.amountCents,
     });
-    expect(initiated.ok).toBe(false);
-    if (initiated.ok) return;
-    expect(initiated.error.code).toBe("AMOUNT_EXCEEDS_BALANCE");
+    expect(initiated.ok).toBe(true);
+    if (!initiated.ok) return;
+    expect(initiated.data.status).toBe("pending");
+    expect(initiated.data.amountCents).toBe(40000);
+
+    const confirmed = await confirmSettlement(settlementRepo, ctxA, {
+      settlementId: initiated.data.id,
+    });
+    expect(confirmed.ok).toBe(true);
+
+    // A a reçu 400 € pour une dette de 300 € : le solde s'inverse, A doit 100 € à B.
+    const after = await getBalance(expenseRepo, ctxB, {
+      householdId: HOUSEHOLD,
+      settlements: confirmedSettlements(store, HOUSEHOLD),
+    });
+    expect(after.ok).toBe(true);
+    if (!after.ok) return;
+    expect(after.data).toMatchObject({ from: "A", to: "B", amountCents: 10000 });
   });
 
   it("solde nul → BALANCE_ALREADY_ZERO (aucune dépense ouverte dans le foyer)", async () => {

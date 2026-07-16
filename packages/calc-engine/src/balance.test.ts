@@ -146,6 +146,15 @@ describe("solde — ajustements des règlements (4.2/4.5, modèle ledger D7/D15 
     expect(reduceBalanceTwoMembers(bal)).toBeNull();
   });
 
+  it("règlement confirmé supérieur au solde (D15 v0.5) inverse le solde", () => {
+    // B devait 40000 à A ; règlement confirmé de 50000 → A doit désormais 10000 à B.
+    const expenses = [balanceExpense(base)];
+    const bal = computeBalance(expenses, ["A", "B"], [settlement(50000, "confirmed")]);
+    expect(bal.A).toBe(-10000);
+    expect(bal.B).toBe(10000);
+    expect(reduceBalanceTwoMembers(bal)).toEqual({ from: "A", to: "B", amountCents: 10000 });
+  });
+
   it("règlement pending n'affecte pas encore le solde", () => {
     const expenses = [balanceExpense(base)];
     const bal = computeBalance(expenses, ["A", "B"], [settlement(10000, "pending")]);

@@ -198,9 +198,10 @@ export async function getCurrentSettlementAction(): Promise<ActionResult<Settlem
 // Seul endroit légitime pour la composition getBalance (@app/domain-expense) →
 // initiateSettlement (@app/domain-settlement) : un domaine n'important jamais
 // un autre domain-* (DA4, cf. T-C6.2/T-C6.5), cette orchestration vit ici.
-// D15 révisé : `amountCents` est désormais fourni par le client (montant total
-// ou partiel) — le solde réel (`getBalance`) ne sert plus qu'à border la
-// validation côté domaine (`balanceAmountCents`), jamais à imposer le montant.
+// D15 v0.5 : `amountCents` est fourni par le client (montant total, partiel,
+// ou supérieur au solde — auquel cas le solde s'inverse à la confirmation).
+// Le solde réel (`getBalance`) ne sert plus qu'à détecter le solde nul
+// (`balanceAmountCents`, `BALANCE_ALREADY_ZERO`), jamais à borner le montant.
 export async function initiateSettlementAction(input: {
   amountCents: number;
 }): Promise<ActionResult<Settlement>> {

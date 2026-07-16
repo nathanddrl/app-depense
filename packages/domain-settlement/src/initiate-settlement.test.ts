@@ -112,7 +112,7 @@ describe("initiateSettlement — déclenchement (ch.5.3, D15 révisé, D16 v0.3)
     expect(repo.createCount).toBe(0);
   });
 
-  it("montant demandé > solde courant → AMOUNT_EXCEEDS_BALANCE, pas de création", async () => {
+  it("montant demandé > solde courant (D15 v0.5) → accepté, settlement pending à ce montant (inversion à la confirmation)", async () => {
     const res = await initiateSettlement(repo, ctxDebtor, {
       householdId: HOUSEHOLD,
       fromMemberId: "B",
@@ -121,13 +121,14 @@ describe("initiateSettlement — déclenchement (ch.5.3, D15 révisé, D16 v0.3)
       balanceAmountCents: 30000,
     });
 
-    expect(res.ok).toBe(false);
-    if (res.ok) return;
-    expect(res.error.code).toBe("AMOUNT_EXCEEDS_BALANCE");
-    expect(repo.createCount).toBe(0);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data.status).toBe("pending");
+    expect(res.data.amountCents).toBe(40000);
+    expect(repo.createCount).toBe(1);
   });
 
-  it("montant demandé négatif ou nul (solde non nul) → AMOUNT_EXCEEDS_BALANCE, pas de création", async () => {
+  it("montant demandé nul (solde non nul) → VALIDATION_ERROR, pas de création", async () => {
     const res = await initiateSettlement(repo, ctxDebtor, {
       householdId: HOUSEHOLD,
       fromMemberId: "B",
@@ -138,7 +139,22 @@ describe("initiateSettlement — déclenchement (ch.5.3, D15 révisé, D16 v0.3)
 
     expect(res.ok).toBe(false);
     if (res.ok) return;
-    expect(res.error.code).toBe("AMOUNT_EXCEEDS_BALANCE");
+    expect(res.error.code).toBe("VALIDATION_ERROR");
+    expect(repo.createCount).toBe(0);
+  });
+
+  it("montant demandé négatif → VALIDATION_ERROR, pas de création", async () => {
+    const res = await initiateSettlement(repo, ctxDebtor, {
+      householdId: HOUSEHOLD,
+      fromMemberId: "B",
+      toMemberId: "A",
+      amountCents: -100,
+      balanceAmountCents: 30000,
+    });
+
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.code).toBe("VALIDATION_ERROR");
     expect(repo.createCount).toBe(0);
   });
 

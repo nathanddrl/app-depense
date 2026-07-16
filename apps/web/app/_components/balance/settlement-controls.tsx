@@ -1,12 +1,16 @@
 "use client";
 
-// Parcours de régularisation (spec 8.1/5.3, T-C6.6, D15 révisé). Le débiteur
-// déclenche (« Solder » pour tout, ou un montant partiel via un flux replié),
-// le créancier confirme (« J'ai reçu »). Vocabulaire strict : jamais
+// Parcours de régularisation (spec 8.1/5.3, T-C6.6, D15 v0.5). Le débiteur
+// déclenche (« Solder » pour tout, ou un montant partiel/supérieur via un flux
+// replié), le créancier confirme (« J'ai reçu »). Vocabulaire strict : jamais
 // « régularisation »/« settlement » à l'écran — seulement qui doit confirmer
 // quoi à qui, en langage humain. Le montant confirmé peut être partiel : les
 // bannières communiquent le montant échangé, jamais que le solde retombe à
 // zéro (ce qui peut être faux si de nouvelles dépenses sont apparues entre-temps).
+// Montant > solde courant (D15 v0.5) : plus de refus — le solde s'inverse à la
+// confirmation. Pas de plafond artificiel côté formulaire (montant libre),
+// mais un cran de confirmation explicite avant envoi pour éviter une faute de
+// frappe (« ce remboursement inverse le solde »), ton neutre, jamais alarmant.
 //
 // Pas d'état local optimiste sur le settlement lui-même : après chaque action
 // réussie, `router.refresh()` refait tourner `BalancePanel` (RSC) avec des
@@ -83,6 +87,9 @@ export function SettlementControls({
   const [isPending, startTransition] = useGlobalTransition();
   const [showPartialForm, setShowPartialForm] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
+  // Montant en attente de confirmation explicite d'inversion (D15 v0.5) —
+  // `null` tant que l'utilisateur n'a pas encore vu/validé l'avertissement.
+  const [pendingInversionCents, setPendingInversionCents] = useState<number | null>(null);
   const router = useRouter();
 
   function run(action: () => Promise<ActionResult<Settlement>>) {
@@ -95,6 +102,7 @@ export function SettlementControls({
       }
       setShowPartialForm(false);
       setPartialAmount("");
+      setPendingInversionCents(null);
       router.refresh();
     });
   }
@@ -103,10 +111,15 @@ export function SettlementControls({
     const parsed = parseAmountToCents(partialAmount);
     if (parsed === null || parsed <= 0) {
       setError("montant invalide");
+      setPendingInversionCents(null);
       return;
     }
-    if (parsed > amountCents) {
-      setError("tu ne peux pas rembourser plus que ce que tu dois actuellement");
+    // Montant supérieur au solde courant (D15 v0.5, inversion) : un premier
+    // clic affiche l'avertissement plutôt que d'envoyer directement — un
+    // second clic sur le même montant confirme et envoie.
+    if (parsed > amountCents && pendingInversionCents !== parsed) {
+      setError(null);
+      setPendingInversionCents(parsed);
       return;
     }
     run(() => initiateSettlementAction({ amountCents: parsed }));
@@ -158,17 +171,27 @@ export function SettlementControls({
     return (
       <Stack gap={1}>
         {error ? <Notice tone="error">{error}</Notice> : null}
+        {pendingInversionCents !== null ? (
+          <Notice tone="neutral">
+            {creditorName} te devra désormais{" "}
+            <AmountDisplay value={formatAmountEUR(pendingInversionCents - amountCents)} /> après ce
+            remboursement.
+          </Notice>
+        ) : null}
         <Input
           label="montant remboursé"
           value={partialAmount}
-          onChange={(e) => setPartialAmount(e.target.value)}
+          onChange={(e) => {
+            setPartialAmount(e.target.value);
+            setPendingInversionCents(null);
+          }}
           placeholder="0,00"
           inputMode="decimal"
           suffix="€"
         />
         <Stack direction="row" gap={1}>
           <Button disabled={isPending} onClick={submitPartial}>
-            envoyer ce remboursement
+            {pendingInversionCents !== null ? "confirmer ce remboursement" : "envoyer ce remboursement"}
           </Button>
           <Button
             disabled={isPending}
@@ -176,6 +199,7 @@ export function SettlementControls({
               setError(null);
               setShowPartialForm(false);
               setPartialAmount("");
+              setPendingInversionCents(null);
             }}
           >
             annuler

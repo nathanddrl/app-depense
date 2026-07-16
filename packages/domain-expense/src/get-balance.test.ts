@@ -255,6 +255,32 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2, modèle ledger D7 
     expect(res.data).toEqual({ from: "A", to: "B", amountCents: 0 });
   });
 
+  it("règlement confirmé supérieur au solde (D15 v0.5) → solde inversé, câblage getBalance", async () => {
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [
+        {
+          label: "Loyer",
+          grossCents: 80000,
+          payerId: "A",
+          incurredOn: "2026-01-01",
+          shares: ratio5050Shares(80000),
+          aids: [],
+          source: "manual",
+        },
+      ],
+    );
+    // B doit 40000 à A ; règlement confirmé de 50000 → A doit désormais 10000 à B.
+    const settlements: SettlementForBalance[] = [
+      { fromMemberId: "B", toMemberId: "A", amountCents: 50000, status: "confirmed" },
+    ];
+
+    const res = await getBalance(repo, ctx, { householdId: HOUSEHOLD, settlements });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data).toEqual({ from: "A", to: "B", amountCents: 10000 });
+  });
+
   it("dépense future (incurredOn > today) exclue du solde", async () => {
     const repo = new FakeExpenseRepository(
       ["A", "B"],
