@@ -83,12 +83,15 @@ export type BalanceAid = { beneficiaryId: string; amountCents: number; label: st
  * Vue d'une dépense active pour le calcul du solde (spec 4.2, modèle ledger —
  * D7 révisé). Plus de statut de settlement rattaché : seules les dépenses non
  * supprimées sont chargées (filtre déjà appliqué par le repo). `label` sert au
- * détail de transparence dépliable (8.3, T-C4.4).
+ * détail de transparence dépliable (8.3, T-C4.4). `incurredOn` permet à
+ * `getBalance`/`getBalanceDetail` d'exclure les dépenses futures du calcul
+ * (4.2 — une dépense datée après aujourd'hui n'est pas encore engagée).
  */
 export type BalanceExpenseRow = {
   label: string;
   grossCents: number;
   payerId: string;
+  incurredOn: string;
   shares: { memberId: string; cents: number; pctSnapshot: number }[];
   aids: BalanceAid[];
   source: ExpenseSource;

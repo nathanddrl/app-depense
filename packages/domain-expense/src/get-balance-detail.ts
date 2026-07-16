@@ -5,7 +5,7 @@
 
 import { computeExpenseBreakdown } from "@app/calc-engine";
 import type { LabelledAidInput } from "@app/calc-engine";
-import { err, ok } from "@app/shared";
+import { err, ok, getTodayParis } from "@app/shared";
 import type { ActionResult } from "@app/shared";
 import type { ExpenseRepository } from "./repository";
 import type { BalanceDetailLine, ExpenseContext, ExpenseSource } from "./types";
@@ -18,7 +18,7 @@ function toExpenseSource(source: string): ExpenseSource {
 export async function getBalanceDetail(
   repo: ExpenseRepository,
   ctx: ExpenseContext,
-  { householdId }: { householdId: string },
+  { householdId, today = getTodayParis() }: { householdId: string; today?: string },
 ): Promise<ActionResult<BalanceDetailLine[]>> {
   if (householdId !== ctx.householdId) {
     return err("FORBIDDEN", "Foyer non autorisé.");
@@ -26,7 +26,12 @@ export async function getBalanceDetail(
 
   const rows = await repo.listExpensesForBalance(householdId);
 
-  const lines: BalanceDetailLine[] = rows.map((row) => {
+  // Même exclusion des dépenses futures que `getBalance` (4.2) : le détail
+  // dépliable ne doit pas montrer une contribution qui n'existe pas encore
+  // dans le solde affiché.
+  const activeRows = rows.filter((row) => row.incurredOn <= today);
+
+  const lines: BalanceDetailLine[] = activeRows.map((row) => {
     const aids: LabelledAidInput[] = row.aids.map((a) => ({
       beneficiaryId: a.beneficiaryId,
       amountCents: a.amountCents,

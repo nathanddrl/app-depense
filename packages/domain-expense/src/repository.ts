@@ -69,7 +69,11 @@ export interface ExpenseRepository {
   /** Historique chronologique décroissant, soft-deleted exclues, filtrable (6.2). */
   listExpenses(householdId: string, filters: ListExpensesFilters): Promise<Expense[]>;
 
-  /** Dépenses actives (soft-deleted exclues) avec aides + statut settlement, pour le solde (4.2). */
+  /**
+   * Dépenses actives (soft-deleted exclues) avec aides, pour le solde (4.2).
+   * Inclut les dépenses futures (`incurredOn` après aujourd'hui) : c'est
+   * `getBalance`/`getBalanceDetail`, pas le repo, qui les exclut du calcul.
+   */
   listExpensesForBalance(householdId: string): Promise<RawBalanceExpenseRow[]>;
 
   /**

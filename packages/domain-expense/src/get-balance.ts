@@ -7,7 +7,7 @@
 
 import { computeExpense, computeBalance, reduceBalanceTwoMembers } from "@app/calc-engine";
 import type { BalanceExpense, SettlementForBalance } from "@app/calc-engine";
-import { err, ok } from "@app/shared";
+import { err, ok, getTodayParis } from "@app/shared";
 import type { ActionResult } from "@app/shared";
 import type { ExpenseRepository } from "./repository";
 import type { Balance, ExpenseContext } from "./types";
@@ -15,7 +15,11 @@ import type { Balance, ExpenseContext } from "./types";
 export async function getBalance(
   repo: ExpenseRepository,
   ctx: ExpenseContext,
-  { householdId, settlements = [] }: { householdId: string; settlements?: SettlementForBalance[] },
+  {
+    householdId,
+    settlements = [],
+    today = getTodayParis(),
+  }: { householdId: string; settlements?: SettlementForBalance[]; today?: string },
 ): Promise<ActionResult<Balance>> {
   // Le foyer est imposé par le seam (scope autoritaire), jamais par le client.
   if (householdId !== ctx.householdId) {
@@ -27,7 +31,12 @@ export async function getBalance(
     repo.listExpensesForBalance(householdId),
   ]);
 
-  const expenses: BalanceExpense[] = rows.map((row) => {
+  // Une dépense datée dans le futur (ex. occurrence récurrente générée en
+  // avance, D12) n'est pas encore engagée : exclue du solde tant que sa date
+  // n'est pas atteinte (4.2, decisions-techniques.md « Solde & onboarding »).
+  const activeRows = rows.filter((row) => row.incurredOn <= today);
+
+  const expenses: BalanceExpense[] = activeRows.map((row) => {
     // Seules les aides effectives (post-plafond 4.4) comptent dans le solde ;
     // les parts déjà figées à la création/édition ne sont pas recalculées ici.
     const { effectiveAids } = computeExpense({

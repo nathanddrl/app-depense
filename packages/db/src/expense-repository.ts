@@ -74,6 +74,7 @@ export type BalanceExpenseRow = {
   label: string;
   grossCents: number;
   payerId: string;
+  incurredOn: string;
   shares: { memberId: string; cents: number; pctSnapshot: number }[];
   aids: BalanceAid[];
   source: string;
@@ -325,6 +326,7 @@ export class SupabaseExpenseRepository {
       label: row.label,
       grossCents: row.gross_amount_cents,
       payerId: row.payer_member_id,
+      incurredOn: row.incurred_on,
       shares: (sharesByExpense.get(row.id) ?? []).map(toShareDTO),
       aids: (aidsByExpense.get(row.id) ?? []).map((a) => ({
         beneficiaryId: a.beneficiary_member_id,

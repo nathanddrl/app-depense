@@ -118,6 +118,7 @@ class FakeExpenseRepository implements ExpenseRepository {
         label: e.label,
         grossCents: e.grossCents,
         payerId: e.payerId,
+        incurredOn: e.incurredOn,
         shares: e.shares,
         aids: e.aids,
         source: toExpenseSource(e.source),

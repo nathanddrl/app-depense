@@ -77,6 +77,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2, modèle ledger D7 
           label: "Loyer",
           grossCents: 80000,
           payerId: "A",
+          incurredOn: "2026-01-01",
           shares: ratio5050Shares(60000),
           aids: [{ beneficiaryId: "A", amountCents: 20000, label: "APL" }],
           source: "manual",
@@ -98,6 +99,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2, modèle ledger D7 
           label: "Loyer",
           grossCents: 80000,
           payerId: "A",
+          incurredOn: "2026-01-01",
           shares: ratio5050Shares(60000),
           aids: [{ beneficiaryId: "B", amountCents: 20000, label: "APL" }],
           source: "manual",
@@ -119,6 +121,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2, modèle ledger D7 
           label: "Loyer",
           grossCents: 80000,
           payerId: "A",
+          incurredOn: "2026-01-01",
           shares: ratio5050Shares(80000),
           aids: [],
           source: "manual",
@@ -127,6 +130,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2, modèle ledger D7 
           label: "Courses",
           grossCents: 6000,
           payerId: "B",
+          incurredOn: "2026-01-01",
           shares: ratio5050Shares(6000),
           aids: [],
           source: "manual",
@@ -149,6 +153,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2, modèle ledger D7 
           label: "Loyer",
           grossCents: 80000,
           payerId: "A",
+          incurredOn: "2026-01-01",
           shares: ratio5050Shares(80000),
           aids: [],
           source: "manual",
@@ -173,6 +178,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2, modèle ledger D7 
           label: "Loyer",
           grossCents: 80000,
           payerId: "A",
+          incurredOn: "2026-01-01",
           shares: ratio5050Shares(80000),
           aids: [],
           source: "manual",
@@ -197,6 +203,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2, modèle ledger D7 
           label: "Loyer",
           grossCents: 80000,
           payerId: "A",
+          incurredOn: "2026-01-01",
           shares: ratio5050Shares(80000),
           aids: [],
           source: "manual",
@@ -231,6 +238,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2, modèle ledger D7 
           label: "Loyer",
           grossCents: 80000,
           payerId: "A",
+          incurredOn: "2026-01-01",
           shares: [
             { memberId: "A", cents: 0, pctSnapshot: 50 },
             { memberId: "B", cents: 0, pctSnapshot: 50 },
@@ -245,5 +253,59 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2, modèle ledger D7 
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.data).toEqual({ from: "A", to: "B", amountCents: 0 });
+  });
+
+  it("dépense future (incurredOn > today) exclue du solde", async () => {
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [
+        {
+          label: "Loyer passé",
+          grossCents: 80000,
+          payerId: "A",
+          incurredOn: "2026-07-01",
+          shares: ratio5050Shares(80000),
+          aids: [],
+          source: "manual",
+        },
+        {
+          label: "Loyer récurrent généré en avance",
+          grossCents: 20000,
+          payerId: "A",
+          incurredOn: "2026-08-04",
+          shares: ratio5050Shares(20000),
+          aids: [],
+          source: "recurring",
+        },
+      ],
+    );
+
+    const res = await getBalance(repo, ctx, { householdId: HOUSEHOLD, today: "2026-07-16" });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    // Seul le loyer passé compte : 40000 (B doit à A).
+    expect(res.data).toEqual({ from: "B", to: "A", amountCents: 40000 });
+  });
+
+  it("bascule le jour J : incurredOn === today est compté (pas encore \"futur\")", async () => {
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [
+        {
+          label: "Loyer du jour",
+          grossCents: 80000,
+          payerId: "A",
+          incurredOn: "2026-07-16",
+          shares: ratio5050Shares(80000),
+          aids: [],
+          source: "manual",
+        },
+      ],
+    );
+
+    const res = await getBalance(repo, ctx, { householdId: HOUSEHOLD, today: "2026-07-16" });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data).toEqual({ from: "B", to: "A", amountCents: 40000 });
   });
 });

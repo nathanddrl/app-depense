@@ -69,6 +69,7 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           label: "Loyer",
           grossCents: 80000,
           payerId: "A",
+          incurredOn: "2026-01-01",
           shares: ratio5050Shares(60000),
           aids: [{ beneficiaryId: "A", amountCents: 20000, label: "APL" }],
           source: "manual",
@@ -101,6 +102,7 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           label: "Loyer",
           grossCents: 80000,
           payerId: "A",
+          incurredOn: "2026-01-01",
           shares: ratio5050Shares(80000),
           aids: [],
           source: "manual",
@@ -109,6 +111,7 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           label: "Courses",
           grossCents: 6000,
           payerId: "B",
+          incurredOn: "2026-01-01",
           shares: ratio5050Shares(6000),
           aids: [],
           source: "manual",
@@ -133,6 +136,7 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           label: "Loyer",
           grossCents: 80000,
           payerId: "A",
+          incurredOn: "2026-01-01",
           shares: ratio5050Shares(80000),
           aids: [],
           source: "manual",
@@ -162,6 +166,7 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
           label: "Loyer",
           grossCents: 80000,
           payerId: "A",
+          incurredOn: "2026-01-01",
           shares: [
             { memberId: "A", cents: 0, pctSnapshot: 50 },
             { memberId: "B", cents: 0, pctSnapshot: 50 },
@@ -187,5 +192,58 @@ describe("getBalanceDetail — décomposition en deux temps (spec 8.3 / T-C4.4)"
         source: "manual",
       },
     ]);
+  });
+
+  it("dépense future (incurredOn > today) absente du détail", async () => {
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [
+        {
+          label: "Loyer passé",
+          grossCents: 80000,
+          payerId: "A",
+          incurredOn: "2026-07-01",
+          shares: ratio5050Shares(80000),
+          aids: [],
+          source: "manual",
+        },
+        {
+          label: "Loyer récurrent généré en avance",
+          grossCents: 20000,
+          payerId: "A",
+          incurredOn: "2026-08-04",
+          shares: ratio5050Shares(20000),
+          aids: [],
+          source: "recurring",
+        },
+      ],
+    );
+
+    const res = await getBalanceDetail(repo, ctx, { householdId: HOUSEHOLD, today: "2026-07-16" });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data.map((l) => l.label)).toEqual(["Loyer passé"]);
+  });
+
+  it("bascule le jour J : incurredOn === today apparaît dans le détail", async () => {
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [
+        {
+          label: "Loyer du jour",
+          grossCents: 80000,
+          payerId: "A",
+          incurredOn: "2026-07-16",
+          shares: ratio5050Shares(80000),
+          aids: [],
+          source: "manual",
+        },
+      ],
+    );
+
+    const res = await getBalanceDetail(repo, ctx, { householdId: HOUSEHOLD, today: "2026-07-16" });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data).toHaveLength(1);
   });
 });

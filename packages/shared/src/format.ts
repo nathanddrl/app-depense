@@ -14,6 +14,9 @@ const dateFr = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
 });
 
+// Locale "en-CA" formate en `YYYY-MM-DD`, directement comparable à `incurred_on`.
+const isoDateParis = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" });
+
 /** Formate un montant en centimes entiers vers un libellé euro FR (ex. 80000 → « 800,00 € »). */
 export function formatAmountEUR(cents: number): string {
   return eur.format(cents / 100);
@@ -22,4 +25,9 @@ export function formatAmountEUR(cents: number): string {
 /** Formate une date vers « jj/mm/aaaa » en heure de Paris (ex. 2026-07-04 → « 04/07/2026 »). */
 export function formatDateFr(date: Date): string {
   return dateFr.format(date);
+}
+
+/** Date du jour en `YYYY-MM-DD`, heure de Paris (D4) — borne pour exclure les dépenses futures du solde (4.2). */
+export function getTodayParis(): string {
+  return isoDateParis.format(new Date());
 }

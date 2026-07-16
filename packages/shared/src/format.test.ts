@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { formatAmountEUR, formatDateFr } from "./index";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { formatAmountEUR, formatDateFr, getTodayParis } from "./index";
 
 // Intl insère une espace fine insécable (U+202F) avant « € » selon la version
 // d'ICU. On normalise les espaces pour tester la partie signifiante sans se lier
@@ -29,5 +29,27 @@ describe("formatDateFr — date métier en heure de Paris (D4)", () => {
   it("reste en date de Paris juste avant minuit UTC", () => {
     // 23:30 Paris (été = UTC+2) le 4 juillet → toujours le 04/07 côté Paris.
     expect(formatDateFr(new Date("2026-07-04T21:30:00Z"))).toBe("04/07/2026");
+  });
+});
+
+describe("getTodayParis — date du jour en heure de Paris (D4, borne solde 4.2)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("renvoie le format YYYY-MM-DD", () => {
+    expect(getTodayParis()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("bascule déjà au jour suivant à 22h UTC en été (minuit passé à Paris, UTC+2)", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-04T22:30:00Z"));
+    expect(getTodayParis()).toBe("2026-07-05");
+  });
+
+  it("reste sur la veille juste avant minuit à Paris", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-04T21:30:00Z"));
+    expect(getTodayParis()).toBe("2026-07-04");
   });
 });
