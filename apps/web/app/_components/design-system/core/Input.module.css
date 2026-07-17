@@ -48,3 +48,20 @@
   color: var(--text-secondary);
   padding-left: 8px;
 }
+
+/* Œil révéler/masquer (champ password révélable) : bouton discret, aligné à
+   droite dans la ligne, même couleur secondaire que le suffixe. */
+.reveal {
+  display: flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin-left: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.reveal:hover {
+  color: var(--text-primary);
+}
