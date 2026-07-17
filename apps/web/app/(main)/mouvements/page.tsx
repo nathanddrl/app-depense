@@ -52,6 +52,7 @@ export default async function MouvementsPage({ searchParams }: Props) {
             currentMemberId={ctx.member.id}
             groupBy={month === ALL_MONTHS ? "month" : "day"}
             showLabel
+            filters={{ month: month === ALL_MONTHS ? undefined : month, category }}
           />
         )}
       </Stack>

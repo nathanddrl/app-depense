@@ -3,8 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { RecurringTemplate } from "@app/domain-recurrence";
-import { createExpenseAction, addAidAction } from "../../actions";
+import { createExpenseAction, addAidAction, listRecurringTemplatesAction } from "../../actions";
 import type { MemberShare } from "../../../lib/household";
+import { notifyDataChanged } from "../data-refresh/data-refresh-bus";
 import { ExpenseForm, type NewExpenseInput } from "../expenses/expense-form";
 import { BOTH_BENEFICIARIES, splitBothCents } from "../expenses/aid-split";
 import { RecurringTemplateForm } from "../recurrence/recurring-template-form";
@@ -123,10 +124,12 @@ export function AddScreen({ currentMemberId, defaultShares, templates, closeTo, 
 
         // Le formulaire vit maintenant sur une route à part (/ajouter) : plus
         // de state client partagé avec la liste (contrairement à l'ancien
-        // expenses-panel.tsx, qui vivait sur la même page). `router.refresh()`
-        // revalidate les Server Components de l'écran d'origine avant d'y
-        // revenir, sinon le RSC payload caché resterait périmé.
-        router.refresh();
+        // expenses-panel.tsx, qui vivait sur la même page). En mode
+        // interception (modale par-dessus l'accueil), `MovementsList` et
+        // `BalanceCard` restent montés en arrière-plan — le bus (T-CF1) leur
+        // signale de rejouer leur propre fetch ciblé, sans réinvalider toute
+        // la page (`router.refresh()`).
+        notifyDataChanged(["expenses", "balance"]);
         resolve(true);
         onClose();
       });
@@ -180,8 +183,10 @@ type RecurringModeProps = {
 // s'il n'y a rien à lister, le formulaire s'affiche directement (pas de
 // bouton à afficher pour révéler une liste vide). `showForm` n'est réévalué
 // qu'au montage : après une création depuis une liste déjà non vide,
-// `RecurringTemplateForm` reste ouvert (son propre `router.refresh()` suffit
-// à faire réapparaître la nouvelle charge dans la liste juste en dessous).
+// `RecurringTemplateForm` reste ouvert — `templates` est désormais un state
+// local (T-CF1), rafraîchi par fetch ciblé (`listRecurringTemplatesAction`)
+// pour faire réapparaître la nouvelle charge dans la liste juste en dessous,
+// jamais par `router.refresh()`.
 //
 // Toast + question de rattrapage (T-CR-toast) : à la création, le formulaire
 // remonte le template créé (`onCreated`) plutôt que d'afficher son message
@@ -193,13 +198,32 @@ type RecurringModeProps = {
 // d'action dédiée, même choix que `handleAdd` pour les aides — puis rejoue
 // la composition d'aides déjà utilisée plus haut (ici les bénéficiaires sont
 // déjà résolus dans `template.aids`, pas de sentinelle BOTH à re-splitter).
-function RecurringMode({ currentMemberId, defaultShares, templates, onClose }: RecurringModeProps) {
-  const router = useRouter();
+function RecurringMode({
+  currentMemberId,
+  defaultShares,
+  templates: initialTemplates,
+  onClose,
+}: RecurringModeProps) {
+  const [templates, setTemplates] = useState(initialTemplates);
   const hasTemplates = templates.length > 0;
   const [showForm, setShowForm] = useState(!hasTemplates);
   const [createdTemplate, setCreatedTemplate] = useState<RecurringTemplate | null>(null);
   const [catchupPending, startCatchupTransition] = useGlobalTransition();
   const [catchupError, setCatchupError] = useState<string | null>(null);
+
+  // Fetch ciblé (T-CF1) : rejoue `listRecurringTemplatesAction` après une
+  // création, une édition ou une désactivation — jamais `router.refresh()`.
+  function refreshTemplates() {
+    void (async () => {
+      const result = await listRecurringTemplatesAction();
+      if (result.ok) setTemplates(result.data);
+    })();
+  }
+
+  function handleCreated(template: RecurringTemplate) {
+    setCreatedTemplate(template);
+    refreshTemplates();
+  }
 
   function handleCatchupConfirm() {
     if (!createdTemplate) return;
@@ -230,7 +254,7 @@ function RecurringMode({ currentMemberId, defaultShares, templates, onClose }: R
         });
       }
 
-      router.refresh();
+      notifyDataChanged(["expenses", "balance"]);
       setCreatedTemplate(null);
       onClose();
     });
@@ -252,7 +276,7 @@ function RecurringMode({ currentMemberId, defaultShares, templates, onClose }: R
         <RecurringTemplateForm
           currentMemberId={currentMemberId}
           defaultShares={defaultShares}
-          onCreated={setCreatedTemplate}
+          onCreated={handleCreated}
         />
       ) : null}
       {hasTemplates ? (
@@ -262,6 +286,7 @@ function RecurringMode({ currentMemberId, defaultShares, templates, onClose }: R
             currentMemberId={currentMemberId}
             defaultShares={defaultShares}
             templates={templates}
+            onChanged={refreshTemplates}
           />
         </>
       ) : null}

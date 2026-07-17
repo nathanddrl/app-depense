@@ -50,6 +50,7 @@ export default async function Home() {
             expenses={recentExpenses}
             members={defaultShares}
             currentMemberId={ctx.member.id}
+            previewLimit={3}
           />
         ) : null}
         {showFirstExpenseInvite ? <FirstExpenseInvite /> : null}

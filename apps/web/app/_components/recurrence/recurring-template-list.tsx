@@ -4,9 +4,10 @@
 // montant + désactivation. Même pattern que `aid-section.tsx` (disclosure
 // « options », state contrôlé, aucun calcul côté client). Comme
 // `settlement-controls.tsx`, aucun état local optimiste sur la liste : après
-// chaque action réussie, `router.refresh()` refait tourner `recurrence/page.tsx`
-// (RSC) avec des données fraîches — la ligne disparaît d'elle-même une fois le
-// template désactivé (la liste ne remonte que les templates `active=true`).
+// chaque action réussie, `onChanged` (fourni par `RecurringMode`, T-CF1)
+// rejoue un fetch ciblé (`listRecurringTemplatesAction`) — la ligne disparaît
+// d'elle-même une fois le template désactivé (la liste ne remonte que les
+// templates `active=true`), jamais via `router.refresh()`.
 //
 // D13 (déjà garanti côté domaine, `update-recurring-template.ts`) :
 // `updateRecurringTemplate` ne touche QUE la ligne `recurring_template` —
@@ -17,7 +18,6 @@
 // « charge récurrente » / « échéance ».
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { updateRecurringTemplateAction, deactivateRecurringTemplateAction } from "../../actions";
 import { formatAmountEUR } from "@app/shared";
 import type { RecurringTemplate } from "@app/domain-recurrence";
@@ -33,6 +33,8 @@ type Props = {
   currentMemberId: string;
   defaultShares: MemberShare[];
   templates: RecurringTemplate[];
+  /** Fetch ciblé (T-CF1) à rejouer après édition/désactivation d'une charge. */
+  onChanged: () => void;
 };
 
 // Sémantique propre à cet écran, volontairement distincte de `memberDisplayName`
@@ -53,7 +55,12 @@ function shareLabel(
     .join(" · ");
 }
 
-export function RecurringTemplateList({ currentMemberId, defaultShares, templates }: Props) {
+export function RecurringTemplateList({
+  currentMemberId,
+  defaultShares,
+  templates,
+  onChanged,
+}: Props) {
   if (templates.length === 0) {
     return (
       <Card>
@@ -70,6 +77,7 @@ export function RecurringTemplateList({ currentMemberId, defaultShares, template
           template={template}
           currentMemberId={currentMemberId}
           members={defaultShares}
+          onChanged={onChanged}
         />
       ))}
     </Stack>
@@ -80,10 +88,10 @@ type RowProps = {
   template: RecurringTemplate;
   currentMemberId: string;
   members: MemberShare[];
+  onChanged: () => void;
 };
 
-function TemplateRow({ template, currentMemberId, members }: RowProps) {
-  const router = useRouter();
+function TemplateRow({ template, currentMemberId, members, onChanged }: RowProps) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(() =>
     (template.amountCents / 100).toFixed(2).replace(".", ","),
@@ -113,7 +121,7 @@ function TemplateRow({ template, currentMemberId, members }: RowProps) {
       setMessage(
         `À partir de la prochaine échéance, ce sera ${formatAmountEUR(amountCents)}. Ce qui a déjà été généré ne change pas.`,
       );
-      router.refresh();
+      onChanged();
     });
   }
 
@@ -126,7 +134,7 @@ function TemplateRow({ template, currentMemberId, members }: RowProps) {
         setError(result.error.message);
         return;
       }
-      router.refresh();
+      onChanged();
     });
   }
 
