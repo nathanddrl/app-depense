@@ -12,6 +12,7 @@ import {
   updateExpense,
   deleteExpense,
   listExpenses,
+  listExpenseMonths,
   getBalance,
   getBalanceDetail,
   getAdminExpenseOverview,
@@ -105,6 +106,12 @@ export async function listExpensesAction(
   const ctx = await getCurrentContext();
   const repo = new SupabaseExpenseRepository(ctx.supabase);
   return listExpenses(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, filters);
+}
+
+export async function listExpenseMonthsAction(): Promise<ActionResult<string[]>> {
+  const ctx = await getCurrentContext();
+  const repo = new SupabaseExpenseRepository(ctx.supabase);
+  return listExpenseMonths(repo, { memberId: ctx.member.id, householdId: ctx.householdId });
 }
 
 // Seul endroit légitime pour la composition getBalance (@app/domain-expense) ×

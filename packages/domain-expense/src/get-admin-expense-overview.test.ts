@@ -51,6 +51,9 @@ class FakeExpenseRepository implements ExpenseRepository {
   async listExpenses(_householdId: string, _filters: ListExpensesFilters): Promise<Expense[]> {
     throw new Error("non utilisé par ces tests");
   }
+  async listExpenseMonths(_householdId: string): Promise<string[]> {
+    throw new Error("non utilisé par ces tests");
+  }
 }
 
 const HOUSEHOLD = "H";

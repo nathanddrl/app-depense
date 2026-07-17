@@ -6,6 +6,7 @@ export { createExpense } from "./create-expense";
 export { updateExpense } from "./update-expense";
 export { deleteExpense } from "./delete-expense";
 export { listExpenses } from "./list-expenses";
+export { listExpenseMonths } from "./list-expense-months";
 export { getBalance } from "./get-balance";
 export { getBalanceDetail } from "./get-balance-detail";
 export { getAdminExpenseOverview } from "./get-admin-expense-overview";

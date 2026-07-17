@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createExpense, updateExpense, deleteExpense, listExpenses } from "./index";
+import { createExpense, updateExpense, deleteExpense, listExpenses, listExpenseMonths } from "./index";
 import type {
   ExpenseRepository,
   NewExpense,
@@ -88,6 +88,15 @@ class FakeExpenseRepository implements ExpenseRepository {
       .filter((e) => (filters.category ? e.category === filters.category : true))
       .sort((a, b) => (a.incurredOn < b.incurredOn ? 1 : a.incurredOn > b.incurredOn ? -1 : 0))
       .map((e) => this.strip(e));
+  }
+
+  async listExpenseMonths(householdId: string): Promise<string[]> {
+    const months = new Set<string>();
+    [...this.store.values()]
+      .filter((e) => e.householdId === householdId && e.deletedAt === null)
+      .sort((a, b) => (a.incurredOn < b.incurredOn ? 1 : a.incurredOn > b.incurredOn ? -1 : 0))
+      .forEach((e) => months.add(e.incurredOn.slice(0, 7)));
+    return [...months];
   }
 
   async listAllExpensesForAdmin(): Promise<never[]> {
@@ -425,5 +434,51 @@ describe("listExpenses — historique chronologique filtrable (6.2)", () => {
     if (!res.ok) return;
     expect(res.data).toHaveLength(1);
     expect(res.data[0].label).toBe("Resto");
+  });
+});
+
+describe("listExpenseMonths — mois distincts avec dépenses (options du filtre)", () => {
+  it("renvoie les mois distincts, du plus récent au plus ancien", async () => {
+    await createExpense(repo, ctx, {
+      ...baseInput,
+      grossCents: 10000,
+      incurredOn: "2026-07-01",
+      shares: ratio5050,
+    });
+    await createExpense(repo, ctx, {
+      ...baseInput,
+      grossCents: 10000,
+      incurredOn: "2026-07-20",
+      shares: ratio5050,
+    });
+    await createExpense(repo, ctx, {
+      ...baseInput,
+      grossCents: 10000,
+      incurredOn: "2026-05-10",
+      shares: ratio5050,
+    });
+
+    const res = await listExpenseMonths(repo, ctx);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data).toEqual(["2026-07", "2026-05"]);
+  });
+
+  it("exclut les mois d'une dépense soft-deleted et renvoie [] sans dépense", async () => {
+    const empty = await listExpenseMonths(repo, ctx);
+    expect(empty.ok && empty.data).toEqual([]);
+
+    const created = await createExpense(repo, ctx, {
+      ...baseInput,
+      grossCents: 10000,
+      incurredOn: "2026-04-02",
+      shares: ratio5050,
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    await deleteExpense(repo, ctx, { expenseId: created.data.id });
+
+    const res = await listExpenseMonths(repo, ctx);
+    expect(res.ok && res.data).toEqual([]);
   });
 });
