@@ -38,3 +38,9 @@
   color: var(--text-secondary);
   flex-shrink: 0;
 }
+
+/* Section changement de mot de passe : détachée des lignes de réglages, cadence
+   propre au formulaire (le Stack interne gère l'espacement des champs). */
+.passwordSection {
+  margin-top: var(--space-4);
+}

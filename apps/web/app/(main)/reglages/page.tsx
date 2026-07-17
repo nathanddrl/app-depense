@@ -5,6 +5,7 @@ import { signOut } from "../../actions";
 import { Stack, PageTitle } from "../../_components/design-system/layout";
 import { ThemeToggle } from "../../_components/design-system/theme";
 import { InstallAppButton } from "../../_components/pwa";
+import { PasswordSection } from "./password-section";
 import styles from "./reglages.module.css";
 
 // Réglages d'app/profil uniquement (T-CN5, dernière carte du chantier CN) —
@@ -38,6 +39,7 @@ export default async function ReglagesPage() {
             </button>
           </form>
         </div>
+        <PasswordSection email={ctx.member.email} />
       </Stack>
     </main>
   );
