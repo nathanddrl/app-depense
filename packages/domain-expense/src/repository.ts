@@ -70,6 +70,13 @@ export interface ExpenseRepository {
   listExpenses(householdId: string, filters: ListExpensesFilters): Promise<Expense[]>;
 
   /**
+   * Mois `"YYYY-MM"` distincts pour lesquels au moins une dépense active existe
+   * (soft-deleted exclues), du plus récent au plus ancien. Peuple les options du
+   * filtre mois de /mouvements (jamais une fenêtre glissante fictive).
+   */
+  listExpenseMonths(householdId: string): Promise<string[]>;
+
+  /**
    * Dépenses actives (soft-deleted exclues) avec aides, pour le solde (4.2).
    * Inclut les dépenses futures (`incurredOn` après aujourd'hui) : c'est
    * `getBalance`/`getBalanceDetail`, pas le repo, qui les exclut du calcul.

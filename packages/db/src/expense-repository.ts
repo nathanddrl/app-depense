@@ -291,6 +291,23 @@ export class SupabaseExpenseRepository {
     );
   }
 
+  async listExpenseMonths(householdId: string): Promise<string[]> {
+    const { data, error } = await this.supabase
+      .from("expense")
+      .select("incurred_on")
+      .eq("household_id", householdId)
+      .is("deleted_at", null)
+      .order("incurred_on", { ascending: false });
+    if (error) throw error;
+
+    // Dédup des mois `"YYYY-MM"` en conservant l'ordre décroissant issu du tri
+    // par `incurred_on` (le préfixe mois d'une chaîne `"YYYY-MM-DD"` triée reste
+    // trié). `Set` d'insertion → itération dans l'ordre d'apparition.
+    const months = new Set<string>();
+    for (const row of data ?? []) months.add(row.incurred_on.slice(0, 7));
+    return [...months];
+  }
+
   async listExpensesForBalance(householdId: string): Promise<BalanceExpenseRow[]> {
     const { data: expenseRows, error } = await this.supabase
       .from("expense")

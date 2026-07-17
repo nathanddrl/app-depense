@@ -1,9 +1,9 @@
 import type { Category } from "@app/domain-expense";
 import { getCurrentContext } from "../../../lib/auth/context";
 import { getDefaultShares } from "../../../lib/household";
-import { listExpensesAction } from "../../actions";
+import { listExpenseMonthsAction, listExpensesAction } from "../../actions";
 import { CATEGORIES } from "../../_components/expenses/categories";
-import { currentMonthKey, monthLabel, recentMonthKeys } from "../../_components/expenses/date-label";
+import { currentMonthKey, monthLabel } from "../../_components/expenses/date-label";
 import { MovementsFilters } from "../../_components/expenses/movements-filters";
 import { MovementsList } from "../../_components/expenses/movements-list";
 import { Notice } from "../../_components/design-system/feedback";
@@ -22,10 +22,22 @@ type Props = {
 // unique) ; "tous les mois" : regroupement par mois comme posé en T-CN3.1.
 export default async function MouvementsPage({ searchParams }: Props) {
   const sp = await searchParams;
-  const month = sp.mois ?? currentMonthKey();
   const category = CATEGORIES.some((c) => c.value === sp.categorie) ? (sp.categorie as Category) : undefined;
 
   const ctx = await getCurrentContext();
+  const monthsResult = await listExpenseMonthsAction();
+  // Mois réellement présents en base (décroissant). Défaut : le mois courant
+  // s'il a des dépenses, sinon le plus récent disponible, sinon "tous".
+  const availableMonths = monthsResult.ok ? monthsResult.data : [];
+  const defaultMonth = availableMonths.includes(currentMonthKey())
+    ? currentMonthKey()
+    : (availableMonths[0] ?? ALL_MONTHS);
+  const requestedMonth = sp.mois;
+  const month =
+    requestedMonth === ALL_MONTHS || (requestedMonth && availableMonths.includes(requestedMonth))
+      ? requestedMonth
+      : defaultMonth;
+
   const [expensesResult, defaultShares] = await Promise.all([
     listExpensesAction({ month: month === ALL_MONTHS ? undefined : month, category }),
     getDefaultShares(ctx.supabase, ctx.householdId),
@@ -33,7 +45,7 @@ export default async function MouvementsPage({ searchParams }: Props) {
 
   const months = [
     { value: ALL_MONTHS, label: "tous les mois" },
-    ...recentMonthKeys(12).map((key) => ({ value: key, label: monthLabel(key) })),
+    ...availableMonths.map((key) => ({ value: key, label: monthLabel(key) })),
   ];
 
   return (
