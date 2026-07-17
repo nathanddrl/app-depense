@@ -38,3 +38,10 @@
   color: var(--text-secondary);
   flex-shrink: 0;
 }
+
+/* Section export : liste de mois à cocher, dans la Dialog plein écran. */
+.exportMonths {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
