@@ -26,6 +26,7 @@ export default async function ReglagesPage() {
           <div className={styles.row}>
             <ThemeToggle />
           </div>
+          <PasswordSection email={ctx.member.email} />
           <InstallAppButton className={styles.rowButton} />
           {isAdmin(ctx) ? (
             <Link href="/admin" className={styles.row}>
@@ -39,7 +40,6 @@ export default async function ReglagesPage() {
             </button>
           </form>
         </div>
-        <PasswordSection email={ctx.member.email} />
       </Stack>
     </main>
   );

@@ -12,6 +12,7 @@
 // la confirmation reste tone="neutral".
 
 import { useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/client";
 import { Button, Input } from "../../_components/design-system/core";
 import { Dialog, Notice } from "../../_components/design-system/feedback";
@@ -35,11 +36,21 @@ export function PasswordSection({ email }: Props) {
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  // Le formulaire n'apparaît qu'à la demande, derrière une ligne de réglages
+  // dédiée (comme l'accès « administration ») — jamais déplié d'emblée.
+  const [formOpen, setFormOpen] = useState(false);
 
   const reset = () => {
     setCurrent("");
     setNext("");
     setConfirmation("");
+  };
+
+  const closeForm = () => {
+    setFormOpen(false);
+    setMismatchError(null);
+    setFeedback(null);
+    reset();
   };
 
   // Étape 1 (soumission du formulaire) : validation purement client. Si le nouveau
@@ -90,38 +101,52 @@ export function PasswordSection({ email }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className={styles.passwordSection}>
-      <Stack gap={3}>
-        <Input
-          label="mot de passe actuel"
-          type="password"
-          value={current}
-          onChange={(e) => setCurrent(e.target.value)}
-          autoComplete="current-password"
-          required
-        />
-        <Input
-          label="nouveau mot de passe"
-          type="password"
-          value={next}
-          onChange={(e) => setNext(e.target.value)}
-          autoComplete="new-password"
-          required
-        />
-        <Input
-          label="confirmer le nouveau mot de passe"
-          type="password"
-          value={confirmation}
-          onChange={(e) => setConfirmation(e.target.value)}
-          autoComplete="new-password"
-          required
-        />
-        {mismatchError ? <Notice tone="error">{mismatchError}</Notice> : null}
-        {feedback ? <Notice tone={feedback.tone}>{feedback.message}</Notice> : null}
-        <Button type="submit" disabled={pending}>
-          {pending ? "changement en cours…" : "changer le mot de passe"}
-        </Button>
-      </Stack>
+    <>
+      {/* Ligne d'accès, insérée dans la liste des réglages (même style que la
+          ligne « administration »). Le formulaire n'apparaît qu'après ce clic. */}
+      <button type="button" className={styles.rowButton} onClick={() => setFormOpen(true)}>
+        <span>changer le mot de passe</span>
+        <ChevronRight size={18} className={styles.chevron} aria-hidden="true" />
+      </button>
+
+      <Dialog open={formOpen} fullscreen title="mot de passe" onClose={closeForm}>
+        <form onSubmit={handleSubmit}>
+          <Stack gap={3}>
+            <Input
+              label="mot de passe actuel"
+              type="password"
+              revealable
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+            <Input
+              label="nouveau mot de passe"
+              type="password"
+              revealable
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+              autoComplete="new-password"
+              required
+            />
+            <Input
+              label="confirmer le nouveau mot de passe"
+              type="password"
+              revealable
+              value={confirmation}
+              onChange={(e) => setConfirmation(e.target.value)}
+              autoComplete="new-password"
+              required
+            />
+            {mismatchError ? <Notice tone="error">{mismatchError}</Notice> : null}
+            {feedback ? <Notice tone={feedback.tone}>{feedback.message}</Notice> : null}
+            <Button type="submit" disabled={pending}>
+              {pending ? "changement en cours…" : "changer le mot de passe"}
+            </Button>
+          </Stack>
+        </form>
+      </Dialog>
 
       <Dialog open={confirmOpen} title="changer le mot de passe ?">
         <Stack gap={3}>
@@ -134,6 +159,6 @@ export function PasswordSection({ email }: Props) {
           </Stack>
         </Stack>
       </Dialog>
-    </form>
+    </>
   );
 }
