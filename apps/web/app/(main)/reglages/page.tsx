@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { getCurrentContext, isAdmin } from "../../../lib/auth/context";
-import { signOut } from "../../actions";
+import { signOut, listExpenseMonthsAction } from "../../actions";
 import { Stack, PageTitle } from "../../_components/design-system/layout";
 import { ThemeToggle } from "../../_components/design-system/theme";
 import { InstallAppButton } from "../../_components/pwa";
 import { PasswordSection } from "./password-section";
+import { ExportSection } from "./export-section";
 import styles from "./reglages.module.css";
 
 // Réglages d'app/profil uniquement (T-CN5, dernière carte du chantier CN) —
@@ -13,6 +14,8 @@ import styles from "./reglages.module.css";
 // (theme-toggle.tsx, T-C9.2) vit ici uniquement, plus dans le layout racine.
 export default async function ReglagesPage() {
   const ctx = await getCurrentContext();
+  const monthsResult = await listExpenseMonthsAction();
+  const exportMonths = monthsResult.ok ? monthsResult.data : [];
 
   return (
     <main>
@@ -27,6 +30,7 @@ export default async function ReglagesPage() {
             <ThemeToggle />
           </div>
           <PasswordSection email={ctx.member.email} />
+          <ExportSection months={exportMonths} />
           <InstallAppButton className={styles.rowButton} />
           {isAdmin(ctx) ? (
             <Link href="/admin" className={styles.row}>
