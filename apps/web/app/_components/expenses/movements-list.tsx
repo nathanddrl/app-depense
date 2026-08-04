@@ -54,6 +54,7 @@ import { formatAmountEUR } from "@app/shared";
 import { deleteExpenseAction, listExpensesAction } from "../../actions";
 import { memberDisplayName, type MemberShare } from "../../../lib/household";
 import { notifyDataChanged, subscribeDataChanged } from "../data-refresh/data-refresh-bus";
+import { useServerState } from "../data-refresh/use-server-state";
 import { categoryLabelOf } from "./categories";
 import { dayLabel, monthLabel } from "./date-label";
 import { groupByDay, groupByMonth } from "./group-expenses";
@@ -61,7 +62,7 @@ import { AidSection } from "./aid-section";
 import { ExpenseActionSheet } from "./expense-action-sheet";
 import { ExpenseEditForm } from "./expense-edit-form";
 import { CategoryChip, AmountDisplay } from "../design-system/balance";
-import { UndoToast, useGlobalTransition } from "../design-system/feedback";
+import { Notice, UndoToast, useGlobalTransition } from "../design-system/feedback";
 import { WaterSeparator } from "../design-system/navigation";
 import { Stack } from "../design-system/layout";
 
@@ -77,6 +78,10 @@ type Props = {
   /** Aperçu accueil (3 dernières, T-CN2.2) : appliqué après chaque refetch pour
    * ne pas faire réapparaître tout l'historique après une mutation. */
   previewLimit?: number;
+  /** Message affiché quand il ne reste plus rien à lister (T-CF3) — y compris
+   * après une suppression côté client, que le Server Component parent ne voit
+   * pas. Absent (aperçu accueil) : la liste ne rend rien du tout. */
+  emptyMessage?: string;
 };
 
 // Seuil de déplacement (px) au-delà duquel l'appui est requalifié en scroll et
@@ -117,10 +122,14 @@ export function MovementsList({
   showLabel = false,
   filters,
   previewLimit,
+  emptyMessage,
 }: Props) {
   const [, startTransition] = useGlobalTransition();
 
-  const [expenses, setExpenses] = useState(initialExpenses);
+  // Props serveur → state local (T-CF3) : un changement de filtre sur
+  // /mouvements re-rend le RSC sans démonter ce composant ; sans cette
+  // resynchronisation, la liste resterait figée sur le mois précédent.
+  const [expenses, setExpenses] = useServerState(initialExpenses);
 
   // Fetch ciblé (T-CF1) : rejoue `listExpensesAction` avec les mêmes filtres
   // que le Server Component parent, puis réapplique le même aperçu tronqué
@@ -131,7 +140,10 @@ export function MovementsList({
       if (!result.ok) return;
       setExpenses(previewLimit ? result.data.slice(0, previewLimit) : result.data);
     })();
-  }, [filters, previewLimit]);
+    // `setExpenses` vient de `useServerState` : c'est le setter `useState`
+    // sous-jacent, stable — listé uniquement pour satisfaire exhaustive-deps,
+    // qui ne reconnaît pas les setters passant par un hook maison.
+  }, [filters, previewLimit, setExpenses]);
 
   useEffect(() => subscribeDataChanged("expenses", refreshExpenses), [refreshExpenses]);
 
@@ -199,7 +211,8 @@ export function MovementsList({
         el.style.transform = `translate(${dx}px, ${dy}px)`;
         void el.offsetHeight; // force le recalcul avant de relâcher vers la position finale
         requestAnimationFrame(() => {
-          el.style.transition = "transform var(--motion-settle-duration) var(--motion-settle-easing)";
+          el.style.transition =
+            "transform var(--motion-settle-duration) var(--motion-settle-easing)";
           el.style.transform = "";
         });
       });
@@ -370,6 +383,18 @@ export function MovementsList({
   // Retrait effectif de la grille (phase 2, une fois l'effacement joué).
   const isHidden = (e: Expense) => goneIds.has(e.id);
 
+  // Groupes réellement affichables (T-CF3) : quand il n'en reste aucun — cas
+  // typique de la dernière ligne supprimée côté client, que le Server Component
+  // parent ne voit pas — la liste ne doit pas rester montée sur du vide, mais
+  // disparaître (aperçu accueil) ou céder la place à `emptyMessage`
+  // (/mouvements). Les surfaces temporaires (mise en avant, édition, toast
+  // d'annulation) sont rendues EN DEHORS de ce bloc : toutes sont en position
+  // fixe, et le toast doit survivre à la disparition de la dernière ligne pour
+  // que « annuler » reste atteignable.
+  const visibleGroups = groups
+    .map((group) => ({ key: group.key, items: group.items.filter((e) => !isHidden(e)) }))
+    .filter((group) => group.items.length > 0);
+
   // Effacement sur place (phase 1) : la ligne occupe encore sa place, mais
   // s'estompe — pointer-events coupés pour éviter une interaction fantôme.
   function exitStyle(id: string): React.CSSProperties {
@@ -386,117 +411,127 @@ export function MovementsList({
   const editingExpense = expenses.find((e) => e.id === editingId) ?? null;
 
   return (
-    <div ref={listRef} style={{ position: "relative" }}>
-      {highlightBox ? (
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            top: highlightBox.top,
-            left: highlightBox.left,
-            width: highlightBox.width,
-            height: highlightBox.height,
-            background: "var(--surface-raised)",
-            borderRadius: "var(--radius-subtle)",
-            zIndex: -1,
-            pointerEvents: "none",
-          }}
-        />
-      ) : null}
-      <Stack gap={3}>
-      {groups.map((group) => {
-        const visible = group.items.filter((e) => !isHidden(e));
-        if (visible.length === 0) return null;
-        return (
-          <Stack gap={2} key={group.key}>
-            <WaterSeparator label={labelOf(group.key)} />
+    <>
+      {visibleGroups.length === 0 ? (
+        emptyMessage ? (
+          <Notice>{emptyMessage}</Notice>
+        ) : null
+      ) : (
+        <div ref={listRef} style={{ position: "relative" }}>
+          {highlightBox ? (
             <div
+              aria-hidden="true"
               style={{
-                display: "grid",
-                gridTemplateColumns: "auto 1fr auto",
-                alignItems: "center",
-                rowGap: "var(--space-2)",
-                columnGap: "var(--space-2)",
+                position: "absolute",
+                top: highlightBox.top,
+                left: highlightBox.left,
+                width: highlightBox.width,
+                height: highlightBox.height,
+                background: "var(--surface-raised)",
+                borderRadius: "var(--radius-subtle)",
+                zIndex: -1,
+                pointerEvents: "none",
               }}
-            >
-              {visible.map((e) => {
-                const p = pressProps(e);
-                const exit = exitStyle(e.id);
-                return (
-                  <Fragment key={e.id}>
-                    {showLabel ? (
-                      <span
-                        ref={cellRef(e.id, CELL_LABEL)}
-                        {...p}
-                        style={{ gridColumn: "1 / -1", fontWeight: 500, ...p.style, ...exit }}
-                      >
-                        {e.label}
-                      </span>
-                    ) : null}
-                    <div
-                      ref={cellRef(e.id, CELL_CATEGORY)}
-                      {...p}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "var(--space-1)",
-                        ...p.style,
-                        ...exit,
-                      }}
-                    >
-                      <CategoryChip name={categoryLabelOf(e.category)} size={28} />
-                      <span>{categoryLabelOf(e.category).toLowerCase()}</span>
-                    </div>
-                    <span
-                      ref={cellRef(e.id, CELL_PAYER)}
-                      {...p}
-                      style={{ color: "var(--text-secondary)", ...p.style, ...exit }}
-                    >
-                      {memberDisplayName(members, e.payerId)}
-                    </span>
-                    <span
-                      ref={cellRef(e.id, CELL_AMOUNT)}
-                      {...p}
-                      style={{ justifySelf: "end", ...p.style, ...exit }}
-                    >
-                      <AmountDisplay value={formatAmountEUR(e.grossCents)} size="sm" />
-                    </span>
-                    {e.source === "recurring" ? (
-                      <span
-                        ref={cellRef(e.id, CELL_BADGE)}
-                        style={{
-                          gridColumn: "1 / -1",
-                          color: "var(--text-secondary)",
-                          fontSize: "var(--text-sm)",
-                          ...exit,
-                        }}
-                      >
-                        dépense qui revient chaque mois
-                      </span>
-                    ) : null}
-                    {e.category === "loyer" && e.settlementId === null ? (
-                      <div ref={cellRef(e.id, CELL_AID)} style={{ gridColumn: "1 / -1", ...exit }}>
-                        <AidSection
-                          expenseId={e.id}
-                          grossCents={e.grossCents}
-                          category={e.category}
-                          currentMemberId={currentMemberId}
-                          members={members}
-                          initialAids={e.aids}
-                          onSharesUpdated={() => {
-                            refreshExpenses();
-                            notifyDataChanged(["balance"]);
-                          }}
-                        />
-                      </div>
-                    ) : null}
-                  </Fragment>
-                );
-              })}
-            </div>
+            />
+          ) : null}
+          <Stack gap={3}>
+            {visibleGroups.map((group) => {
+              return (
+                <Stack gap={2} key={group.key}>
+                  <WaterSeparator label={labelOf(group.key)} />
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "auto 1fr auto",
+                      alignItems: "center",
+                      rowGap: "var(--space-2)",
+                      columnGap: "var(--space-2)",
+                    }}
+                  >
+                    {group.items.map((e) => {
+                      const p = pressProps(e);
+                      const exit = exitStyle(e.id);
+                      return (
+                        <Fragment key={e.id}>
+                          {showLabel ? (
+                            <span
+                              ref={cellRef(e.id, CELL_LABEL)}
+                              {...p}
+                              style={{ gridColumn: "1 / -1", fontWeight: 500, ...p.style, ...exit }}
+                            >
+                              {e.label}
+                            </span>
+                          ) : null}
+                          <div
+                            ref={cellRef(e.id, CELL_CATEGORY)}
+                            {...p}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "var(--space-1)",
+                              ...p.style,
+                              ...exit,
+                            }}
+                          >
+                            <CategoryChip name={categoryLabelOf(e.category)} size={28} />
+                            <span>{categoryLabelOf(e.category).toLowerCase()}</span>
+                          </div>
+                          <span
+                            ref={cellRef(e.id, CELL_PAYER)}
+                            {...p}
+                            style={{ color: "var(--text-secondary)", ...p.style, ...exit }}
+                          >
+                            {memberDisplayName(members, e.payerId)}
+                          </span>
+                          <span
+                            ref={cellRef(e.id, CELL_AMOUNT)}
+                            {...p}
+                            style={{ justifySelf: "end", ...p.style, ...exit }}
+                          >
+                            <AmountDisplay value={formatAmountEUR(e.grossCents)} size="sm" />
+                          </span>
+                          {e.source === "recurring" ? (
+                            <span
+                              ref={cellRef(e.id, CELL_BADGE)}
+                              style={{
+                                gridColumn: "1 / -1",
+                                color: "var(--text-secondary)",
+                                fontSize: "var(--text-sm)",
+                                ...exit,
+                              }}
+                            >
+                              dépense qui revient chaque mois
+                            </span>
+                          ) : null}
+                          {e.category === "loyer" && e.settlementId === null ? (
+                            <div
+                              ref={cellRef(e.id, CELL_AID)}
+                              style={{ gridColumn: "1 / -1", ...exit }}
+                            >
+                              <AidSection
+                                expenseId={e.id}
+                                grossCents={e.grossCents}
+                                category={e.category}
+                                currentMemberId={currentMemberId}
+                                members={members}
+                                initialAids={e.aids}
+                                onSharesUpdated={() => {
+                                  refreshExpenses();
+                                  notifyDataChanged(["balance"]);
+                                }}
+                              />
+                            </div>
+                          ) : null}
+                        </Fragment>
+                      );
+                    })}
+                  </div>
+                </Stack>
+              );
+            })}
           </Stack>
-        );
-      })}
+        </div>
+      )}
 
       {activeExpense ? (
         <ExpenseActionSheet
@@ -547,7 +582,6 @@ export function MovementsList({
           }}
         />
       ) : null}
-      </Stack>
-    </div>
+    </>
   );
 }

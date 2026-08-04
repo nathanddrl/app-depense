@@ -22,6 +22,7 @@ import type { AidDTO } from "@app/domain-aid";
 import type { Category } from "@app/domain-expense";
 import type { MemberShare } from "../../../lib/household";
 import { parseAmountToCents } from "../../../lib/amount";
+import { useServerState } from "../data-refresh/use-server-state";
 import { BOTH_BENEFICIARIES, splitBothCents } from "./aid-split";
 import { Button, Input } from "../design-system/core";
 import { AmountDisplay } from "../design-system/balance";
@@ -94,7 +95,12 @@ export function AidSection({
 }: Props) {
   // Initialisées depuis la prop (aides déjà en base, T-C5.5) — plus jamais un
   // état qui repart vide au chargement alors que l'aide existe toujours en base.
-  const [aids, setAids] = useState<AidDTO[]>(initialAids);
+  // `useServerState` plutôt qu'un `useState` nu (T-CF3) : une ligne qui SURVIT à
+  // un re-rendu du parent (même `id`, donc pas de remontage — filtre catégorie
+  // qui laisse la dépense visible, ou refetch ciblé déclenché par une mutation
+  // ailleurs) doit refléter les aides fraîchement chargées, pas celles du
+  // premier rendu.
+  const [aids, setAids] = useServerState<AidDTO[]>(initialAids);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useGlobalTransition();

@@ -14,13 +14,14 @@
 // quelles de l'ancien `BalancePanel` (RSC) — formatage pur, aucun calcul
 // financier (calc-engine reste seul habilité, DA4).
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { getBalanceAction, getCurrentSettlementAction } from "../../actions";
 import { formatAmountEUR } from "@app/shared";
 import type { Balance } from "@app/domain-expense";
 import type { Settlement } from "@app/domain-settlement";
 import { memberDisplayName, type MemberShare } from "../../../lib/household";
 import { subscribeDataChanged } from "../data-refresh/data-refresh-bus";
+import { useServerState } from "../data-refresh/use-server-state";
 import { useVisibilityRefresh } from "../data-refresh/use-visibility-refresh";
 import { BalanceDetailToggle } from "./balance-detail-toggle";
 import { BalanceNetworkGate } from "./balance-network-gate";
@@ -37,9 +38,18 @@ type Props = {
   initialSettlement: Settlement | null;
 };
 
-export function BalanceCard({ currentMemberId, members, initialBalance, initialSettlement }: Props) {
-  const [balance, setBalance] = useState(initialBalance);
-  const [settlement, setSettlement] = useState(initialSettlement);
+export function BalanceCard({
+  currentMemberId,
+  members,
+  initialBalance,
+  initialSettlement,
+}: Props) {
+  // Props serveur → state local (T-CF3, même garde que `MovementsList`) :
+  // aucune navigation ne re-rend aujourd'hui cette carte sans la démonter, mais
+  // laisser un `useState(initial…)` nu réintroduirait le figement dès qu'un
+  // écran la remontera derrière un changement de searchParams.
+  const [balance, setBalance] = useServerState(initialBalance);
+  const [settlement, setSettlement] = useServerState(initialSettlement);
 
   const refresh = useCallback(() => {
     void (async () => {
@@ -50,7 +60,10 @@ export function BalanceCard({ currentMemberId, members, initialBalance, initialS
       if (balanceResult.ok) setBalance(balanceResult.data);
       if (settlementResult.ok) setSettlement(settlementResult.data);
     })();
-  }, []);
+    // Setters `useState` stables, relayés par `useServerState` — listés
+    // uniquement pour exhaustive-deps (identité inchangée d'un rendu à l'autre,
+    // `refresh` reste donc stable et n'entraîne aucun réabonnement au bus).
+  }, [setBalance, setSettlement]);
 
   useEffect(() => subscribeDataChanged("balance", refresh), [refresh]);
   useVisibilityRefresh(refresh);

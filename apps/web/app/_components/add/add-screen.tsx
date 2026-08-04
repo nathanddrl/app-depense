@@ -6,6 +6,7 @@ import type { RecurringTemplate } from "@app/domain-recurrence";
 import { createExpenseAction, addAidAction, listRecurringTemplatesAction } from "../../actions";
 import type { MemberShare } from "../../../lib/household";
 import { notifyDataChanged } from "../data-refresh/data-refresh-bus";
+import { useServerState } from "../data-refresh/use-server-state";
 import { ExpenseForm, type NewExpenseInput } from "../expenses/expense-form";
 import { BOTH_BENEFICIARIES, splitBothCents } from "../expenses/aid-split";
 import { RecurringTemplateForm } from "../recurrence/recurring-template-form";
@@ -65,7 +66,13 @@ type Props = {
   initialMode: typeof ADD_MODE_ONCE | typeof ADD_MODE_RECURRENT;
 };
 
-export function AddScreen({ currentMemberId, defaultShares, templates, closeTo, initialMode }: Props) {
+export function AddScreen({
+  currentMemberId,
+  defaultShares,
+  templates,
+  closeTo,
+  initialMode,
+}: Props) {
   const router = useRouter();
   const onClose = closeTo === "back" ? () => router.back() : () => router.push("/");
   const [mode, setMode] = useState(initialMode);
@@ -204,7 +211,11 @@ function RecurringMode({
   templates: initialTemplates,
   onClose,
 }: RecurringModeProps) {
-  const [templates, setTemplates] = useState(initialTemplates);
+  // Props serveur → state local (T-CF3) : la liste des charges récurrentes
+  // suivait le même schéma figé que `MovementsList`. L'écran « ajouter » étant
+  // une route à part (remontée à chaque ouverture), le défaut n'y était pas
+  // observable — la garde évite qu'il le devienne.
+  const [templates, setTemplates] = useServerState(initialTemplates);
   const hasTemplates = templates.length > 0;
   const [showForm, setShowForm] = useState(!hasTemplates);
   const [createdTemplate, setCreatedTemplate] = useState<RecurringTemplate | null>(null);
