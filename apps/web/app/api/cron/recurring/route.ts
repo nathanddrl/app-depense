@@ -5,6 +5,16 @@
 // utilisateur, réservé cron C7 / admin C8) — le client service_role est construit
 // ICI, minimal, et jamais exporté ailleurs.
 //
+// Planification : QUOTIDIENNE (`0 6 * * *`, vercel.json). Surtout pas mensuelle :
+// `runRecurringGeneration` skippe un template tant que le jour courant n'a pas
+// atteint son `day_of_month`, donc un passage unique le 1er du mois ne générerait
+// jamais un template au jour 4. Un passage par jour ne peut pas dupliquer :
+// l'idempotence vient de la contrainte unique (template_id, period) côté DB.
+//
+// Ce chemin n'est PAS soumis à la garde de session du proxy (apps/web/proxy.ts,
+// exclusion `/api/cron/**`) : il n'a aucune session par construction, la garde le
+// redirigeait vers /login. Son authentification est donc entièrement ci-dessous.
+//
 // Sécurité : secret partagé en header `Authorization: Bearer <CRON_SECRET>`
 // (convention Vercel Cron — injecté automatiquement si `CRON_SECRET` est défini
 // sur le projet Vercel). Absent/incorrect → 401 AVANT toute construction de
