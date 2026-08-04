@@ -221,3 +221,71 @@ describe("runRecurringGeneration — bord de mois (D14, T-C7.3)", () => {
     ]);
   });
 });
+
+// Régression de prod : le cron Vercel était planifié « 0 6 1 * * » (le 1er du
+// mois uniquement), alors que la garde `day-not-reached` skippe tout template
+// dont le `day_of_month` n'est pas encore atteint. Un template au jour 4 était
+// donc skippé le 1er, et le passage suivant n'arrivait qu'au mois d'après :
+// jamais généré. Le cron est passé en quotidien (« 0 6 * * * ») — cette suite
+// vérifie qu'un passage par jour produit exactement une occurrence par mois.
+describe("runRecurringGeneration — cron quotidien sur un mois complet (régression prod)", () => {
+  const DAY_OF_MONTH = 4;
+
+  /** Un passage de cron par jour du 1er au 10 juillet 2026, dans l'ordre. */
+  async function runDaily(repo: FakeGenerationRepository, days: number[]) {
+    const statuses: string[] = [];
+    for (const day of days) {
+      const at = new Date(`2026-07-${String(day).padStart(2, "0")}T06:00:00Z`);
+      const res = await runRecurringGeneration(repo, at);
+      expect(res.ok).toBe(true);
+      if (!res.ok) return statuses;
+      statuses.push(
+        res.data.results[0].status === "skipped"
+          ? `${day}:skipped:${res.data.results[0].reason}`
+          : `${day}:${res.data.results[0].status}`,
+      );
+    }
+    return statuses;
+  }
+
+  it("généré le jour N, skippé les jours précédents, non dupliqué les jours suivants", async () => {
+    const repo = new FakeGenerationRepository([template({ dayOfMonth: DAY_OF_MONTH })]);
+
+    const statuses = await runDaily(repo, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+    expect(statuses).toEqual([
+      "1:skipped:day-not-reached",
+      "2:skipped:day-not-reached",
+      "3:skipped:day-not-reached",
+      "4:generated",
+      "5:skipped:already-generated",
+      "6:skipped:already-generated",
+      "7:skipped:already-generated",
+      "8:skipped:already-generated",
+      "9:skipped:already-generated",
+      "10:skipped:already-generated",
+    ]);
+
+    // Le repo est sollicité chaque jour à partir du 4 (7 tentatives), mais la
+    // contrainte unique (template_id, period) n'en laisse aboutir qu'une seule.
+    expect(repo.generateCalls).toHaveLength(7);
+    expect(repo.generateCalls[0].period).toBe("2026-07-01");
+    expect(repo.generateCalls[0].incurredOn).toBe("2026-07-04");
+    expect(statuses.filter((s) => s.endsWith(":generated"))).toHaveLength(1);
+  });
+
+  it("le mois suivant repart sur une nouvelle période → une occurrence de plus", async () => {
+    const repo = new FakeGenerationRepository([template({ dayOfMonth: DAY_OF_MONTH })]);
+    await runDaily(repo, [4, 5]); // juillet : généré puis idempotent
+
+    const res = await runRecurringGeneration(repo, new Date("2026-08-04T06:00:00Z"));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data.results[0]).toMatchObject({ status: "generated" });
+
+    const periods = repo.generateCalls
+      .filter((c) => c.period === "2026-08-01")
+      .map((c) => c.incurredOn);
+    expect(periods).toEqual(["2026-08-04"]);
+  });
+});
