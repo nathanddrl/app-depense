@@ -22,7 +22,9 @@ type Props = {
 // unique) ; "tous les mois" : regroupement par mois comme posé en T-CN3.1.
 export default async function MouvementsPage({ searchParams }: Props) {
   const sp = await searchParams;
-  const category = CATEGORIES.some((c) => c.value === sp.categorie) ? (sp.categorie as Category) : undefined;
+  const category = CATEGORIES.some((c) => c.value === sp.categorie)
+    ? (sp.categorie as Category)
+    : undefined;
 
   const ctx = await getCurrentContext();
   const monthsResult = await listExpenseMonthsAction();
@@ -55,9 +57,11 @@ export default async function MouvementsPage({ searchParams }: Props) {
         <MovementsFilters months={months} month={month} category={category} />
         {!expensesResult.ok ? (
           <Notice tone="error">{expensesResult.error.message}</Notice>
-        ) : expensesResult.data.length === 0 ? (
-          <Notice>aucune dépense pour ce filtre</Notice>
         ) : (
+          // Monté même sur un résultat vide (T-CF3) : l'état « aucune dépense »
+          // est désormais rendu par la liste elle-même, sinon supprimer la
+          // dernière ligne d'un filtre laisserait l'écran sans message (le
+          // Server Component ne rejoue pas après une mutation côté client).
           <MovementsList
             expenses={expensesResult.data}
             members={defaultShares}
@@ -65,6 +69,7 @@ export default async function MouvementsPage({ searchParams }: Props) {
             groupBy={month === ALL_MONTHS ? "month" : "day"}
             showLabel
             filters={{ month: month === ALL_MONTHS ? undefined : month, category }}
+            emptyMessage="aucune dépense pour ce filtre"
           />
         )}
       </Stack>
