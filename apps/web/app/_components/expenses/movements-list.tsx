@@ -540,6 +540,8 @@ export function MovementsList({
       {editingExpense ? (
         <ExpenseEditForm
           expense={editingExpense}
+          members={members}
+          currentMemberId={currentMemberId}
           onClose={() => setEditingId(null)}
           onSaved={() => {
             setEditingId(null);

@@ -7,10 +7,15 @@
 // Le payeur est sélectionnable (« qui a payé », même sélecteur natif que
 // `recurring-template-form.tsx`/`aid-section.tsx`) — décision revenue sur le
 // choix initial (implicite = utilisateur connecté), un membre pouvant saisir
-// une dépense payée par l'autre. La répartition se pilote via un curseur
-// unique (foyer à 2 personnes, `defaultShares` toujours de longueur 2),
-// indépendant du payeur : payer et partager sont deux questions distinctes
-// (même contrat que `CreateExpenseInput`, `payerId` et `shares` séparés).
+// une dépense payée par l'autre. Le partage se pilote via un curseur unique
+// (foyer à 2 personnes, `defaultShares` toujours de longueur 2), indépendant
+// du payeur : payer et partager sont deux questions distinctes (même contrat
+// que `CreateExpenseInput`, `payerId` et `shares` séparés). Curseur derrière
+// un disclosure « Options » (repliée par défaut, même pattern que
+// `aid-section.tsx`) pour ne pas complexifier la saisie simple — un seul
+// state `payerPct` pilote les deux parts (`100 - payerPct`), donc la somme
+// vaut 100 en permanence quel que soit le %, y compris 100/0 (jamais deux
+// champs indépendants qui pourraient diverger).
 // L'aide cochée ici ne fait AUCUN calcul côté client : seul un montant brut est
 // collecté, `addAidAction` (côté parent) applique la vraie logique calc-engine.
 //
@@ -65,7 +70,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
   const [payerId, setPayerId] = useState(currentMemberId);
   const [incurredOn, setIncurredOn] = useState(today());
   const [payerPct, setPayerPct] = useState(initialPayerPct);
-  const [customSplit, setCustomSplit] = useState(initialPayerPct !== 50);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [aideOn, setAideOn] = useState(false);
   const [aideAmount, setAideAmount] = useState("");
   const [aideBeneficiary, setAideBeneficiary] = useState<string>(currentMemberId);
@@ -117,7 +122,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
       setAideAmount("");
       setAideBeneficiary(currentMemberId);
       setPayerPct(initialPayerPct);
-      setCustomSplit(initialPayerPct !== 50);
+      setOptionsOpen(false);
     }
   }
 
@@ -182,54 +187,51 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
 
         {otherMember ? (
           <Stack gap={1}>
-            <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
-              répartition
-            </span>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: "var(--space-2)",
-              }}
+            {/* Repliée par défaut : une saisie simple (souvent 50/50, le
+                défaut du foyer) ne montre jamais le curseur sans action
+                explicite — même pattern que `AidSection`. */}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setOptionsOpen((prev) => !prev)}
             >
-              {customSplit ? (
-                <div style={{ width: "88px" }}>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    suffix="%"
-                    value={String(payerPct)}
-                    onChange={(e) => {
-                      const n = Number(e.target.value);
-                      if (Number.isNaN(n)) return;
-                      setPayerPct(Math.min(100, Math.max(0, n)));
-                    }}
+              options
+            </Button>
+            {optionsOpen ? (
+              <Stack gap={1}>
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
+                  partage
+                </span>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    gap: "var(--space-2)",
+                  }}
+                >
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={payerPct}
+                    onChange={(e) => setPayerPct(Number(e.target.value))}
+                    style={{ flex: "1 1 auto", minWidth: 0, accentColor: "var(--text-primary)" }}
                   />
+                  <span
+                    className="tabular-nums"
+                    style={{
+                      fontSize: "var(--text-sm)",
+                      color: "var(--text-primary)",
+                      marginLeft: "auto",
+                    }}
+                  >
+                    toi {payerPct}% · {otherMember.displayName} {100 - payerPct}%
+                  </span>
                 </div>
-              ) : null}
-              <span
-                className="tabular-nums"
-                style={{ fontSize: "var(--text-sm)", color: "var(--text-primary)" }}
-              >
-                toi {payerPct}% · {otherMember.displayName} {100 - payerPct}%
-              </span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  if (customSplit) {
-                    setCustomSplit(false);
-                    setPayerPct(50);
-                  } else {
-                    setCustomSplit(true);
-                  }
-                }}
-              >
-                {customSplit ? "revenir à 50/50" : "personnaliser"}
-              </Button>
-            </div>
+              </Stack>
+            ) : null}
           </Stack>
         ) : null}
 
