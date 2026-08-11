@@ -17,13 +17,15 @@
 // tout pour une dépense verrouillée (`settlementId !== null`) ou hors loyer,
 // pour que le point d'entrée n'existe même pas plutôt que d'échouer après coup.
 //
-// Édition / suppression d'une dépense : sur desktop, un simple clic ouvre
-// `ExpenseActionSheet` (éditer / supprimer), avec un survol qui assombrit la
-// ligne pour signaler qu'elle est cliquable — rester appuyé n'a pas de sens à
-// la souris. Sur tactile, l'ancien geste d'appui long reste nécessaire (pas de
-// hover) : la ligne change légèrement de couleur dès le début de l'appui, puis
-// s'ouvre après le délai. Les deux modes sont distingués via `pointerType`
-// (`PointerEvent`). La suppression est DIFFÉRÉE : l'appel serveur n'est
+// Édition d'une dépense : un simple clic/tap ouvre `ExpenseEditForm`
+// directement (zéro étape intermédiaire — l'ancien menu `ExpenseActionSheet`
+// est retiré, devenu redondant). Un survol (souris) assombrit la ligne pour
+// signaler qu'elle est cliquable ; sur tactile, la ligne change légèrement de
+// couleur dès le début de l'appui (retour visuel), puis `onClick` ouvre le
+// formulaire au relâchement — le navigateur ne déclenche pas `click` après un
+// scroll tactile, la distinction appui/scroll reste donc native. La
+// suppression se déclenche désormais depuis un bouton DANS le formulaire
+// d'édition (`onDelete`), mais reste DIFFÉRÉE ici : l'appel serveur n'est
 // déclenché qu'après 3 s via `UndoToast` — « annuler » l'annule sans jamais
 // toucher la base.
 //
@@ -59,7 +61,6 @@ import { categoryLabelOf } from "./categories";
 import { dayLabel, monthLabel } from "./date-label";
 import { groupByDay, groupByMonth } from "./group-expenses";
 import { AidSection } from "./aid-section";
-import { ExpenseActionSheet } from "./expense-action-sheet";
 import { ExpenseEditForm } from "./expense-edit-form";
 import { CategoryChip, AmountDisplay } from "../design-system/balance";
 import { Notice, UndoToast, useGlobalTransition } from "../design-system/feedback";
@@ -84,10 +85,9 @@ type Props = {
   emptyMessage?: string;
 };
 
-// Seuil de déplacement (px) au-delà duquel l'appui est requalifié en scroll et
-// le minuteur d'appui long annulé. Durée du maintien avant mise en avant.
-const LONG_PRESS_MOVE_PX = 10;
-const LONG_PRESS_MS = 450;
+// Seuil de déplacement (px) au-delà duquel un appui tactile est requalifié en
+// scroll et le retour visuel d'appui annulé (pas d'ouverture à l'arrivée).
+const TOUCH_MOVE_CANCEL_PX = 10;
 
 // Durée de l'effacement sur place d'une ligne supprimée, avant son retrait
 // effectif de la grille (phase 1 de la suppression en deux temps ci-dessus).
@@ -113,6 +113,14 @@ const PRESSABLE_CELL_INDICES = [CELL_LABEL, CELL_CATEGORY, CELL_PAYER, CELL_AMOU
 
 // Débord esthétique autour du rectangle mesuré (respiration visuelle).
 const HIGHLIGHT_PADDING_PX = 8;
+
+// Cible tactile ≥44px (contenu texte seul ~28px de haut) : padding vertical
+// uniforme sur les 4 cellules pressables (label/catégorie/payeur/montant),
+// appliqué que la ligne soit verrouillée ou non pour ne pas faire varier la
+// mise en page selon l'état — seul le clic reste conditionné par
+// `isPressable`. Inclus automatiquement dans `measureHighlightBox` (mesure la
+// bounding box réelle des cellules).
+const ROW_PADDING_BLOCK = "var(--space-1)";
 
 export function MovementsList({
   expenses: initialExpenses,
@@ -147,7 +155,6 @@ export function MovementsList({
 
   useEffect(() => subscribeDataChanged("expenses", refreshExpenses), [refreshExpenses]);
 
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pendingDeletion, setPendingDeletion] = useState<Expense | null>(null);
   // Ligne en cours d'effacement sur place (phase 1) — distincte de `goneIds`
@@ -160,7 +167,6 @@ export function MovementsList({
   // unique rectangle de surlignage (`highlightBox`) mesuré ci-dessous.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pressingId, setPressingId] = useState<string | null>(null);
-  const lastPointerType = useRef<string | null>(null);
 
   // Ancre de positionnement (`position:relative`) pour le rectangle de
   // surlignage, posé en `position:absolute` à l'intérieur.
@@ -172,8 +178,9 @@ export function MovementsList({
     height: number;
   } | null>(null);
 
-  // État transitoire de l'appui tactile en cours (hors rendu : ne doit pas re-render).
-  const press = useRef<{ timer: number; startX: number; startY: number } | null>(null);
+  // Point de départ de l'appui tactile en cours, pour distinguer un tap d'un
+  // scroll (hors rendu : ne doit pas re-render).
+  const pressStart = useRef<{ x: number; y: number } | null>(null);
   const exitTimer = useRef<number | null>(null);
 
   // Cellules DOM par dépense (pour le FLIP) et leurs rects au rendu précédent.
@@ -269,50 +276,33 @@ export function MovementsList({
   }, [expenses]);
 
   function cancelPress() {
-    if (press.current) {
-      clearTimeout(press.current.timer);
-      press.current = null;
-    }
+    pressStart.current = null;
     setPressingId(null);
     setHighlightBox(null);
   }
 
   // Seules les dépenses manuelles non verrouillées réagissent au geste (décision
   // produit) : les occurrences récurrentes et les dépenses régularisées restent
-  // inertes, exactement comme avant l'ajout de cette fonctionnalité.
+  // inertes, exactement comme avant l'ajout de cette fonctionnalité — c'est ce
+  // qui fait disparaître le point d'entrée pour une dépense verrouillée plutôt
+  // que d'échouer après tentative.
   const isPressable = (e: Expense) => e.settlementId === null && e.source !== "recurring";
 
   function pressProps(e: Expense) {
     if (!isPressable(e)) return {};
     return {
       onPointerDown: (ev: React.PointerEvent) => {
-        cancelPress();
-        lastPointerType.current = ev.pointerType;
-        if (ev.pointerType === "mouse") {
-          // Desktop : un simple clic suffit (`onClick` ci-dessous), pas d'attente
-          // — rester appuyé n'a pas de sens à la souris.
-          return;
-        }
+        if (ev.pointerType === "mouse") return; // le survol suffit, cf. onPointerEnter
+        pressStart.current = { x: ev.clientX, y: ev.clientY };
         setPressingId(e.id);
         setHighlightBox(measureHighlightBox(e.id));
-        press.current = {
-          startX: ev.clientX,
-          startY: ev.clientY,
-          timer: window.setTimeout(() => {
-            navigator.vibrate?.(10);
-            setActiveId(e.id);
-            setPressingId(null);
-            setHighlightBox(null);
-            press.current = null;
-          }, LONG_PRESS_MS),
-        };
       },
       onPointerMove: (ev: React.PointerEvent) => {
-        const s = press.current;
+        const s = pressStart.current;
         if (!s) return;
         if (
-          Math.abs(ev.clientX - s.startX) > LONG_PRESS_MOVE_PX ||
-          Math.abs(ev.clientY - s.startY) > LONG_PRESS_MOVE_PX
+          Math.abs(ev.clientX - s.x) > TOUCH_MOVE_CANCEL_PX ||
+          Math.abs(ev.clientY - s.y) > TOUCH_MOVE_CANCEL_PX
         ) {
           cancelPress();
         }
@@ -330,17 +320,15 @@ export function MovementsList({
         setHoveredId((h) => (h === e.id ? null : h));
       },
       onClick: () => {
-        // Le tactile ouvre déjà via le minuteur d'appui long ci-dessus ; un tap
-        // court y déclenche aussi un `click` de courtoisie du navigateur, ignoré
-        // ici (seul le clic souris doit ouvrir directement).
-        if (lastPointerType.current === "mouse") {
-          setHoveredId(null);
-          setHighlightBox(null);
-          setActiveId(e.id);
-        }
+        // Souris et tactile ouvrent tous deux directement (le navigateur ne
+        // déclenche pas `click` après un scroll tactile, la distinction
+        // appui/scroll reste donc correcte nativement).
+        setHoveredId(null);
+        setHighlightBox(null);
+        setEditingId(e.id);
       },
       // touch-action pan-y : le scroll vertical reste natif (et déclenche un
-      // pointercancel qui annule le maintien) ; on n'intercepte que l'appui long.
+      // pointercancel qui annule le retour visuel d'appui).
       style: { cursor: "pointer", touchAction: "pan-y" as const },
     };
   }
@@ -367,7 +355,7 @@ export function MovementsList({
       clearTimeout(exitTimer.current);
       exitTimer.current = null;
     }
-    setActiveId(null);
+    setEditingId(null);
     setPendingDeletion(expense);
     setExitingId(expense.id);
     exitTimer.current = window.setTimeout(() => {
@@ -407,7 +395,6 @@ export function MovementsList({
     };
   }
 
-  const activeExpense = expenses.find((e) => e.id === activeId) ?? null;
   const editingExpense = expenses.find((e) => e.id === editingId) ?? null;
 
   return (
@@ -457,7 +444,13 @@ export function MovementsList({
                             <span
                               ref={cellRef(e.id, CELL_LABEL)}
                               {...p}
-                              style={{ gridColumn: "1 / -1", fontWeight: 500, ...p.style, ...exit }}
+                              style={{
+                                gridColumn: "1 / -1",
+                                fontWeight: 500,
+                                paddingBlock: ROW_PADDING_BLOCK,
+                                ...p.style,
+                                ...exit,
+                              }}
                             >
                               {e.label}
                             </span>
@@ -469,6 +462,7 @@ export function MovementsList({
                               display: "flex",
                               alignItems: "center",
                               gap: "var(--space-1)",
+                              paddingBlock: ROW_PADDING_BLOCK,
                               ...p.style,
                               ...exit,
                             }}
@@ -479,14 +473,24 @@ export function MovementsList({
                           <span
                             ref={cellRef(e.id, CELL_PAYER)}
                             {...p}
-                            style={{ color: "var(--text-secondary)", ...p.style, ...exit }}
+                            style={{
+                              color: "var(--text-secondary)",
+                              paddingBlock: ROW_PADDING_BLOCK,
+                              ...p.style,
+                              ...exit,
+                            }}
                           >
                             {memberDisplayName(members, e.payerId)}
                           </span>
                           <span
                             ref={cellRef(e.id, CELL_AMOUNT)}
                             {...p}
-                            style={{ justifySelf: "end", ...p.style, ...exit }}
+                            style={{
+                              justifySelf: "end",
+                              paddingBlock: ROW_PADDING_BLOCK,
+                              ...p.style,
+                              ...exit,
+                            }}
                           >
                             <AmountDisplay value={formatAmountEUR(e.grossCents)} size="sm" />
                           </span>
@@ -533,19 +537,6 @@ export function MovementsList({
         </div>
       )}
 
-      {activeExpense ? (
-        <ExpenseActionSheet
-          expense={activeExpense}
-          members={members}
-          onEdit={() => {
-            setEditingId(activeExpense.id);
-            setActiveId(null);
-          }}
-          onDelete={() => armDeletion(activeExpense)}
-          onClose={() => setActiveId(null)}
-        />
-      ) : null}
-
       {editingExpense ? (
         <ExpenseEditForm
           expense={editingExpense}
@@ -555,6 +546,7 @@ export function MovementsList({
             refreshExpenses();
             notifyDataChanged(["balance"]);
           }}
+          onDelete={() => armDeletion(editingExpense)}
         />
       ) : null}
 

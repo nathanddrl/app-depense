@@ -1,15 +1,20 @@
 "use client";
 
-// Formulaire d'édition d'une dépense (spec ch.5.1) — porté par le geste d'appui
-// long dans `movements-list.tsx`. Périmètre volontairement réduit aux 3 champs
-// demandés : nom, catégorie, montant. Le payeur, la date et la répartition ne
-// sont pas éditables ici (correction rapide, pas ressaisie complète) — le patch
+// Formulaire d'édition d'une dépense (spec ch.5.1) — ouvert par un clic/tap
+// direct sur la ligne dans `movements-list.tsx` (plus d'étape intermédiaire de
+// menu). Périmètre volontairement réduit aux 3 champs demandés : nom,
+// catégorie, montant. Le payeur, la date et la répartition ne sont pas
+// éditables ici (correction rapide, pas ressaisie complète) — le patch
 // n'envoie que les champs modifiés, tout champ absent restant inchangé côté
 // domaine (`updateExpense`).
 //
 // Même pattern contrôlé que `EditRow` (admin-expense-table.tsx) : `Input` exige
 // `value`, donc état local par champ ; l'action est appelée via `useTransition`,
 // l'erreur serveur (dont EXPENSE_LOCKED) est affichée telle quelle.
+//
+// Suppression : ex-`ExpenseActionSheet` (menu séparé, retiré — devenu
+// redondant). Le bouton « supprimer » ici délègue tout le flux (toast
+// d'annulation 3 s) au parent via `onDelete`, sans confirmation locale.
 
 import { useState } from "react";
 import type { Category, Expense } from "@app/domain-expense";
@@ -19,14 +24,16 @@ import { CategorySelect } from "./category-select";
 import { Button, Input } from "../design-system/core";
 import { Dialog, Notice, useGlobalTransition } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
+import styles from "./expense-edit-form.module.css";
 
 type Props = {
   expense: Expense;
   onClose: () => void;
   onSaved: () => void;
+  onDelete: () => void;
 };
 
-export function ExpenseEditForm({ expense, onClose, onSaved }: Props) {
+export function ExpenseEditForm({ expense, onClose, onSaved, onDelete }: Props) {
   const [label, setLabel] = useState(expense.label);
   const [category, setCategory] = useState<Category>(expense.category);
   const [amount, setAmount] = useState((expense.grossCents / 100).toFixed(2));
@@ -82,6 +89,11 @@ export function ExpenseEditForm({ expense, onClose, onSaved }: Props) {
           <Button type="submit" disabled={isPending}>
             {isPending ? "enregistrement…" : "enregistrer"}
           </Button>
+          <div className={styles.deleteAction}>
+            <Button variant="secondary" onClick={onDelete}>
+              supprimer
+            </Button>
+          </div>
         </Stack>
       </form>
     </Dialog>

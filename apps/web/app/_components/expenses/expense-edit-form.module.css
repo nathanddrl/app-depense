@@ -1,0 +1,8 @@
+/* Bouton « supprimer » : même traitement destructif que l'ex-ActionSheet
+   (couleur/bordure --color-system-error), pleine largeur comme les autres
+   actions du formulaire. */
+.deleteAction button {
+  width: 100%;
+  color: var(--color-system-error);
+  border-color: var(--color-system-error);
+}
