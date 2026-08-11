@@ -272,6 +272,95 @@ describe("updateExpense — recompute & gardes (4.6 / ch.7)", () => {
     expect(res.error.code).toBe("NOT_FOUND");
   });
 
+  it("changer le partage (patch.shares) recompute les parts figées en 70/30", async () => {
+    const created = await createExpense(repo, ctx, {
+      ...baseInput,
+      grossCents: 10000,
+      shares: ratio5050,
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    const res = await updateExpense(repo, ctx, {
+      expenseId: created.data.id,
+      patch: {
+        shares: [
+          { memberId: "A", pct: 70 },
+          { memberId: "B", pct: 30 },
+        ],
+      },
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const byMember = Object.fromEntries(res.data.shares.map((s) => [s.memberId, s.cents]));
+    expect(byMember.A).toBe(7000);
+    expect(byMember.B).toBe(3000);
+  });
+
+  it("patch.shares dont la somme ≠ 100 → VALIDATION_ERROR, rien n'est modifié (non-régression)", async () => {
+    const created = await createExpense(repo, ctx, {
+      ...baseInput,
+      grossCents: 10000,
+      shares: ratio5050,
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    const res = await updateExpense(repo, ctx, {
+      expenseId: created.data.id,
+      patch: {
+        shares: [
+          { memberId: "A", pct: 60 },
+          { memberId: "B", pct: 30 },
+        ],
+      },
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.code).toBe("VALIDATION_ERROR");
+    expect(res.error.field).toBe("shares");
+
+    const stored = await repo.getExpenseById(created.data.id);
+    expect(stored?.shares.map((s) => s.cents).sort()).toEqual([5000, 5000]);
+  });
+
+  it("dépense verrouillée + patch.shares → EXPENSE_LOCKED, aucune part modifiée", async () => {
+    repo.seed({
+      id: "locked-shares",
+      householdId: HOUSEHOLD,
+      label: "Loyer",
+      category: "loyer",
+      grossCents: 80000,
+      payerId: "A",
+      incurredOn: "2026-06-04",
+      source: "manual",
+      settlementId: "settle-1",
+      createdAt: "2026-06-04T10:00:00.000Z",
+      updatedAt: "2026-06-04T10:00:00.000Z",
+      shares: [
+        { memberId: "A", cents: 40000, pctSnapshot: 50 },
+        { memberId: "B", cents: 40000, pctSnapshot: 50 },
+      ],
+      aids: [],
+      deletedAt: null,
+    });
+    const res = await updateExpense(repo, ctx, {
+      expenseId: "locked-shares",
+      patch: {
+        shares: [
+          { memberId: "A", pct: 100 },
+          { memberId: "B", pct: 0 },
+        ],
+      },
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.code).toBe("EXPENSE_LOCKED");
+
+    const stored = await repo.getExpenseById("locked-shares");
+    expect(stored?.shares.map((s) => s.cents).sort()).toEqual([40000, 40000]);
+  });
+
   it("dépense générée par récurrence (source='recurring') reste éditable normalement (D14/T-C7.3)", async () => {
     repo.seed({
       id: "recurring-1",
