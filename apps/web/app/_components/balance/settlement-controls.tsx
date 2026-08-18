@@ -1,16 +1,19 @@
 "use client";
 
-// Parcours de régularisation (spec 8.1/5.3, T-C6.6, D15 v0.5). Le débiteur
-// déclenche (« Solder » pour tout, ou un montant partiel/supérieur via un flux
-// replié), le créancier confirme (« J'ai reçu »). Vocabulaire strict : jamais
-// « régularisation »/« settlement » à l'écran — seulement qui doit confirmer
-// quoi à qui, en langage humain. Le montant confirmé peut être partiel : les
-// bannières communiquent le montant échangé, jamais que le solde retombe à
-// zéro (ce qui peut être faux si de nouvelles dépenses sont apparues entre-temps).
-// Montant > solde courant (D15 v0.5) : plus de refus — le solde s'inverse à la
-// confirmation. Pas de plafond artificiel côté formulaire (montant libre),
-// mais un cran de confirmation explicite avant envoi pour éviter une faute de
-// frappe (« ce remboursement inverse le solde »), ton neutre, jamais alarmant.
+// Parcours de régularisation (spec 8.1/5.3, T-C6.6, D15 v0.5, T-CM1). Le
+// débiteur déclenche un unique bouton « Solder » qui ouvre une Dialog de
+// confirmation (montant total pré-rempli, bascule optionnelle vers un
+// montant personnalisé dans la même modale), le créancier confirme
+// (« J'ai reçu »). Vocabulaire strict : jamais « régularisation »/« settlement »
+// ni le vocabulaire produit proscrit (T-CM1) à l'écran — seulement qui doit
+// confirmer quoi à qui, en langage humain, en tutoyant. Le montant confirmé
+// peut être partiel : les bannières communiquent le montant échangé, jamais que le
+// solde retombe à zéro (ce qui peut être faux si de nouvelles dépenses sont
+// apparues entre-temps). Montant > solde courant (D15 v0.5) : plus de refus —
+// le solde s'inverse à la confirmation. Pas de plafond artificiel côté
+// formulaire (montant libre), mais un cran de confirmation explicite avant
+// envoi pour éviter une faute de frappe (« ça inverse le solde »), ton
+// neutre, jamais alarmant.
 //
 // Pas d'état local optimiste sur le settlement lui-même : après chaque action
 // réussie, `onSettled` (fourni par `BalanceCard`, T-CF1) rejoue un fetch ciblé
@@ -31,7 +34,7 @@ import type { ActionResult } from "@app/shared";
 import type { Settlement } from "@app/domain-settlement";
 import { Button, Input } from "../design-system/core";
 import { AmountDisplay } from "../design-system/balance";
-import { Notice, useGlobalTransition } from "../design-system/feedback";
+import { Dialog, Notice, useGlobalTransition } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
 
 type Props = {
@@ -58,15 +61,15 @@ function bannerMessage(
   if (isInitiator) {
     return (
       <>
-        tu as dit avoir remboursé <AmountDisplay value={amount} /> à {creditorName} — en attente de
-        sa confirmation.
+        tu as dit avoir réglé <AmountDisplay value={amount} /> à {creditorName} — en attente de sa
+        confirmation.
       </>
     );
   }
   if (isCreditor) {
     return (
       <>
-        {debtorName} dit t&apos;avoir remboursé <AmountDisplay value={amount} />.
+        {debtorName} dit t&apos;avoir réglé <AmountDisplay value={amount} />.
       </>
     );
   }
@@ -88,11 +91,24 @@ export function SettlementControls({
 }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useGlobalTransition();
+  // Modale unique de déclenchement (T-CM1) : `dialogOpen` pilote son
+  // affichage, `showPartialForm` bascule son CONTENU entre la question par
+  // défaut (montant total) et le champ de saisie personnalisé — jamais une
+  // seconde Dialog.
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [showPartialForm, setShowPartialForm] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   // Montant en attente de confirmation explicite d'inversion (D15 v0.5) —
   // `null` tant que l'utilisateur n'a pas encore vu/validé l'avertissement.
   const [pendingInversionCents, setPendingInversionCents] = useState<number | null>(null);
+
+  function resetDialog() {
+    setDialogOpen(false);
+    setShowPartialForm(false);
+    setPartialAmount("");
+    setPendingInversionCents(null);
+    setError(null);
+  }
 
   function run(action: () => Promise<ActionResult<Settlement>>) {
     setError(null);
@@ -102,6 +118,7 @@ export function SettlementControls({
         setError(res.error.message);
         return;
       }
+      setDialogOpen(false);
       setShowPartialForm(false);
       setPartialAmount("");
       setPendingInversionCents(null);
@@ -169,66 +186,90 @@ export function SettlementControls({
   // déjà nul (désactivée si solde nul, spec 8.1).
   if (currentMemberId !== debtorId || amountCents === 0) return null;
 
-  if (showPartialForm) {
-    return (
-      <Stack gap={1}>
-        {error ? <Notice tone="error">{error}</Notice> : null}
-        {pendingInversionCents !== null ? (
-          <Notice tone="neutral">
-            {creditorName} te devra désormais{" "}
-            <AmountDisplay value={formatAmountEUR(pendingInversionCents - amountCents)} /> après ce
-            remboursement.
-          </Notice>
-        ) : null}
-        <Input
-          label="montant remboursé"
-          value={partialAmount}
-          onChange={(e) => {
-            setPartialAmount(e.target.value);
-            setPendingInversionCents(null);
-          }}
-          placeholder="0,00"
-          inputMode="decimal"
-          suffix="€"
-        />
-        <Stack direction="row" gap={1}>
-          <Button disabled={isPending} onClick={submitPartial}>
-            {pendingInversionCents !== null ? "confirmer ce remboursement" : "envoyer ce remboursement"}
-          </Button>
-          <Button
-            disabled={isPending}
-            onClick={() => {
-              setError(null);
-              setShowPartialForm(false);
-              setPartialAmount("");
-              setPendingInversionCents(null);
-            }}
-          >
-            annuler
-          </Button>
-        </Stack>
-      </Stack>
-    );
-  }
+  const totalAmount = formatAmountEUR(amountCents);
 
   return (
-    <Stack gap={1}>
-      {error ? <Notice tone="error">{error}</Notice> : null}
-      <Button
-        disabled={isPending}
-        onClick={() => run(() => initiateSettlementAction({ amountCents }))}
-      >
-        solder
-      </Button>
-      <Button
-        disabled={isPending}
-        onClick={() => {
-          setError(null);
-          setShowPartialForm(true);
-        }}
-      >
-        rembourser un autre montant
-      </Button>
-    </Stack>
+    <>
+      <Stack gap={1}>
+        {error && !dialogOpen ? <Notice tone="error">{error}</Notice> : null}
+        <Button
+          disabled={isPending}
+          onClick={() => {
+            setError(null);
+            setDialogOpen(true);
+          }}
+        >
+          solder
+        </Button>
+      </Stack>
+
+      <Dialog open={dialogOpen} onClose={resetDialog} showCloseButton>
+        {showPartialForm ? (
+          <Stack gap={1}>
+            {error ? <Notice tone="error">{error}</Notice> : null}
+            {pendingInversionCents !== null ? (
+              <Notice tone="neutral">
+                {creditorName} te devra désormais{" "}
+                <AmountDisplay value={formatAmountEUR(pendingInversionCents - amountCents)} /> après
+                cette confirmation.
+              </Notice>
+            ) : null}
+            <Input
+              label="montant"
+              value={partialAmount}
+              onChange={(e) => {
+                setPartialAmount(e.target.value);
+                setPendingInversionCents(null);
+              }}
+              placeholder="0,00"
+              inputMode="decimal"
+              suffix="€"
+            />
+            <Stack direction="row" gap={1}>
+              <Button disabled={isPending} onClick={submitPartial}>
+                {pendingInversionCents !== null ? "confirmer" : "envoyer"}
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={isPending}
+                onClick={() => {
+                  setError(null);
+                  setShowPartialForm(false);
+                  setPartialAmount("");
+                  setPendingInversionCents(null);
+                }}
+              >
+                annuler
+              </Button>
+            </Stack>
+          </Stack>
+        ) : (
+          <Stack gap={1}>
+            {error ? <Notice tone="error">{error}</Notice> : null}
+            <Notice tone="neutral">
+              tu as réglé les <AmountDisplay value={totalAmount} /> que tu dois à {creditorName} ?
+            </Notice>
+            <Stack direction="row" gap={1}>
+              <Button
+                disabled={isPending}
+                onClick={() => run(() => initiateSettlementAction({ amountCents }))}
+              >
+                confirmer
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={isPending}
+                onClick={() => {
+                  setError(null);
+                  setShowPartialForm(true);
+                }}
+              >
+                autre montant
+              </Button>
+            </Stack>
+          </Stack>
+        )}
+      </Dialog>
+    </>
   );
 }

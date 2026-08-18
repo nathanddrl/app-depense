@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { X } from "lucide-react";
 import { Button } from "../core";
 import styles from "./Dialog.module.css";
 
@@ -11,12 +12,25 @@ type Props = {
   // Mode plein écran (navigation-ia §3.3) : additif, défaut false → le
   // comportement centré + scrim existant reste strictement inchangé.
   fullscreen?: boolean;
+  // Croix de fermeture en haut à droite du panneau (mode centré uniquement),
+  // à la place du bouton « fermer » en pied de modale (pas les deux à la
+  // fois) — additif, défaut false : les consommateurs existants (ex.
+  // password-section, montée sans affordance de fermeture visible) ne sont
+  // pas affectés.
+  showCloseButton?: boolean;
   children: ReactNode;
 };
 
 const TITLE_ID = "dialog-title";
 
-export function Dialog({ open, onClose, title, fullscreen = false, children }: Props) {
+export function Dialog({
+  open,
+  onClose,
+  title,
+  fullscreen = false,
+  showCloseButton = false,
+  children,
+}: Props) {
   useEffect(() => {
     if (!open || !onClose) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -68,13 +82,23 @@ export function Dialog({ open, onClose, title, fullscreen = false, children }: P
         aria-labelledby={title ? TITLE_ID : undefined}
         onClick={(e) => e.stopPropagation()}
       >
+        {showCloseButton && onClose ? (
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="fermer"
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+        ) : null}
         {title ? (
           <h2 id={TITLE_ID} className={styles.title}>
             {title}
           </h2>
         ) : null}
         <div className={styles.body}>{children}</div>
-        {onClose ? (
+        {onClose && !showCloseButton ? (
           <div className={styles.close}>
             <Button variant="secondary" onClick={onClose}>
               fermer
