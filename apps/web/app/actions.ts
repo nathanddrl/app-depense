@@ -7,6 +7,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "../lib/supabase/server";
 import { getCurrentContext, requireAdmin } from "../lib/auth/context";
+import type { Context } from "../lib/auth/context";
 import {
   createExpense,
   updateExpense,
@@ -118,8 +119,13 @@ export async function listExpenseMonthsAction(): Promise<ActionResult<string[]>>
 // listConfirmedSettlements (@app/domain-settlement) : un domaine n'important
 // jamais un autre domain-* (DA4). Modèle ledger (D7/D15 révisés) : le solde
 // affiché intègre les ajustements des règlements confirmés.
-export async function getBalanceAction(): Promise<ActionResult<Balance>> {
-  const ctx = await getCurrentContext();
+//
+// Seule source de vérité du solde côté web (T-SOLDE3) : `initiateSettlementAction`
+// doit consommer cette même fonction plutôt que de rappeler `getBalance` avec
+// une liste de règlements différente (vide en particulier) — sinon son
+// solde interne diverge de celui affiché à l'écran après une régularisation
+// confirmée qui a inversé le sens de la dette (D15 v0.5).
+async function getCurrentBalance(ctx: Context): Promise<ActionResult<Balance>> {
   const domainCtx = { memberId: ctx.member.id, householdId: ctx.householdId };
 
   const settlementRepo = new SupabaseSettlementRepository(ctx.supabase);
@@ -133,6 +139,11 @@ export async function getBalanceAction(): Promise<ActionResult<Balance>> {
 
   const repo = new SupabaseExpenseRepository(ctx.supabase);
   return getBalance(repo, domainCtx, { householdId: ctx.householdId, settlements });
+}
+
+export async function getBalanceAction(): Promise<ActionResult<Balance>> {
+  const ctx = await getCurrentContext();
+  return getCurrentBalance(ctx);
 }
 
 export async function getBalanceDetailAction(): Promise<ActionResult<BalanceDetailLine[]>> {
@@ -207,16 +218,17 @@ export async function getCurrentSettlementAction(): Promise<ActionResult<Settlem
 // un autre domain-* (DA4, cf. T-C6.2/T-C6.5), cette orchestration vit ici.
 // D15 v0.5 : `amountCents` est fourni par le client (montant total, partiel,
 // ou supérieur au solde — auquel cas le solde s'inverse à la confirmation).
-// Le solde réel (`getBalance`) ne sert plus qu'à détecter le solde nul
-// (`balanceAmountCents`, `BALANCE_ALREADY_ZERO`), jamais à borner le montant.
+// Le solde réel (`getCurrentBalance`, même source de vérité que `getBalanceAction`,
+// T-SOLDE3) ne sert plus qu'à détecter le solde nul (`balanceAmountCents`,
+// `BALANCE_ALREADY_ZERO`) et à identifier le débiteur légitime (D16), jamais à
+// borner le montant.
 export async function initiateSettlementAction(input: {
   amountCents: number;
 }): Promise<ActionResult<Settlement>> {
   const ctx = await getCurrentContext();
   const domainCtx = { memberId: ctx.member.id, householdId: ctx.householdId };
 
-  const expenseRepo = new SupabaseExpenseRepository(ctx.supabase);
-  const balance = await getBalance(expenseRepo, domainCtx, { householdId: ctx.householdId });
+  const balance = await getCurrentBalance(ctx);
   if (!balance.ok) return balance;
 
   const settlementRepo = new SupabaseSettlementRepository(ctx.supabase);
