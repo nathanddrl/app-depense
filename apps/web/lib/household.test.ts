@@ -11,11 +11,11 @@ describe("memberDisplayName", () => {
     expect(memberDisplayName(members, "m2")).toBe("Camille");
   });
 
-  it("renvoie \"\" pour un membre introuvable (jamais l'id brut)", () => {
+  it('renvoie "" pour un membre introuvable (jamais l\'id brut)', () => {
     expect(memberDisplayName(members, "inconnu")).toBe("");
   });
 
-  it("renvoie \"\" sur une liste vide", () => {
+  it('renvoie "" sur une liste vide', () => {
     expect(memberDisplayName([], "m1")).toBe("");
   });
 });

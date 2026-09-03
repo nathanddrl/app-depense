@@ -205,9 +205,8 @@ vi.mock("@app/db", () => {
   };
 });
 
-const { getBalanceAction, initiateSettlementAction, confirmSettlementAction } = await import(
-  "../app/actions"
-);
+const { getBalanceAction, initiateSettlementAction, confirmSettlementAction } =
+  await import("../app/actions");
 
 function seedRentExpense(): void {
   // A paie 800 € de loyer, split 50/50 → B doit 400 € à A.

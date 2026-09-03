@@ -30,24 +30,24 @@
      rediscuter. `-text` est calibré pour un contraste de lecture, distinct de
      `-subtle/-moderate/-ceiling` qui ne servent qu'au poids d'un trait
      graphique (jamais pour du texte, cf. AmountDisplay). */
-  --negative-subtle: oklch(0.72 0.050 255);
+  --negative-subtle: oklch(0.72 0.05 255);
   --negative-moderate: oklch(0.65 0.065 255);
   --negative-ceiling: oklch(0.58 0.085 255);
-  --negative-text: oklch(0.40 0.100 255);
+  --negative-text: oklch(0.4 0.1 255);
   --positive-subtle: oklch(0.72 0.055 325);
-  --positive-moderate: oklch(0.65 0.070 325);
+  --positive-moderate: oklch(0.65 0.07 325);
   --positive-ceiling: oklch(0.58 0.085 325);
-  --positive-text: oklch(0.40 0.100 325);
+  --positive-text: oklch(0.4 0.1 325);
 
   /* Écart de solde dark — mêmes noms, suffixe -dark- */
   --negative-dark-subtle: oklch(0.51 0.045 255);
-  --negative-dark-moderate: oklch(0.61 0.060 255);
-  --negative-dark-ceiling: oklch(0.70 0.075 255);
+  --negative-dark-moderate: oklch(0.61 0.06 255);
+  --negative-dark-ceiling: oklch(0.7 0.075 255);
   --negative-dark-text: oklch(0.82 0.055 255);
-  --positive-dark-subtle: oklch(0.51 0.050 325);
+  --positive-dark-subtle: oklch(0.51 0.05 325);
   --positive-dark-moderate: oklch(0.61 0.065 325);
-  --positive-dark-ceiling: oklch(0.70 0.078 325);
-  --positive-dark-text: oklch(0.82 0.060 325);
+  --positive-dark-ceiling: oklch(0.7 0.078 325);
+  --positive-dark-text: oklch(0.82 0.06 325);
 
   /* Erreurs système — isolées, jamais mélangées à l'écart de balance */
   --brick: oklch(0.5 0.07 30);

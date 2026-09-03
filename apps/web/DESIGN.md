@@ -153,6 +153,7 @@ Sumeria/Revolut (vocabulaire et code couleur de pilotage/optimisation) — les
 deux anti-références de PRODUCT.md.
 
 **Key Characteristics:**
+
 - Angles droits partout ; une seule valeur de radius non nulle dans tout le
   système, réservée aux surfaces tactiles.
 - Aucune ombre, jamais — la profondeur s'encode par la luminosité de surface.
@@ -168,6 +169,7 @@ Une ardoise glauque à teinte constante porte tout le système ; un unique accen
 minéral module en intensité pour dire un seul fait : la taille d'un écart.
 
 ### Primary
+
 - **Argile** (`oklch(0.62 0.085 55)` / `clay-fill`): l'unique accent du système.
   Un déclencheur par écran maximum — points, barres, états actifs. Encode
   exclusivement la magnitude d'un écart entre les deux membres du foyer, jamais
@@ -178,6 +180,7 @@ minéral module en intensité pour dire un seul fait : la taille d'un écart.
   uniquement à être vu (points, barres), jamais à être lu.
 
 ### Neutral
+
 - **Ardoise fond** (`oklch(0.97 0.012 170)` / `surface-base`): fond de page.
   Teinte 170° constante — choisie contre le bleu océan (trop cinétique) et le
   violet fintech (ancrage marketing artificiel).
@@ -195,17 +198,20 @@ minéral module en intensité pour dire un seul fait : la taille d'un écart.
   — il ne descend jamais vers un noir sans chroma.
 
 ### Erreurs système
+
 - **Brique** (`oklch(0.5 0.07 30)` / `brick`): erreurs techniques uniquement.
   Teinte isolée à ~30°, structurellement séparée de l'échelle argile — aucun
   token n'est partagé entre les deux, par construction, pas seulement par
   convention.
 
 ### Catégories
+
 - **Rotation catégories** (`category-1` à `category-6`, gris-verts 130–220°):
   couleur auto-assignée aux dépenses selon une rotation fixe. Jamais l'accent
   argile, réservé exclusivement à l'écart.
 
 ### Named Rules
+
 **La règle du plafond dur.** L'accent argile ne dépasse jamais `clay-ceiling`
 quelle que soit la magnitude réelle de l'écart — la marque ne se laisse jamais
 dominer visuellement par un montant.
@@ -225,6 +231,7 @@ réservée aux phrases de constat déclaratif (« vous êtes étale », « léa 
 chrome. General Sans porte tout le reste : navigation, corps, montants.
 
 ### Hierarchy
+
 - **Display** (regular 400, italique, 44/32/24px selon le cran, line-height
   1.2): réservée aux phrases de constat déclaratif du solde. Jamais pour un
   titre de section.
@@ -239,6 +246,7 @@ chrome. General Sans porte tout le reste : navigation, corps, montants.
 - **Amount** (medium 500, 15px, chiffres tabulaires `tnum lnum`): montants.
 
 ### Named Rules
+
 **La règle du montant discret.** La taille d'un montant est toujours alignée
 sur le corps de texte environnant ; la différenciation se fait uniquement par
 le poids (medium vs regular), jamais par la taille. Le montant n'est jamais le
@@ -262,6 +270,7 @@ Seule exception à la platitude : un lavis radial de 2–4 % de luminosité sur 
 canvas de fond — aucun dégradé sur un élément interactif, jamais.
 
 ### Named Rules
+
 **La règle zéro ombre.** `box-shadow` n'apparaît nulle part dans le système, à
 aucun niveau d'élévation, y compris les modals. Sans exception.
 
@@ -272,6 +281,7 @@ primitive directement) — la règle à trois tiers (primitive → sémantique �
 composant) est la garde-fou qui empêche la dérive vers l'app générique.
 
 ### Buttons
+
 - **Shape:** angle droit strict (`rounded-none`, 0px) — jamais arrondi.
 - **Primary:** fond `text-primary`, texte `surface-base`, padding 12px 20px,
   typographie UI (medium, tracking +0.01em).
@@ -284,6 +294,7 @@ composant) est la garde-fou qui empêche la dérive vers l'app générique.
 - Texte seul, jamais d'icône par défaut.
 
 ### Chips (CategoryChip)
+
 - **Style:** aplat de couleur (rotation `category-1..6`) + initiale du nom
   saisi, en General Sans medium. Jamais un pictogramme littéral, jamais un
   color picker exposé — attribution automatique uniquement.
@@ -295,6 +306,7 @@ composant) est la garde-fou qui empêche la dérive vers l'app générique.
   sans `onClick`).
 
 ### Cards / Containers
+
 - **Corner Style:** angle droit strict, jamais de radius.
 - **Background:** `surface-card`, `surface-raised` pour l'élévation.
 - **Shadow Strategy:** aucune — voir section Elevation.
@@ -303,6 +315,7 @@ composant) est la garde-fou qui empêche la dérive vers l'app générique.
 - **Internal Padding:** `space-3` (32px) par défaut.
 
 ### Inputs / Fields
+
 - **Style:** ligne unique, fond `surface-card`, `radius-subtle` (2px) —
   **la seule surface arrondie de tout le système**. Suffixe optionnel (ex.
   « € »).
@@ -310,10 +323,12 @@ composant) est la garde-fou qui empêche la dérive vers l'app générique.
 - **Error:** texte/bordure en `brick`, jamais un token de l'échelle argile.
 
 ### Navigation (Tabs)
+
 - **Style:** soulignement, pas de pilule, pas de fond coloré. Onglet actif
   distingué par un trait sous le label, jamais par une couleur de fond.
 
 ### WaterLine — composant signature
+
 Ligne horizontale dont l'inflexion encode la magnitude d'un écart (-1..1) : à
 0, ligne droite et couleur neutre (« étale »). Le signe donne la direction,
 la valeur absolue pilote à la fois la profondeur de la courbe **et** le palier
@@ -322,16 +337,19 @@ les deux. Transition sur `motion.settle` (600ms). Jamais un nombre dans un
 badge coloré ; l'écart se lit en position, pas en étiquette.
 
 ### AmountDisplay
+
 Chiffres tabulaires toujours ; différenciation exclusivement par le poids
 (medium vs regular), jamais par la taille — voir Named Rule §3.
 
 ### BalanceStatement
+
 Seul emplacement autorisé pour Fraunces italique — les phrases de constat
 déclaratif du solde (« léa doit 42 € à nathan »), jamais un titre ou un label.
 
 ## 6. Do's and Don'ts
 
 ### Do:
+
 - **Do** consommer les tokens sémantiques (`--surface-raised`) ; jamais une
   primitive directement (`--grey-2`) dans un composant.
 - **Do** encoder un écart via la magnitude de `WaterLine` (ligne + une seule
@@ -348,6 +366,7 @@ déclaratif du solde (« léa doit 42 € à nathan »), jamais un titre ou un l
   manuel exposé.
 
 ### Don't:
+
 - **Don't** utiliser un badge/pill coloré ou deux teintes opposées pour « les
   deux côtés » d'un écart — l'anti-réflexe Tricount explicite de PRODUCT.md.
 - **Don't** arrondir une card, un bouton, un dialog ou un chip.

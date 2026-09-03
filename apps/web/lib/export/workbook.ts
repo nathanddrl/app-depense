@@ -10,7 +10,7 @@
 
 import ExcelJS from "exceljs";
 
-const MONEY_FMT = '#,##0.00 €';
+const MONEY_FMT = "#,##0.00 €";
 const DATE_FMT = "dd/mm/yyyy";
 
 /** Membre du foyer, résolu id → nom en amont (jamais un id brut dans le fichier). */
@@ -59,9 +59,11 @@ function parseYmd(ymd: string): Date {
 /** `"2026-07"` → « juillet 2026 » (dupliqué de date-label pour garder ce module pur). */
 function monthLabel(monthKey: string): string {
   const [y, m] = monthKey.split("-").map(Number);
-  return new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" }).format(
-    new Date(Date.UTC(y, m - 1, 1)),
-  );
+  return new Intl.DateTimeFormat("fr-FR", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(y, m - 1, 1)));
 }
 
 /** Nom d'un membre, ou l'id brut en dernier recours (jamais vide → traçable). */
@@ -203,7 +205,9 @@ function buildAidsAndSettlementsSheet(
 
   // Bloc 1 — aides perçues (aplaties depuis les dépenses).
   styleHeader(ws.addRow(["Aides perçues"]));
-  styleHeader(ws.addRow(["Date dépense", "Libellé dépense", "Bénéficiaire", "Libellé aide", "Montant"]));
+  styleHeader(
+    ws.addRow(["Date dépense", "Libellé dépense", "Bénéficiaire", "Libellé aide", "Montant"]),
+  );
   for (const e of expenses) {
     for (const aid of e.aids) {
       ws.addRow([

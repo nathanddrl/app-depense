@@ -62,9 +62,7 @@ afterAll(async () => {
     await client.query(`delete from expense_share where expense_id = any($1::uuid[])`, [
       generatedExpenseIds,
     ]);
-    await client.query(`delete from aid where expense_id = any($1::uuid[])`, [
-      generatedExpenseIds,
-    ]);
+    await client.query(`delete from aid where expense_id = any($1::uuid[])`, [generatedExpenseIds]);
     await client.query(`delete from expense where id = any($1::uuid[])`, [generatedExpenseIds]);
   }
   await client.end();

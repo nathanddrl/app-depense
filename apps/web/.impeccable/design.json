@@ -101,24 +101,52 @@
       }
     },
     "typographyMeta": {
-      "display-lg": { "displayName": "Display — constat large", "purpose": "Phrases de constat déclaratif du solde uniquement (BalanceStatement, taille lg)." },
-      "display-md": { "displayName": "Display — constat moyen", "purpose": "Constat déclaratif, contexte secondaire." },
-      "display-sm": { "displayName": "Display — constat petit", "purpose": "Constat déclaratif, contexte compact (listes, cartes)." },
-      "title": { "displayName": "Titre de section", "purpose": "Titres de page/section en General Sans medium." },
+      "display-lg": {
+        "displayName": "Display — constat large",
+        "purpose": "Phrases de constat déclaratif du solde uniquement (BalanceStatement, taille lg)."
+      },
+      "display-md": {
+        "displayName": "Display — constat moyen",
+        "purpose": "Constat déclaratif, contexte secondaire."
+      },
+      "display-sm": {
+        "displayName": "Display — constat petit",
+        "purpose": "Constat déclaratif, contexte compact (listes, cartes)."
+      },
+      "title": {
+        "displayName": "Titre de section",
+        "purpose": "Titres de page/section en General Sans medium."
+      },
       "ui": { "displayName": "Chrome UI", "purpose": "Boutons, navigation, labels de chrome." },
       "body": { "displayName": "Corps de texte", "purpose": "Texte courant, plafond 65–75ch." },
-      "caption": { "displayName": "Légende", "purpose": "Labels courts au-dessus d'un montant (ex. « solde »)." },
-      "amount": { "displayName": "Montant", "purpose": "Valeurs monétaires, chiffres tabulaires, différenciées par le poids jamais la taille." }
+      "caption": {
+        "displayName": "Légende",
+        "purpose": "Labels courts au-dessus d'un montant (ex. « solde »)."
+      },
+      "amount": {
+        "displayName": "Montant",
+        "purpose": "Valeurs monétaires, chiffres tabulaires, différenciées par le poids jamais la taille."
+      }
     },
     "shadows": [],
     "motion": [
-      { "name": "settle", "value": "600ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Geste-signature du solde qui se stabilise (WaterLine)." },
-      { "name": "settle-extended", "value": "1200ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Fondu de l'accent argile qui s'efface entièrement à la résorption d'un écart." },
-      { "name": "micro", "value": "300ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Feedback d'interaction ordinaire (hover, focus, toggle)." }
+      {
+        "name": "settle",
+        "value": "600ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Geste-signature du solde qui se stabilise (WaterLine)."
+      },
+      {
+        "name": "settle-extended",
+        "value": "1200ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Fondu de l'accent argile qui s'efface entièrement à la résorption d'un écart."
+      },
+      {
+        "name": "micro",
+        "value": "300ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Feedback d'interaction ordinaire (hover, focus, toggle)."
+      }
     ],
-    "breakpoints": [
-      { "name": "mobile-column", "value": "480px" }
-    ]
+    "breakpoints": [{ "name": "mobile-column", "value": "480px" }]
   },
   "components": [
     {
@@ -197,11 +225,31 @@
       "Deux paliers de motion, décélération lourde, zéro overshoot, zéro spring."
     ],
     "rules": [
-      { "name": "La règle du plafond dur", "body": "L'accent argile ne dépasse jamais clay-ceiling quelle que soit la magnitude réelle de l'écart.", "section": "colors" },
-      { "name": "La règle de l'écart neutre", "body": "Un solde à zéro ne porte aucune couleur. La résorption est un retour au gris, jamais l'apparition d'un vert de succès.", "section": "colors" },
-      { "name": "La règle du montant discret", "body": "La taille d'un montant est toujours alignée sur le corps de texte environnant ; la différenciation se fait uniquement par le poids, jamais par la taille.", "section": "typography" },
-      { "name": "La règle bas-de-casse", "body": "Bas-de-casse quasi systématique, y compris le nom de marque et les labels courts. text-transform: uppercase interdit partout.", "section": "typography" },
-      { "name": "La règle zéro ombre", "body": "box-shadow n'apparaît nulle part dans le système, à aucun niveau d'élévation, y compris les modals.", "section": "elevation" }
+      {
+        "name": "La règle du plafond dur",
+        "body": "L'accent argile ne dépasse jamais clay-ceiling quelle que soit la magnitude réelle de l'écart.",
+        "section": "colors"
+      },
+      {
+        "name": "La règle de l'écart neutre",
+        "body": "Un solde à zéro ne porte aucune couleur. La résorption est un retour au gris, jamais l'apparition d'un vert de succès.",
+        "section": "colors"
+      },
+      {
+        "name": "La règle du montant discret",
+        "body": "La taille d'un montant est toujours alignée sur le corps de texte environnant ; la différenciation se fait uniquement par le poids, jamais par la taille.",
+        "section": "typography"
+      },
+      {
+        "name": "La règle bas-de-casse",
+        "body": "Bas-de-casse quasi systématique, y compris le nom de marque et les labels courts. text-transform: uppercase interdit partout.",
+        "section": "typography"
+      },
+      {
+        "name": "La règle zéro ombre",
+        "body": "box-shadow n'apparaît nulle part dans le système, à aucun niveau d'élévation, y compris les modals.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "Do consommer les tokens sémantiques (--surface-raised), jamais une primitive directement (--grey-2) dans un composant.",

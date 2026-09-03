@@ -2,7 +2,10 @@ import type { Expense } from "@app/domain-expense";
 
 // Regroupement contigu (liste déjà triée desc par `incurredOn` côté repo) :
 // un seul passage, pas de `Map`/`find` — clé de jour ou de mois selon l'appelant.
-function groupByKey(expenses: Expense[], keyOf: (e: Expense) => string): { key: string; items: Expense[] }[] {
+function groupByKey(
+  expenses: Expense[],
+  keyOf: (e: Expense) => string,
+): { key: string; items: Expense[] }[] {
   const groups: { key: string; items: Expense[] }[] = [];
   for (const e of expenses) {
     const key = keyOf(e);

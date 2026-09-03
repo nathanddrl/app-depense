@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createExpense, updateExpense, deleteExpense, listExpenses, listExpenseMonths } from "./index";
+import {
+  createExpense,
+  updateExpense,
+  deleteExpense,
+  listExpenses,
+  listExpenseMonths,
+} from "./index";
 import type {
   ExpenseRepository,
   NewExpense,

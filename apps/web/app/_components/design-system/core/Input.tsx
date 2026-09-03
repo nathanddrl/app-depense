@@ -69,7 +69,11 @@ export function Input({
             // Ne pas voler le focus au champ (garde le curseur dans l'input).
             tabIndex={-1}
           >
-            {revealed ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+            {revealed ? (
+              <EyeOff size={18} aria-hidden="true" />
+            ) : (
+              <Eye size={18} aria-hidden="true" />
+            )}
           </button>
         ) : null}
       </span>
