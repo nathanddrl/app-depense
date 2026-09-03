@@ -167,6 +167,30 @@ function expenseIdForTemplate(results: RecurringGenerationOutcome[], templateId:
   return found.expenseId;
 }
 
+/**
+ * Variante non bloquante pour M0 : contrairement à M-5..M-1 (générées au
+ * dernier jour calendaire du mois, cf. `lastDayOfRelativeMonth`), M0 est
+ * généré à la date réelle du jour — un résultat `status: "skipped"` avec
+ * `reason: "day-not-reached"` (T-C7.2/T-C7.3) y est donc ATTENDU en tout
+ * début de mois (jour du mois du template pas encore atteint), pas une
+ * erreur : le foyer réel n'a simplement pas encore sa dépense loyer de ce
+ * mois-ci. Seul `"failed"` (précondition calc-engine ou erreur repo) reste
+ * fatal.
+ */
+function expenseIdForTemplateIfGenerated(
+  results: RecurringGenerationOutcome[],
+  templateId: string,
+): string | null {
+  const found = results.find((r) => r.templateId === templateId);
+  if (!found) {
+    throw new Error(`Aucun résultat de génération pour le template ${templateId}.`);
+  }
+  if (found.status === "failed") {
+    throw new Error(`Génération du template ${templateId} en échec : ${found.message}`);
+  }
+  return found.status === "generated" ? found.expenseId : null;
+}
+
 async function createOneOff(opts: {
   monthsAgo: number;
   day: number;
@@ -437,25 +461,31 @@ async function main(): Promise<void> {
     "  Aide « les deux » sur le VRAI loyer de M0 (split 50/50, en plus de l'APL, D-produit 09/07)…",
   );
   {
-    const rentExpenseId = expenseIdForTemplate(resultsM0, LOYER_TEMPLATE_ID);
-    unwrap(
-      await addAid(aidRepo, aidCtx(OKSANA), {
-        expenseId: rentExpenseId,
-        label: "Aide exceptionnelle (les deux, part 1/2)",
-        beneficiaryId: NATHAN,
-        amountCents: 10000,
-      }),
-      "addAid (les deux, part 1, sur le vrai loyer M0)",
-    );
-    unwrap(
-      await addAid(aidRepo, aidCtx(OKSANA), {
-        expenseId: rentExpenseId,
-        label: "Aide exceptionnelle (les deux, part 2/2)",
-        beneficiaryId: OKSANA,
-        amountCents: 10000,
-      }),
-      "addAid (les deux, part 2, sur le vrai loyer M0)",
-    );
+    const rentExpenseId = expenseIdForTemplateIfGenerated(resultsM0, LOYER_TEMPLATE_ID);
+    if (rentExpenseId === null) {
+      console.log(
+        "  → occurrence loyer non générée ce mois-ci (skip \"day-not-reached\", T-C7.2/T-C7.3 : jour du mois pas encore atteint) : cas normal en tout début de mois, aide sautée.",
+      );
+    } else {
+      unwrap(
+        await addAid(aidRepo, aidCtx(OKSANA), {
+          expenseId: rentExpenseId,
+          label: "Aide exceptionnelle (les deux, part 1/2)",
+          beneficiaryId: NATHAN,
+          amountCents: 10000,
+        }),
+        "addAid (les deux, part 1, sur le vrai loyer M0)",
+      );
+      unwrap(
+        await addAid(aidRepo, aidCtx(OKSANA), {
+          expenseId: rentExpenseId,
+          label: "Aide exceptionnelle (les deux, part 2/2)",
+          beneficiaryId: OKSANA,
+          amountCents: 10000,
+        }),
+        "addAid (les deux, part 2, sur le vrai loyer M0)",
+      );
+    }
   }
   console.log();
 
