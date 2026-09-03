@@ -30,6 +30,13 @@ jobs:
     steps:
       # Le runner embarque un pg_dump plus ancien que le serveur Supabase :
       # on installe le client 17 depuis le dépôt officiel PGDG.
+      #
+      # Installer le paquet ne suffit pas : sur Debian/Ubuntu, /usr/bin/pg_dump
+      # est un lien vers pg_wrapper (postgresql-common), qui choisit la version
+      # d'après le cluster par défaut — pas la plus récente installée. Avec
+      # postgresql-client-16 déjà présent sur le runner, `pg_dump` continue donc
+      # de résoudre en 16 même après l'installation de la 17. On place le
+      # binaire versionné en tête de PATH et on l'appelle par chemin absolu.
       - name: Installer le client PostgreSQL 17
         run: |
           set -euo pipefail
@@ -40,7 +47,20 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends postgresql-client-17
-          pg_dump --version
+
+          PG_BIN=/usr/lib/postgresql/17/bin
+          if [ ! -x "$PG_BIN/pg_dump" ]; then
+            echo "::error::$PG_BIN/pg_dump introuvable après installation de postgresql-client-17."
+            dpkg -l 'postgresql-client-*' || true
+            exit 1
+          fi
+          echo "$PG_BIN" >> "$GITHUB_PATH"
+          echo "PG_DUMP=$PG_BIN/pg_dump" >> "$GITHUB_ENV"
+
+          # Trace de diagnostic : versions réellement installées et résolues.
+          dpkg -l 'postgresql-client-*' | awk '/^ii/ {print $2, $3}'
+          echo "pg_dump via PATH  : $(pg_dump --version)"
+          echo "pg_dump versionné : $("$PG_BIN/pg_dump" --version)"
 
       - name: Dump de la base
         env:
@@ -54,9 +74,16 @@ jobs:
             echo "::error::Le secret SUPABASE_PROD_DB_URL est vide ou absent."
             exit 1
           fi
+          if [ -z "${PG_DUMP:-}" ] || [ ! -x "${PG_DUMP}" ]; then
+            echo "::error::PG_DUMP non défini : l'étape d'installation du client 17 a échoué."
+            exit 1
+          fi
           STAMP="$(date -u +%Y-%m-%d)"
           DUMP_NAME="etale-prod-${STAMP}.sql"
           echo "DUMP_NAME=${DUMP_NAME}.gz" >> "$GITHUB_ENV"
+
+          # Confirme dans les logs la version réellement utilisée pour ce dump.
+          echo "pg_dump utilisé : $("$PG_DUMP" --version)"
 
           # --no-owner/--no-privileges : le dump reste restaurable sur un autre
           # projet Supabase, où les rôles n'ont pas les mêmes OID.
@@ -64,7 +91,7 @@ jobs:
           # recréer, donc il se restaure aussi sur une base déjà peuplée.
           # Schémas retenus : données applicatives (public), comptes (auth),
           # métadonnées de fichiers (storage).
-          pg_dump "$DB_URL" \
+          "$PG_DUMP" "$DB_URL" \
             --schema=public \
             --schema=auth \
             --schema=storage \
