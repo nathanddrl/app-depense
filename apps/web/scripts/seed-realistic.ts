@@ -170,11 +170,12 @@ function expenseIdForTemplate(results: RecurringGenerationOutcome[], templateId:
 /**
  * Variante non bloquante pour M0 : contrairement à M-5..M-1 (générées au
  * dernier jour calendaire du mois, cf. `lastDayOfRelativeMonth`), M0 est
- * généré à la date réelle du jour — `"day-not-reached"` (T-C7.2/T-C7.3) y est
- * donc un résultat ATTENDU en tout début de mois (day_of_month du template
- * pas encore atteint), pas une erreur : le foyer réel n'a simplement pas
- * encore sa dépense loyer de ce mois-ci. Seul `"failed"` (précondition
- * calc-engine ou erreur repo) reste fatal.
+ * généré à la date réelle du jour — un résultat `status: "skipped"` avec
+ * `reason: "day-not-reached"` (T-C7.2/T-C7.3) y est donc ATTENDU en tout
+ * début de mois (jour du mois du template pas encore atteint), pas une
+ * erreur : le foyer réel n'a simplement pas encore sa dépense loyer de ce
+ * mois-ci. Seul `"failed"` (précondition calc-engine ou erreur repo) reste
+ * fatal.
  */
 function expenseIdForTemplateIfGenerated(
   results: RecurringGenerationOutcome[],
@@ -463,7 +464,7 @@ async function main(): Promise<void> {
     const rentExpenseId = expenseIdForTemplateIfGenerated(resultsM0, LOYER_TEMPLATE_ID);
     if (rentExpenseId === null) {
       console.log(
-        "  → pas encore d'occurrence loyer ce mois-ci (jour du mois pas atteint, T-C7.2/T-C7.3) : cas normal en tout début de mois, aide sautée.",
+        "  → occurrence loyer non générée ce mois-ci (skip \"day-not-reached\", T-C7.2/T-C7.3 : jour du mois pas encore atteint) : cas normal en tout début de mois, aide sautée.",
       );
     } else {
       unwrap(
