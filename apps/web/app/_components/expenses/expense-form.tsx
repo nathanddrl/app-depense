@@ -32,6 +32,7 @@ import type { MemberShare } from "../../../lib/household";
 import { parseAmountToCents } from "../../../lib/amount";
 import { BOTH_BENEFICIARIES } from "./aid-split";
 import { CategorySelect } from "./category-select";
+import { detectCategory } from "./detect-category";
 import { Button, Card, Input, Checkbox } from "../design-system/core";
 import { Notice } from "../design-system/feedback";
 import { Stack } from "../design-system/layout";
@@ -75,6 +76,24 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
   const [aideAmount, setAideAmount] = useState("");
   const [aideBeneficiary, setAideBeneficiary] = useState<string>(currentMemberId);
   const [amountError, setAmountError] = useState<string | null>(null);
+  // Verrou de la détection auto (spec-technique §6) : dès que l'utilisateur
+  // choisit lui-même une catégorie, on ne l'écrase plus pour CETTE saisie,
+  // même si le libellé continue de changer. Remis à zéro au prochain
+  // formulaire (après un ajout réussi).
+  const [categoryTouched, setCategoryTouched] = useState(false);
+
+  function handleLabelChange(value: string) {
+    setLabel(value);
+    if (categoryTouched) return;
+    // `null` = aucun mot-clé reconnu : on laisse la catégorie telle quelle.
+    const guessed = detectCategory(value);
+    if (guessed) setCategory(guessed);
+  }
+
+  function handleCategoryChange(value: Category) {
+    setCategoryTouched(true);
+    setCategory(value);
+  }
 
   async function handleSubmit() {
     setAmountError(null);
@@ -116,6 +135,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
       setLabel("");
       setAmount("");
       setCategory("autre");
+      setCategoryTouched(false);
       setPayerId(currentMemberId);
       setIncurredOn(today());
       setAideOn(false);
@@ -139,7 +159,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
           nouvelle dépense
         </span>
 
-        <Input label="libellé" value={label} onChange={(e) => setLabel(e.target.value)} />
+        <Input label="libellé" value={label} onChange={(e) => handleLabelChange(e.target.value)} />
 
         <Stack direction="row" gap={2} wrap>
           {/* 160px : largeur mini de flex-basis, pas un espacement — hors périmètre
@@ -165,7 +185,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
           </div>
         </Stack>
 
-        <CategorySelect value={category} onChange={setCategory} />
+        <CategorySelect value={category} onChange={handleCategoryChange} />
 
         <label className={nativeSelectStyles.wrapper}>
           <span className={nativeSelectStyles.label}>qui a payé</span>
@@ -190,11 +210,7 @@ export function ExpenseForm({ currentMemberId, defaultShares, pending, error, on
             {/* Repliée par défaut : une saisie simple (souvent 50/50, le
                 défaut du foyer) ne montre jamais le curseur sans action
                 explicite — même pattern que `AidSection`. */}
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOptionsOpen((prev) => !prev)}
-            >
+            <Button type="button" variant="ghost" onClick={() => setOptionsOpen((prev) => !prev)}>
               options
             </Button>
             {optionsOpen ? (
