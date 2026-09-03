@@ -83,6 +83,14 @@ type Props = {
    * après une suppression côté client, que le Server Component parent ne voit
    * pas. Absent (aperçu accueil) : la liste ne rend rien du tout. */
   emptyMessage?: string;
+  /** Appelé quand un fetch ciblé confirme qu'il ne reste plus AUCUNE dépense
+   * dans le foyer (pas seulement dans l'aperçu tronqué) — cas de la dernière
+   * dépense de l'aperçu accueil supprimée jusqu'à 0, hors DoD initiale de
+   * T-CF3 : contrairement à `visibleGroups`, ce signal ne bouge qu'après une
+   * suppression réellement commitée côté serveur (jamais pendant l'animation
+   * de sortie ni pendant la fenêtre d'annulation), pour ne pas démonter le
+   * composant — et perdre le toast d'annulation — avant l'échéance. */
+  onEmptied?: () => void;
 };
 
 // Seuil de déplacement (px) au-delà duquel un appui tactile est requalifié en
@@ -131,6 +139,7 @@ export function MovementsList({
   filters,
   previewLimit,
   emptyMessage,
+  onEmptied,
 }: Props) {
   const [, startTransition] = useGlobalTransition();
 
@@ -147,11 +156,16 @@ export function MovementsList({
       const result = await listExpensesAction(filters ?? {});
       if (!result.ok) return;
       setExpenses(previewLimit ? result.data.slice(0, previewLimit) : result.data);
+      // `result.data` n'est jamais tronqué par `previewLimit` (appliqué ci-dessus
+      // seulement à l'affichage) : sa longueur reflète le vrai total du foyer,
+      // pas juste l'aperçu — le seul moment sûr pour signaler "plus aucune
+      // dépense" au parent (accueil), après confirmation serveur.
+      if (result.data.length === 0) onEmptied?.();
     })();
     // `setExpenses` vient de `useServerState` : c'est le setter `useState`
     // sous-jacent, stable — listé uniquement pour satisfaire exhaustive-deps,
     // qui ne reconnaît pas les setters passant par un hook maison.
-  }, [filters, previewLimit, setExpenses]);
+  }, [filters, previewLimit, setExpenses, onEmptied]);
 
   useEffect(() => subscribeDataChanged("expenses", refreshExpenses), [refreshExpenses]);
 
