@@ -1,0 +1,136 @@
+name: Backup prod DB
+
+# Sauvegarde nocturne de la base `etale-prod` (Supabase Free Plan : aucun backup
+# automatique côté Supabase). Le dump est poussé dans le repo privé
+# `nathanddrl/etale-backups` avec une rétention glissante de 30 jours.
+#
+# Pas de trigger `pull_request` : ce repo est public, les secrets ne doivent pas
+# être exposés à un déclencheur venant d'une PR.
+on:
+  schedule:
+    # 02:30 UTC chaque nuit
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+# Un seul backup à la fois (évite deux push concurrents sur etale-backups).
+concurrency:
+  group: backup-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BACKUP_REPO: nathanddrl/etale-backups
+      RETENTION_DAYS: 30
+    steps:
+      # Le runner embarque un pg_dump plus ancien que le serveur Supabase :
+      # on installe le client 17 depuis le dépôt officiel PGDG.
+      - name: Installer le client PostgreSQL 17
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          pg_dump --version
+
+      - name: Dump de la base
+        env:
+          # Session pooler (port 5432, IPv4) : la connexion directe Supabase est
+          # IPv6-only et échoue depuis un runner GitHub Actions.
+          DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        run: |
+          # Pas de `set -x` ici : DB_URL ne doit jamais apparaître dans les logs.
+          set -euo pipefail
+          if [ -z "${DB_URL:-}" ]; then
+            echo "::error::Le secret SUPABASE_PROD_DB_URL est vide ou absent."
+            exit 1
+          fi
+          STAMP="$(date -u +%Y-%m-%d)"
+          DUMP_NAME="etale-prod-${STAMP}.sql"
+          echo "DUMP_NAME=${DUMP_NAME}.gz" >> "$GITHUB_ENV"
+
+          # --no-owner/--no-privileges : le dump reste restaurable sur un autre
+          # projet Supabase, où les rôles n'ont pas les mêmes OID.
+          # --clean/--if-exists : le dump droppe les objets avant de les
+          # recréer, donc il se restaure aussi sur une base déjà peuplée.
+          # Schémas retenus : données applicatives (public), comptes (auth),
+          # métadonnées de fichiers (storage).
+          pg_dump "$DB_URL" \
+            --schema=public \
+            --schema=auth \
+            --schema=storage \
+            --clean \
+            --if-exists \
+            --no-owner \
+            --no-privileges \
+            --quote-all-identifiers \
+            --file="/tmp/${DUMP_NAME}"
+
+          gzip -9 "/tmp/${DUMP_NAME}"
+          ls -lh "/tmp/${DUMP_NAME}.gz"
+          # Un dump vide ou tronqué est un échec, pas un backup.
+          test -s "/tmp/${DUMP_NAME}.gz"
+
+      - name: Pousser le dump et purger les backups de plus de 30 jours
+        env:
+          BACKUP_REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: |
+          # Pas de `set -x` ici non plus : le token ne doit jamais fuiter.
+          set -euo pipefail
+          if [ -z "${BACKUP_REPO_TOKEN:-}" ]; then
+            echo "::error::Le secret BACKUP_REPO_TOKEN est vide ou absent."
+            exit 1
+          fi
+
+          # Le token passe par le credential store (fichier 0600) et non par
+          # l'URL du remote : ainsi il n'apparaît ni dans `git remote -v`,
+          # ni dans les messages d'erreur de git.
+          umask 077
+          printf 'https://x-access-token:%s@github.com\n' "$BACKUP_REPO_TOKEN" > "$HOME/.git-credentials"
+          git config --global credential.helper store
+          git config --global user.name 'etale-backup-bot'
+          git config --global user.email 'etale-backup-bot@users.noreply.github.com'
+
+          git clone --depth 1 "https://github.com/${BACKUP_REPO}.git" /tmp/backups
+          cd /tmp/backups
+          mkdir -p backups
+          cp "/tmp/${DUMP_NAME}" "backups/${DUMP_NAME}"
+
+          # Rotation : la date est lue dans le nom du fichier (et non sur le
+          # mtime, non fiable après un clone) et comparée au seuil.
+          CUTOFF="$(date -u -d "${RETENTION_DAYS} days ago" +%Y%m%d)"
+          for f in backups/etale-prod-*.sql.gz; do
+            [ -e "$f" ] || continue
+            base="$(basename "$f")"
+            file_date="${base#etale-prod-}"
+            file_date="${file_date%.sql.gz}"
+            case "$file_date" in
+              [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
+              *) echo "Nom inattendu, ignoré : $base"; continue ;;
+            esac
+            if [ "${file_date//-/}" -lt "$CUTOFF" ]; then
+              echo "Purge du backup expiré : $base"
+              rm -f "$f"
+            fi
+          done
+
+          git add -A backups
+          if git diff --cached --quiet; then
+            echo "Aucun changement à pousser."
+            exit 0
+          fi
+          git commit -m "backup: etale-prod ${DUMP_NAME}"
+          git push origin HEAD
+
+      - name: Nettoyer les identifiants
+        if: always()
+        run: rm -f "$HOME/.git-credentials"
