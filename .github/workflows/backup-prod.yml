@@ -60,12 +60,16 @@ jobs:
 
           # --no-owner/--no-privileges : le dump reste restaurable sur un autre
           # projet Supabase, où les rôles n'ont pas les mêmes OID.
+          # --clean/--if-exists : le dump droppe les objets avant de les
+          # recréer, donc il se restaure aussi sur une base déjà peuplée.
           # Schémas retenus : données applicatives (public), comptes (auth),
           # métadonnées de fichiers (storage).
           pg_dump "$DB_URL" \
             --schema=public \
             --schema=auth \
             --schema=storage \
+            --clean \
+            --if-exists \
             --no-owner \
             --no-privileges \
             --quote-all-identifiers \
