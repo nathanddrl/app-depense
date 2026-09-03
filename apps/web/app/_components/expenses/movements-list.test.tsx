@@ -5,9 +5,12 @@
 // initialement vide, une dépense ajoutée sans navigation). Ici, le foyer a
 // une (seule) dépense au montage ; on la supprime via le flux réel
 // (clic ligne → `ExpenseEditForm` → « supprimer » → toast d'annulation) et on
-// prouve `onEmptied` : appelé seulement après confirmation serveur d'un
-// foyer vide (jamais pendant l'animation de sortie, jamais si l'utilisateur
-// clique « annuler » avant l'échéance du toast).
+// prouve `onEmptyChange` : appelé seulement après confirmation serveur (jamais
+// pendant l'animation de sortie, jamais si l'utilisateur clique « annuler »
+// avant l'échéance du toast), et dans les DEUX sens — y compris le
+// repeuplement via le bus `notifyDataChanged`, chemin réel d'un ajout depuis
+// /ajouter (route interceptée, jamais de démontage de MovementsList, cf.
+// revue Copilot sur PR #17 / home-expenses-preview.tsx).
 //
 // Même pattern que `settlement-controls.test.tsx` : `react-dom/client` + `act`
 // direct, Server Actions mockées (`../../actions` porte `"use server"`).
@@ -18,6 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Expense } from "@app/domain-expense";
 import { MovementsList } from "./movements-list";
 import { GlobalProgressProvider } from "../design-system/feedback";
+import { notifyDataChanged } from "../data-refresh/data-refresh-bus";
 
 const listExpensesAction = vi.fn();
 const deleteExpenseAction = vi.fn();
@@ -60,7 +64,7 @@ function makeExpense(id: string): Expense {
 describe("MovementsList — suppression progressive jusqu'à 0 (aperçu accueil)", () => {
   let container: HTMLDivElement;
   let root: Root;
-  let onEmptied: ReturnType<typeof vi.fn<() => void>>;
+  let onEmptyChange: ReturnType<typeof vi.fn<(isEmpty: boolean) => void>>;
 
   function render(element: ReactElement) {
     act(() => {
@@ -69,7 +73,7 @@ describe("MovementsList — suppression progressive jusqu'à 0 (aperçu accueil)
   }
 
   function renderList(expenses: Expense[]) {
-    onEmptied = vi.fn<() => void>();
+    onEmptyChange = vi.fn<(isEmpty: boolean) => void>();
     render(
       createElement(
         GlobalProgressProvider,
@@ -79,7 +83,7 @@ describe("MovementsList — suppression progressive jusqu'à 0 (aperçu accueil)
           members,
           currentMemberId: "m1",
           previewLimit: 3,
-          onEmptied,
+          onEmptyChange,
         }),
       ),
     );
@@ -130,7 +134,7 @@ describe("MovementsList — suppression progressive jusqu'à 0 (aperçu accueil)
     reactGlobals.IS_REACT_ACT_ENVIRONMENT = false;
   });
 
-  it("n'appelle PAS onEmptied pendant l'effacement ni si l'utilisateur annule", async () => {
+  it("n'appelle PAS onEmptyChange pendant l'effacement ni si l'utilisateur annule", async () => {
     const expense = makeExpense("e1");
     renderList([expense]);
 
@@ -141,7 +145,7 @@ describe("MovementsList — suppression progressive jusqu'à 0 (aperçu accueil)
     await act(async () => {
       vi.advanceTimersByTime(300);
     });
-    expect(onEmptied).not.toHaveBeenCalled();
+    expect(onEmptyChange).not.toHaveBeenCalled();
     expect(deleteExpenseAction).not.toHaveBeenCalled();
 
     // « annuler » avant l'échéance du toast (3s) : aucune suppression commitée.
@@ -150,10 +154,10 @@ describe("MovementsList — suppression progressive jusqu'à 0 (aperçu accueil)
       vi.advanceTimersByTime(5000);
     });
     expect(deleteExpenseAction).not.toHaveBeenCalled();
-    expect(onEmptied).not.toHaveBeenCalled();
+    expect(onEmptyChange).not.toHaveBeenCalled();
   });
 
-  it("appelle onEmptied une fois la dernière dépense réellement supprimée côté serveur", async () => {
+  it("appelle onEmptyChange(true) une fois la dernière dépense réellement supprimée côté serveur", async () => {
     const expense = makeExpense("e1");
     deleteExpenseAction.mockResolvedValue({ ok: true, data: undefined });
     listExpensesAction.mockResolvedValue({ ok: true, data: [] });
@@ -171,10 +175,11 @@ describe("MovementsList — suppression progressive jusqu'à 0 (aperçu accueil)
 
     expect(deleteExpenseAction).toHaveBeenCalledWith({ expenseId: "e1" });
     expect(listExpensesAction).toHaveBeenCalled();
-    expect(onEmptied).toHaveBeenCalledTimes(1);
+    expect(onEmptyChange).toHaveBeenCalledTimes(1);
+    expect(onEmptyChange).toHaveBeenCalledWith(true);
   });
 
-  it("n'appelle PAS onEmptied si d'autres dépenses restent au-delà de l'aperçu tronqué", async () => {
+  it("appelle onEmptyChange(false) si d'autres dépenses restent au-delà de l'aperçu tronqué", async () => {
     const expense = makeExpense("e1");
     deleteExpenseAction.mockResolvedValue({ ok: true, data: undefined });
     // Le fetch ciblé n'est pas limité par previewLimit côté serveur : il peut
@@ -190,6 +195,26 @@ describe("MovementsList — suppression progressive jusqu'à 0 (aperçu accueil)
       await Promise.resolve();
     });
 
-    expect(onEmptied).not.toHaveBeenCalled();
+    expect(onEmptyChange).toHaveBeenCalledWith(false);
+  });
+
+  it("appelle onEmptyChange(false) sur un repeuplement via le bus, SANS démontage (chemin réel /ajouter)", async () => {
+    // Foyer vide au montage (comme après une suppression jusqu'à 0) : c'est
+    // exactement l'état dans lequel `HomeExpensesPreview` garde `MovementsList`
+    // monté (jamais démonté selon `empty`, cf. son commentaire) — un ajout
+    // depuis la route interceptée /ajouter notifie le bus sans navigation
+    // complète, `MovementsList` doit rester abonné pour le voir.
+    listExpensesAction.mockResolvedValue({ ok: true, data: [makeExpense("e1")] });
+    renderList([]);
+    expect(onEmptyChange).not.toHaveBeenCalled();
+
+    await act(async () => {
+      notifyDataChanged(["expenses"]);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(listExpensesAction).toHaveBeenCalled();
+    expect(onEmptyChange).toHaveBeenCalledWith(false);
   });
 });

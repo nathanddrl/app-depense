@@ -1,23 +1,32 @@
 // @vitest-environment jsdom
 
 // Régression edge case accueil (todo.md) — `HomeExpensesPreview` doit basculer
-// vers `FirstExpenseInvite` quand `MovementsList` signale `onEmptied` (fetch
-// ciblé confirmant un foyer vide), sans attendre une navigation complète.
-// `MovementsList` mocké : ce test couvre uniquement le câblage état local ↔
-// bascule d'affichage, pas la logique interne de `MovementsList` (couverte par
-// movements-list.test.tsx).
+// vers `FirstExpenseInvite` quand `MovementsList` signale `onEmptyChange(true)`
+// (fetch ciblé confirmant un foyer vide), SANS jamais démonter `MovementsList`
+// : le démonter couperait son abonnement au bus `notifyDataChanged(["expenses"])`,
+// et un ajout ultérieur depuis /ajouter (route interceptée, même instance de
+// page, jamais de navigation complète) laisserait l'accueil bloqué sur
+// `FirstExpenseInvite` (revue Copilot, PR #17). `MovementsList` mocké : ce
+// test couvre uniquement le câblage état local ↔ affichage, pas sa logique
+// interne (couverte par movements-list.test.tsx).
 
-import { act, createElement, type ReactElement } from "react";
+import { act, createElement, useEffect, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Expense } from "@app/domain-expense";
 import { HomeExpensesPreview } from "./home-expenses-preview";
 
-let capturedOnEmptied: (() => void) | undefined;
+let capturedOnEmptyChange: ((isEmpty: boolean) => void) | undefined;
+let mountCount = 0;
 
 vi.mock("../expenses/movements-list", () => ({
-  MovementsList: (props: { onEmptied?: () => void }) => {
-    capturedOnEmptied = props.onEmptied;
+  MovementsList: (props: { onEmptyChange?: (isEmpty: boolean) => void }) => {
+    capturedOnEmptyChange = props.onEmptyChange;
+    useEffect(() => {
+      mountCount += 1;
+      // Pas de cleanup nécessaire au delà du compteur : le test observe
+      // uniquement "combien de fois ce composant a-t-il été monté".
+    }, []);
     return createElement("div", { "data-testid": "movements-list" }, "liste");
   },
 }));
@@ -59,7 +68,8 @@ describe("HomeExpensesPreview", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
-    capturedOnEmptied = undefined;
+    capturedOnEmptyChange = undefined;
+    mountCount = 0;
   });
 
   afterEach(() => {
@@ -68,7 +78,7 @@ describe("HomeExpensesPreview", () => {
     reactGlobals.IS_REACT_ACT_ENVIRONMENT = false;
   });
 
-  it("affiche MovementsList tant que le foyer a des dépenses, bascule sur FirstExpenseInvite quand onEmptied est appelé", () => {
+  it("affiche FirstExpenseInvite quand onEmptyChange(true), SANS démonter MovementsList", () => {
     render(
       createElement(HomeExpensesPreview, {
         initialExpenses: [makeExpense("e1")],
@@ -79,13 +89,39 @@ describe("HomeExpensesPreview", () => {
 
     expect(container.querySelector('[data-testid="movements-list"]')).not.toBeNull();
     expect(container.textContent).not.toMatch(/aucune dépense/);
+    expect(mountCount).toBe(1);
 
     act(() => {
-      capturedOnEmptied?.();
+      capturedOnEmptyChange?.(true);
     });
 
-    expect(container.querySelector('[data-testid="movements-list"]')).toBeNull();
+    // MovementsList reste dans l'arbre (même instance, toujours abonnée au
+    // bus) — seul FirstExpenseInvite apparaît à côté.
+    expect(container.querySelector('[data-testid="movements-list"]')).not.toBeNull();
+    expect(mountCount).toBe(1);
     expect(container.textContent).toMatch(/aucune dépense/);
+  });
+
+  it("repeuplement (onEmptyChange(false)) fait disparaître FirstExpenseInvite sans remonter MovementsList", () => {
+    render(
+      createElement(HomeExpensesPreview, {
+        initialExpenses: [],
+        members,
+        currentMemberId: "m1",
+      }),
+    );
+
+    expect(container.textContent).toMatch(/aucune dépense/);
+    expect(mountCount).toBe(1);
+
+    act(() => {
+      capturedOnEmptyChange?.(false);
+    });
+
+    expect(container.textContent).not.toMatch(/aucune dépense/);
+    // Repeuplé par le MÊME MovementsList (jamais démonté puis remonté) —
+    // c'est précisément ce qui garantit que son abonnement au bus a survécu.
+    expect(mountCount).toBe(1);
   });
 
   it("affiche directement FirstExpenseInvite si le foyer est déjà vide au montage", () => {
@@ -97,7 +133,7 @@ describe("HomeExpensesPreview", () => {
       }),
     );
 
-    expect(container.querySelector('[data-testid="movements-list"]')).toBeNull();
+    expect(container.querySelector('[data-testid="movements-list"]')).not.toBeNull();
     expect(container.textContent).toMatch(/aucune dépense/);
   });
 });
