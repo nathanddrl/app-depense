@@ -85,16 +85,20 @@ jobs:
           # Confirme dans les logs la version réellement utilisée pour ce dump.
           echo "pg_dump utilisé : $("$PG_DUMP" --version)"
 
+          # Périmètre volontairement limité à `public` : les données
+          # applicatives (dépenses, régularisations, foyer). Les schémas `auth`
+          # et `storage` sont gérés par Supabase, appartiennent à des rôles
+          # internes (supabase_auth_admin, supabase_storage_admin) que le rôle
+          # `postgres` ne peut ni dumper ni restaurer proprement, et ne se
+          # transposent pas d'un projet à l'autre (secrets JWT et hash de mots
+          # de passe propres à chaque projet). Hors périmètre de ce backup.
+          #
           # --no-owner/--no-privileges : le dump reste restaurable sur un autre
           # projet Supabase, où les rôles n'ont pas les mêmes OID.
           # --clean/--if-exists : le dump droppe les objets avant de les
           # recréer, donc il se restaure aussi sur une base déjà peuplée.
-          # Schémas retenus : données applicatives (public), comptes (auth),
-          # métadonnées de fichiers (storage).
           "$PG_DUMP" "$DB_URL" \
             --schema=public \
-            --schema=auth \
-            --schema=storage \
             --clean \
             --if-exists \
             --no-owner \
