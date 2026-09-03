@@ -83,6 +83,19 @@ type Props = {
    * après une suppression côté client, que le Server Component parent ne voit
    * pas. Absent (aperçu accueil) : la liste ne rend rien du tout. */
   emptyMessage?: string;
+  /** Rapporte, après CHAQUE fetch ciblé résolu avec succès, si le foyer est
+   * réellement vide dans son ensemble (pas seulement dans l'aperçu tronqué) —
+   * dans les deux sens : suppression de la dernière dépense de l'aperçu
+   * accueil jusqu'à 0 (hors DoD initiale de T-CF3), ET ajout d'une dépense
+   * qui repeuple un foyer devenu vide (même bus `notifyDataChanged`, cf.
+   * `add-screen.tsx`). Contrairement à `visibleGroups`, ce signal ne bouge
+   * qu'après confirmation serveur (jamais pendant l'animation de sortie ni la
+   * fenêtre d'annulation du toast). Le parent (accueil) s'en sert pour
+   * afficher `FirstExpenseInvite` À CÔTÉ de `MovementsList` plutôt que de le
+   * démonter : un `MovementsList` démonté perdrait son abonnement au bus et
+   * resterait bloqué sur l'état vide après un ajout sans navigation complète
+   * (revue Copilot, PR #17). */
+  onEmptyChange?: (isEmpty: boolean) => void;
 };
 
 // Seuil de déplacement (px) au-delà duquel un appui tactile est requalifié en
@@ -131,6 +144,7 @@ export function MovementsList({
   filters,
   previewLimit,
   emptyMessage,
+  onEmptyChange,
 }: Props) {
   const [, startTransition] = useGlobalTransition();
 
@@ -147,11 +161,16 @@ export function MovementsList({
       const result = await listExpensesAction(filters ?? {});
       if (!result.ok) return;
       setExpenses(previewLimit ? result.data.slice(0, previewLimit) : result.data);
+      // `result.data` n'est jamais tronqué par `previewLimit` (appliqué ci-dessus
+      // seulement à l'affichage) : sa longueur reflète le vrai total du foyer,
+      // pas juste l'aperçu — le seul signal fiable pour le parent (accueil),
+      // dans les deux sens (vidé par suppression, repeuplé par ajout).
+      onEmptyChange?.(result.data.length === 0);
     })();
     // `setExpenses` vient de `useServerState` : c'est le setter `useState`
     // sous-jacent, stable — listé uniquement pour satisfaire exhaustive-deps,
     // qui ne reconnaît pas les setters passant par un hook maison.
-  }, [filters, previewLimit, setExpenses]);
+  }, [filters, previewLimit, setExpenses, onEmptyChange]);
 
   useEffect(() => subscribeDataChanged("expenses", refreshExpenses), [refreshExpenses]);
 

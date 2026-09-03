@@ -2,10 +2,9 @@ import { getCurrentContext } from "../../lib/auth/context";
 import { getDefaultShares } from "../../lib/household";
 import { listExpensesAction, listRecurringTemplatesAction } from "../actions";
 import { BalancePanel } from "../_components/balance/balance-panel";
-import { FirstExpenseInvite } from "../_components/home/first-expense-invite";
 import { RecurrenceInvite } from "../_components/home/recurrence-invite";
 import { AddExpenseButton } from "../_components/home/add-expense-button";
-import { MovementsList } from "../_components/expenses/movements-list";
+import { HomeExpensesPreview } from "../_components/home/home-expenses-preview";
 import { Stack } from "../_components/design-system/layout";
 
 // Le seam résout le membre + le foyer courant (via le JWT/RLS) ; le proxy
@@ -19,8 +18,9 @@ export default async function Home() {
   ]);
 
   // États vides orientés action (spec 8.6, T-C9.1) : pas d'invitation si
-  // l'appel a échoué — on n'affirme rien sur un état inconnu.
-  const showFirstExpenseInvite = expensesResult.ok && expensesResult.data.length === 0;
+  // l'appel a échoué — on n'affirme rien sur un état inconnu. Le choix
+  // initial "aucune dépense" vs aperçu est ensuite tenu à jour côté client
+  // par `HomeExpensesPreview` (suppression jusqu'à 0, hors DoD T-CF3).
   const showRecurrenceInvite = templatesResult.ok && templatesResult.data.length === 0;
   // Déjà trié du plus récent au plus ancien par le repo (`order incurred_on
   // desc`) — pas de nouveau tri ici, juste l'extrait (CN2.2).
@@ -45,15 +45,13 @@ export default async function Home() {
 
         <BalancePanel currentMemberId={ctx.member.id} members={defaultShares} />
         <AddExpenseButton />
-        {recentExpenses.length > 0 ? (
-          <MovementsList
-            expenses={recentExpenses}
+        {expensesResult.ok ? (
+          <HomeExpensesPreview
+            initialExpenses={recentExpenses}
             members={defaultShares}
             currentMemberId={ctx.member.id}
-            previewLimit={3}
           />
         ) : null}
-        {showFirstExpenseInvite ? <FirstExpenseInvite /> : null}
         {showRecurrenceInvite ? <RecurrenceInvite /> : null}
       </Stack>
     </main>
