@@ -55,10 +55,16 @@ describe("ExpenseForm — catégorie devinée depuis le libellé", () => {
     return input as HTMLInputElement;
   }
 
+  // Le formulaire contient plusieurs `<select>` (catégorie, payeur, et
+  // bénéficiaire de l'aide quand la catégorie est `loyer`) : cibler celui qui
+  // porte les options de catégorie plutôt que le premier du DOM, dont l'ordre
+  // n'est pas un contrat.
   function categorySelect(): HTMLSelectElement {
-    const select = container.querySelector("select");
+    const select = Array.from(container.querySelectorAll("select")).find((s) =>
+      s.querySelector('option[value="autre"]'),
+    );
     if (!select) throw new Error("select catégorie introuvable");
-    return select as HTMLSelectElement;
+    return select;
   }
 
   function typeLabel(value: string) {
@@ -87,6 +93,7 @@ describe("ExpenseForm — catégorie devinée depuis le libellé", () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
+    reactGlobals.IS_REACT_ACT_ENVIRONMENT = false;
   });
 
   it("pré-remplit la catégorie pendant la saisie du libellé", () => {
