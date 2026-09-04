@@ -9,7 +9,7 @@ name: Backup prod DB
 on:
   schedule:
     # 02:30 UTC chaque nuit
-    - cron: '30 2 * * *'
+    - cron: "30 2 * * *"
   workflow_dispatch:
 
 # Un seul backup à la fois (évite deux push concurrents sur etale-backups).

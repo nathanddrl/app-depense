@@ -16,10 +16,6 @@ export function ThemeScript({ nonce }: { nonce?: string }) {
   )});var d=s==="dark"||(s===null&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d){document.documentElement.setAttribute("data-theme","dark")}}catch(e){}})();`;
 
   return (
-    <script
-      nonce={nonce}
-      suppressHydrationWarning
-      dangerouslySetInnerHTML={{ __html: script }}
-    />
+    <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: script }} />
   );
 }

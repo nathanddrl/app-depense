@@ -464,7 +464,7 @@ async function main(): Promise<void> {
     const rentExpenseId = expenseIdForTemplateIfGenerated(resultsM0, LOYER_TEMPLATE_ID);
     if (rentExpenseId === null) {
       console.log(
-        "  → occurrence loyer non générée ce mois-ci (skip \"day-not-reached\", T-C7.2/T-C7.3 : jour du mois pas encore atteint) : cas normal en tout début de mois, aide sautée.",
+        '  → occurrence loyer non générée ce mois-ci (skip "day-not-reached", T-C7.2/T-C7.3 : jour du mois pas encore atteint) : cas normal en tout début de mois, aide sautée.',
       );
     } else {
       unwrap(

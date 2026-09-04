@@ -2,7 +2,11 @@ import { getCurrentContext } from "../../../../lib/auth/context";
 import { getDefaultShares } from "../../../../lib/household";
 import { listRecurringTemplatesAction } from "../../../actions";
 import { AddScreen } from "../../../_components/add/add-screen";
-import { ADD_MODE_PARAM, ADD_MODE_ONCE, ADD_MODE_RECURRENT } from "../../../_components/add/add-mode";
+import {
+  ADD_MODE_PARAM,
+  ADD_MODE_ONCE,
+  ADD_MODE_RECURRENT,
+} from "../../../_components/add/add-mode";
 
 type Props = {
   searchParams: Promise<Record<string, string | undefined>>;
@@ -18,7 +22,8 @@ type Props = {
 // `recurrence-invite.tsx`) ouvre directement sur l'onglet récurrent.
 export default async function AjouterModal({ searchParams }: Props) {
   const sp = await searchParams;
-  const initialMode = sp[ADD_MODE_PARAM] === ADD_MODE_RECURRENT ? ADD_MODE_RECURRENT : ADD_MODE_ONCE;
+  const initialMode =
+    sp[ADD_MODE_PARAM] === ADD_MODE_RECURRENT ? ADD_MODE_RECURRENT : ADD_MODE_ONCE;
 
   const ctx = await getCurrentContext();
   const [defaultShares, templatesResult] = await Promise.all([

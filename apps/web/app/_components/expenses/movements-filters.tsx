@@ -35,7 +35,9 @@ export function MovementsFilters({ months, month, category }: Props) {
     params.set("mois", nextMonth);
     if (nextCategory) params.set("categorie", nextCategory);
     const query = params.toString();
-    startTransition(() => router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false }));
+    startTransition(() =>
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false }),
+    );
   }
 
   return (
@@ -57,12 +59,16 @@ export function MovementsFilters({ months, month, category }: Props) {
 
       <div>
         <Button variant="ghost" size="sm" onClick={() => setCategoryOpen((prev) => !prev)}>
-          {category ? `catégorie : ${categoryLabelOf(category).toLowerCase()}` : "filtrer par catégorie"}
+          {category
+            ? `catégorie : ${categoryLabelOf(category).toLowerCase()}`
+            : "filtrer par catégorie"}
         </Button>
       </div>
 
       {categoryOpen ? (
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2)" }}>
+        <div
+          style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2)" }}
+        >
           <button
             type="button"
             aria-pressed={!category}

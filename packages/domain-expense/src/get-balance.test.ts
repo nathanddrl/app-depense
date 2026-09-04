@@ -316,7 +316,7 @@ describe("getBalance — lecture du solde courant (6.2 / 4.2, modèle ledger D7 
     expect(res.data).toEqual({ from: "B", to: "A", amountCents: 40000 });
   });
 
-  it("bascule le jour J : incurredOn === today est compté (pas encore \"futur\")", async () => {
+  it('bascule le jour J : incurredOn === today est compté (pas encore "futur")', async () => {
     const repo = new FakeExpenseRepository(
       ["A", "B"],
       [

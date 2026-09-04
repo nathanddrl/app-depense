@@ -220,88 +220,87 @@ export function AidSection({
       </Button>
       {open && (
         <Stack gap={2}>
-            {aids.length > 0 ? (
-              <ul
-                style={{
-                  listStyle: "none",
-                  margin: 0,
-                  padding: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "var(--space-1)",
-                }}
-              >
-                {aids.map((a) => (
-                  <li
-                    key={a.id}
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "var(--space-1)",
-                    }}
+          {aids.length > 0 ? (
+            <ul
+              style={{
+                listStyle: "none",
+                margin: 0,
+                padding: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: "var(--space-1)",
+              }}
+            >
+              {aids.map((a) => (
+                <li
+                  key={a.id}
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "var(--space-1)",
+                  }}
+                >
+                  <span>
+                    {a.label} — <AmountDisplay value={formatAmountEUR(a.amountCents)} />
+                  </span>
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleRemove(a.id)}
+                    disabled={isPending}
                   >
-                    <span>
-                      {a.label} — <AmountDisplay value={formatAmountEUR(a.amountCents)} />
-                    </span>
-                    <Button
-                      variant="secondary"
-                      onClick={() => handleRemove(a.id)}
-                      disabled={isPending}
-                    >
-                      retirer
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-
-            {canAddAid ? (
-              <form action={handleAdd}>
-                <Stack gap={2}>
-                  <Input
-                    label="libellé"
-                    value={label}
-                    onChange={(e) => setLabel(e.target.value)}
-                    placeholder="APL"
-                  />
-                  <Input
-                    label="montant"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="200"
-                    inputMode="decimal"
-                    suffix="€"
-                  />
-                  <label className={nativeSelectStyles.wrapper}>
-                    <span className={nativeSelectStyles.label}>qui la touche ?</span>
-                    <select
-                      className={nativeSelectStyles.select}
-                      value={beneficiary}
-                      onChange={(e) => setBeneficiary(e.target.value)}
-                    >
-                      <option value={currentMemberId}>toi</option>
-                      {otherMember ? (
-                        <>
-                          <option value={otherMember.memberId}>{otherMember.displayName}</option>
-                          <option value={BOTH_BENEFICIARIES}>les 2</option>
-                        </>
-                      ) : null}
-                    </select>
-                  </label>
-                  <Button type="submit" disabled={isPending}>
-                    {isPending ? "ajout…" : "ajouter l'aide"}
+                    retirer
                   </Button>
-                </Stack>
-              </form>
-            ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
-            {error ? <Notice tone="error">{error}</Notice> : null}
-            {message ? <Notice tone="neutral">{message}</Notice> : null}
-          </Stack>
+          {canAddAid ? (
+            <form action={handleAdd}>
+              <Stack gap={2}>
+                <Input
+                  label="libellé"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  placeholder="APL"
+                />
+                <Input
+                  label="montant"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="200"
+                  inputMode="decimal"
+                  suffix="€"
+                />
+                <label className={nativeSelectStyles.wrapper}>
+                  <span className={nativeSelectStyles.label}>qui la touche ?</span>
+                  <select
+                    className={nativeSelectStyles.select}
+                    value={beneficiary}
+                    onChange={(e) => setBeneficiary(e.target.value)}
+                  >
+                    <option value={currentMemberId}>toi</option>
+                    {otherMember ? (
+                      <>
+                        <option value={otherMember.memberId}>{otherMember.displayName}</option>
+                        <option value={BOTH_BENEFICIARIES}>les 2</option>
+                      </>
+                    ) : null}
+                  </select>
+                </label>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? "ajout…" : "ajouter l'aide"}
+                </Button>
+              </Stack>
+            </form>
+          ) : null}
+
+          {error ? <Notice tone="error">{error}</Notice> : null}
+          {message ? <Notice tone="neutral">{message}</Notice> : null}
+        </Stack>
       )}
     </Stack>
   );
 }
-

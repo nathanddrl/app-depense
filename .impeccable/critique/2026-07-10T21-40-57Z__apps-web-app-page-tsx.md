@@ -6,6 +6,7 @@ p1_count: 2
 timestamp: 2026-07-10T21-40-57Z
 slug: apps-web-app-page-tsx
 ---
+
 # Critique — Étale (apps/web, home + core surfaces)
 
 Method: dual-agent (A: design review · B: detector) · target apps-web-app-page-tsx
@@ -18,19 +19,19 @@ Le **score de santé** applique les 10 heuristiques de Nielsen, chacune notée d
 
 ## Design Health Score
 
-| # | Heuristic | Score | Key Issue |
-|---|-----------|-------|-----------|
-| 1 | Visibility of System Status | 3 | Good offline gate + "calcul en cours…", but no aria-live — optimistic adds & balance flips silent to SR |
-| 2 | Match System / Real World | 3 | Excellent proprietary vocab, but "remboursé" (banned word) leaks at settlement |
-| 3 | User Control & Freedom | 2 | Creditor's "j'ai reçu" irreversible, one tap, no confirm; members can't delete an expense |
-| 4 | Consistency & Standards | 3 | Strong tokens, but Button alone has no focus style; balance copy capitalizes against bas-de-casse rule |
-| 5 | Error Prevention | 2 | Money fields type="text", no inputMode; centsFrom → NaN silently; irreversible confirm unguarded |
-| 6 | Recognition vs Recall | 3 | Labels visible, good "pourquoi ?" disclosures; two stacked filter rows add mild load |
-| 7 | Flexibility & Efficiency | 2 | No keyboard shortcuts; Tabs lack roving-tabindex arrow nav |
-| 8 | Aesthetic & Minimalist | 4 | Reference-grade restraint — nothing decorative |
-| 9 | Error Recovery | 2 | Errors surface raw res.error.message with no recovery guidance |
-| 10 | Help & Documentation | 3 | The "pourquoi ?" calculation breakdown is genuine inline help |
-| Total | | 27/40 | Good — correctable gaps, not broken |
+| #     | Heuristic                   | Score | Key Issue                                                                                               |
+| ----- | --------------------------- | ----- | ------------------------------------------------------------------------------------------------------- |
+| 1     | Visibility of System Status | 3     | Good offline gate + "calcul en cours…", but no aria-live — optimistic adds & balance flips silent to SR |
+| 2     | Match System / Real World   | 3     | Excellent proprietary vocab, but "remboursé" (banned word) leaks at settlement                          |
+| 3     | User Control & Freedom      | 2     | Creditor's "j'ai reçu" irreversible, one tap, no confirm; members can't delete an expense               |
+| 4     | Consistency & Standards     | 3     | Strong tokens, but Button alone has no focus style; balance copy capitalizes against bas-de-casse rule  |
+| 5     | Error Prevention            | 2     | Money fields type="text", no inputMode; centsFrom → NaN silently; irreversible confirm unguarded        |
+| 6     | Recognition vs Recall       | 3     | Labels visible, good "pourquoi ?" disclosures; two stacked filter rows add mild load                    |
+| 7     | Flexibility & Efficiency    | 2     | No keyboard shortcuts; Tabs lack roving-tabindex arrow nav                                              |
+| 8     | Aesthetic & Minimalist      | 4     | Reference-grade restraint — nothing decorative                                                          |
+| 9     | Error Recovery              | 2     | Errors surface raw res.error.message with no recovery guidance                                          |
+| 10    | Help & Documentation        | 3     | The "pourquoi ?" calculation breakdown is genuine inline help                                           |
+| Total |                             | 27/40 | Good — correctable gaps, not broken                                                                     |
 
 ## Anti-Patterns Verdict — does this look AI-generated? No.
 

@@ -4,14 +4,14 @@ Générées le 13/07/2026 à partir de `etale-images/ios/*.png` (export identiqu
 
 ## Fichiers et destination dans le repo de code
 
-| Fichier ici | Destination (`apps/web/`) | Usage |
-| :---- | :---- | :---- |
-| `icon-192.png` | `public/icons/icon-192.png` | manifest, icône standard |
-| `icon-512.png` | `public/icons/icon-512.png` | manifest, icône standard |
-| `icon-192-maskable.png` | `public/icons/icon-192-maskable.png` | manifest, `purpose: "maskable"` |
-| `icon-512-maskable.png` | `public/icons/icon-512-maskable.png` | manifest, `purpose: "maskable"` |
-| `apple-touch-icon.png` | `public/icons/apple-touch-icon.png` | iOS, taille 180×180 (T-CP1.3) |
-| `favicon-32.png` | `app/icon.png` (renommer) ou `public/favicon.ico` (convertir) | favicon navigateur |
+| Fichier ici             | Destination (`apps/web/`)                                     | Usage                           |
+| :---------------------- | :------------------------------------------------------------ | :------------------------------ |
+| `icon-192.png`          | `public/icons/icon-192.png`                                   | manifest, icône standard        |
+| `icon-512.png`          | `public/icons/icon-512.png`                                   | manifest, icône standard        |
+| `icon-192-maskable.png` | `public/icons/icon-192-maskable.png`                          | manifest, `purpose: "maskable"` |
+| `icon-512-maskable.png` | `public/icons/icon-512-maskable.png`                          | manifest, `purpose: "maskable"` |
+| `apple-touch-icon.png`  | `public/icons/apple-touch-icon.png`                           | iOS, taille 180×180 (T-CP1.3)   |
+| `favicon-32.png`        | `app/icon.png` (renommer) ou `public/favicon.ico` (convertir) | favicon navigateur              |
 
 ## Vérifications faites ici (géométrie et couleur, pas de rendu réel navigateur/OS)
 

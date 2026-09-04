@@ -9,10 +9,7 @@
 // builder pur `lib/export/workbook.ts`. Les totaux par catégorie/mois sont de
 // simples sommes de présentation calculées côté web (jamais dans calc-engine).
 
-import {
-  SupabaseExpenseRepository,
-  SupabaseSettlementRepository,
-} from "@app/db";
+import { SupabaseExpenseRepository, SupabaseSettlementRepository } from "@app/db";
 import { listExpenses, listExpenseMonths } from "@app/domain-expense";
 import { getCurrentContext } from "../../../lib/auth/context";
 import { getDefaultShares } from "../../../lib/household";

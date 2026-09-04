@@ -93,9 +93,9 @@ export async function updateExpenseAction(
 }
 
 // Suppression membre (soft delete, D2). Même garde EXPENSE_LOCKED que l'édition.
-export async function deleteExpenseAction(
-  input: { expenseId: string },
-): Promise<ActionResult<{ id: string }>> {
+export async function deleteExpenseAction(input: {
+  expenseId: string;
+}): Promise<ActionResult<{ id: string }>> {
   const ctx = await getCurrentContext();
   const repo = new SupabaseExpenseRepository(ctx.supabase);
   return deleteExpense(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, input);

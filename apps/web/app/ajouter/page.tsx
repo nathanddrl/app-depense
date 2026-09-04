@@ -14,7 +14,8 @@ type Props = {
 // `?mode=recurrent` (T-CN2.2) ouvre directement sur l'onglet récurrent (T-CN4.2).
 export default async function AjouterPage({ searchParams }: Props) {
   const sp = await searchParams;
-  const initialMode = sp[ADD_MODE_PARAM] === ADD_MODE_RECURRENT ? ADD_MODE_RECURRENT : ADD_MODE_ONCE;
+  const initialMode =
+    sp[ADD_MODE_PARAM] === ADD_MODE_RECURRENT ? ADD_MODE_RECURRENT : ADD_MODE_ONCE;
 
   const ctx = await getCurrentContext();
   const [defaultShares, templatesResult] = await Promise.all([
