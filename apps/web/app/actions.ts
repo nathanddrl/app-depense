@@ -16,6 +16,7 @@ import {
   listExpenseMonths,
   getBalance,
   getBalanceBreakdown,
+  findPeriodStart,
   getAdminExpenseOverview,
   adminUpdateExpense,
 } from "@app/domain-expense";
@@ -23,6 +24,7 @@ import type {
   AdminExpenseOverviewLine,
   Balance,
   MemberPaidBreakdown,
+  ConfirmedSettlementForPeriod,
   CreateExpenseInput,
   Expense,
   ListExpensesFilters,
@@ -150,10 +152,17 @@ export async function getBalanceAction(): Promise<ActionResult<Balance>> {
  * Écran « d'où vient l'écart » (refonte solde, remplace l'ancien détail
  * dépliable) : solde courant (via `getCurrentBalance`, T-SOLDE3 — jamais de
  * recomposition manuelle) + décomposition « ce qui a été payé » par membre/
- * catégorie/dépense (@app/domain-expense.getBalanceBreakdown), sur la période
- * depuis la dernière régularisation confirmée (composition domain-expense ×
+ * catégorie/dépense (@app/domain-expense.getBalanceBreakdown), sur une
+ * période garantie cohérente avec ce solde (composition domain-expense ×
  * domain-settlement, DA4 — vit ici pour la même raison que `getCurrentBalance`).
- * `periodStart` vaut `null` s'il n'y a jamais eu de régularisation confirmée
+ *
+ * `periodStart` n'est PAS simplement la date du dernier règlement confirmé :
+ * un règlement peut être partiel (D15 v0.5), auquel cas il ne remet pas le
+ * solde à zéro et une bonne partie de l'historique contribue encore au
+ * solde affiché — utiliser sa seule date romprait la cohérence avec le
+ * centre du donut (le solde y reste cumulé depuis toujours). `findPeriodStart`
+ * (domain-expense) ne retient donc que le dernier règlement confirmé qui,
+ * rejoué sur l'historique, ramène RÉELLEMENT le solde à zéro ; `null` sinon
  * (période = depuis le début).
  */
 export type BalanceBreakdown = {
@@ -171,18 +180,23 @@ export async function getBalanceBreakdownAction(): Promise<ActionResult<BalanceB
 
   const settlementRepo = new SupabaseSettlementRepository(ctx.supabase);
   const confirmedSettlements = await settlementRepo.listConfirmedSettlements(ctx.householdId);
-  const lastConfirmedAt =
-    confirmedSettlements
-      .map((s) => s.confirmedAt)
-      .filter((d): d is string => d !== null)
-      .sort()
-      .at(-1) ?? null;
-  // Borne basse en date métier (YYYY-MM-DD) : `periodStart` exclusif côté
-  // domaine (une dépense datée le jour même de la confirmation est déjà
-  // couverte par elle).
-  const periodStart = lastConfirmedAt ? lastConfirmedAt.slice(0, 10) : null;
+  const settlementsForPeriod: ConfirmedSettlementForPeriod[] = confirmedSettlements
+    .filter((s): s is typeof s & { confirmedAt: string } => s.confirmedAt !== null)
+    .map((s) => ({
+      fromMemberId: s.fromMemberId,
+      toMemberId: s.toMemberId,
+      amountCents: s.amountCents,
+      confirmedAt: s.confirmedAt,
+    }));
 
   const expenseRepo = new SupabaseExpenseRepository(ctx.supabase);
+  const periodStartResult = await findPeriodStart(expenseRepo, domainCtx, {
+    householdId: ctx.householdId,
+    settlements: settlementsForPeriod,
+  });
+  if (!periodStartResult.ok) return periodStartResult;
+  const periodStart = periodStartResult.data;
+
   const breakdown = await getBalanceBreakdown(expenseRepo, domainCtx, {
     householdId: ctx.householdId,
     periodStart: periodStart ?? undefined,

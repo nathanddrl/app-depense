@@ -141,6 +141,19 @@ export type MemberPaidBreakdown = {
 };
 
 /**
+ * Entrée minimale d'un règlement confirmé, pour `findPeriodStart` (refonte
+ * solde) — dupliquée depuis `@app/domain-settlement.Settlement` (garde
+ * anti-cross-domain, DA4) : seuls les champs nécessaires au calcul.
+ * `confirmedAt` non nul (l'appelant filtre déjà sur les règlements `confirmed`).
+ */
+export type ConfirmedSettlementForPeriod = {
+  fromMemberId: string;
+  toMemberId: string;
+  amountCents: number;
+  confirmedAt: string;
+};
+
+/**
  * Ligne de la vue admin brute (T-C8.2, DA14) : TOUTES les dépenses du foyer, y
  * compris verrouillées (`settlementId` non nul) et soft-supprimées (`deletedAt`
  * non nul) — contrairement à `BalanceDetailLine`, aucun filtre `deleted_at`/
