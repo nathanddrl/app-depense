@@ -119,19 +119,25 @@ export type BalanceDetailAidLine = {
   sharedCents: number;
 };
 
+/** Une dépense au sein d'une catégorie, pour le niveau 3 de l'écran donut. */
+export type PaidExpenseLine = { id: string; label: string; cents: number };
+
+/** Le total payé d'un membre pour une catégorie (niveau 2 de l'écran donut). */
+export type CategoryPaidBreakdown = {
+  category: Category;
+  totalCents: number;
+  expenses: PaidExpenseLine[];
+};
+
 /**
- * Décomposition d'une dépense contributive au solde, en données brutes (aucune
- * phrase construite ici — le langage humain vit dans la couche web, 8.1/8.3).
+ * Le total payé par un membre sur la période, décomposé par catégorie (spec
+ * refonte solde, écran donut). Grandeur « ce qui a été payé » (gross), pas
+ * une part — distincte du solde, qui reste calculé séparément (getBalance).
  */
-export type BalanceDetailLine = {
-  label: string;
-  grossCents: number;
-  payerId: string;
-  otherId: string;
-  baseOwedCents: number;
-  aidLines: BalanceDetailAidLine[];
-  totalOwedCents: number;
-  source: ExpenseSource;
+export type MemberPaidBreakdown = {
+  memberId: string;
+  totalCents: number;
+  categories: CategoryPaidBreakdown[];
 };
 
 /**

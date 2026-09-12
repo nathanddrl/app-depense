@@ -3,12 +3,33 @@
 // des parts (archi ch.1.4 / DA4) ; ce module lit juste `membership.default_share_pct`.
 
 import type { DbClient } from "@app/db";
+import type { Balance } from "@app/domain-expense";
+import { formatAmountEUR } from "@app/shared";
 
 export type MemberShare = { memberId: string; displayName: string; defaultSharePct: number };
 
 /** Nom affiché d'un membre du foyer, ou "" s'il est introuvable — jamais un id brut à l'écran. */
 export function memberDisplayName(members: MemberShare[], memberId: string): string {
   return members.find((m) => m.memberId === memberId)?.displayName ?? "";
+}
+
+/**
+ * Phrase de solde du point de vue du membre courant (spec 8.1, D-UX2) —
+ * formule canonique du solde nul comprise. Extrait de `BalanceCard` pour être
+ * partagé avec l'écran « d'où vient l'écart » (refonte solde) sans dupliquer
+ * ce texte à deux endroits (risque de dérive de copy).
+ */
+export function formatBalanceMessage(
+  balance: Balance,
+  members: MemberShare[],
+  currentMemberId: string,
+): string {
+  if (balance.amountCents === 0) return "vous êtes étale";
+  const isCreditor = balance.to === currentMemberId;
+  const otherId = isCreditor ? balance.from : balance.to;
+  const otherName = memberDisplayName(members, otherId);
+  const amount = formatAmountEUR(balance.amountCents);
+  return isCreditor ? `${otherName} te doit ${amount}` : `tu dois ${amount} à ${otherName}`;
 }
 
 export async function getDefaultShares(
