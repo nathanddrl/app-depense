@@ -16,14 +16,13 @@
 
 import { useCallback, useEffect } from "react";
 import { getBalanceAction, getCurrentSettlementAction } from "../../actions";
-import { formatAmountEUR } from "@app/shared";
 import type { Balance } from "@app/domain-expense";
 import type { Settlement } from "@app/domain-settlement";
-import { memberDisplayName, type MemberShare } from "../../../lib/household";
+import { formatBalanceHeadline, memberDisplayName, type MemberShare } from "../../../lib/household";
 import { subscribeDataChanged } from "../data-refresh/data-refresh-bus";
 import { useServerState } from "../data-refresh/use-server-state";
 import { useVisibilityRefresh } from "../data-refresh/use-visibility-refresh";
-import { BalanceDetailToggle } from "./balance-detail-toggle";
+import { BalanceBreakdownTrigger } from "./balance-breakdown";
 import { BalanceNetworkGate } from "./balance-network-gate";
 import { SettlementControls } from "./settlement-controls";
 import { waterLineMagnitude } from "./water-line-magnitude";
@@ -90,13 +89,25 @@ export function BalanceCard({
     />
   );
 
+  const breakdownTrigger = (
+    <BalanceBreakdownTrigger
+      currentMemberId={currentMemberId}
+      members={members}
+      settlementControls={settlementControls}
+      revision={`${from}:${to}:${amountCents}:${settlement?.id ?? ""}:${settlement?.status ?? ""}`}
+    />
+  );
+
   if (amountCents === 0) {
     return (
       <BalanceNetworkGate>
         <Card>
           <Stack gap={2}>
-            <BalanceStatement>vous êtes étale</BalanceStatement>
+            <BalanceStatement>
+              {formatBalanceHeadline(balance, members, currentMemberId)}
+            </BalanceStatement>
             <WaterLine magnitude={0} />
+            {breakdownTrigger}
             {settlementControls}
           </Stack>
         </Card>
@@ -105,12 +116,7 @@ export function BalanceCard({
   }
 
   const isCreditor = to === currentMemberId;
-  const otherMemberId = isCreditor ? from : to;
-  const otherName = memberDisplayName(members, otherMemberId);
-  const amount = formatAmountEUR(amountCents);
-  const message = isCreditor
-    ? `${otherName} te doit ${amount}`
-    : `tu dois ${amount} à ${otherName}`;
+  const message = formatBalanceHeadline(balance, members, currentMemberId);
 
   return (
     <BalanceNetworkGate>
@@ -118,11 +124,7 @@ export function BalanceCard({
         <Stack gap={2}>
           <BalanceStatement>{message}</BalanceStatement>
           <WaterLine magnitude={waterLineMagnitude(amountCents, isCreditor)} />
-          <BalanceDetailToggle
-            currentMemberId={currentMemberId}
-            otherDisplayName={otherName}
-            totalMessage={message}
-          />
+          {breakdownTrigger}
           {settlementControls}
         </Stack>
       </Card>

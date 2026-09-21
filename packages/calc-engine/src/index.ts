@@ -13,3 +13,11 @@ export type { BalanceExpense, TwoMemberBalance, SettlementForBalance } from "./b
 
 export { computeExpenseBreakdown } from "./balance-detail";
 export type { LabelledAidInput, AidBreakdownLine, ExpenseBreakdown } from "./balance-detail";
+
+export { computePaidBreakdown } from "./balance-breakdown";
+export type {
+  PaidExpenseInput,
+  PaidExpenseLine,
+  CategoryPaidBreakdown,
+  MemberPaidBreakdown,
+} from "./balance-breakdown";

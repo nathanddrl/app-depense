@@ -8,7 +8,8 @@ export { deleteExpense } from "./delete-expense";
 export { listExpenses } from "./list-expenses";
 export { listExpenseMonths } from "./list-expense-months";
 export { getBalance } from "./get-balance";
-export { getBalanceDetail } from "./get-balance-detail";
+export { getBalanceBreakdown } from "./get-balance-breakdown";
+export { findPeriodStart } from "./find-period-start";
 export { getAdminExpenseOverview } from "./get-admin-expense-overview";
 export { adminUpdateExpense } from "./admin-update-expense";
 
@@ -36,6 +37,9 @@ export type {
   RawBalanceExpenseRow,
   Balance,
   BalanceDetailAidLine,
-  BalanceDetailLine,
+  PaidExpenseLine,
+  CategoryPaidBreakdown,
+  MemberPaidBreakdown,
+  ConfirmedSettlementForPeriod,
   AdminExpenseOverviewLine,
 } from "./types";

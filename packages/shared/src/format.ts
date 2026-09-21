@@ -27,6 +27,29 @@ export function formatDateFr(date: Date): string {
   return dateFr.format(date);
 }
 
+/**
+ * Date métier `YYYY-MM-DD` vers un format court en bas-de-casse (« 4 juil. »),
+ * heure de Paris ; l'année n'apparaît que si elle diffère de l'année courante.
+ * Midi UTC = même jour civil à Paris, quelle que soit la saison.
+ */
+export function formatDateShortFr(isoDate: string, today: string = getTodayParis()): string {
+  const date = new Date(`${isoDate}T12:00:00Z`);
+  const sameYear = isoDate.slice(0, 4) === today.slice(0, 4);
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    day: "numeric",
+    month: "short",
+    ...(sameYear ? {} : { year: "numeric" }),
+  })
+    .format(date)
+    .toLowerCase();
+}
+
+/** Date métier `YYYY-MM-DD` (heure de Paris, D4) d'un instant — ex. un `confirmed_at` ISO : comparable à `incurred_on`. */
+export function toDateParis(instant: string | Date): string {
+  return isoDateParis.format(typeof instant === "string" ? new Date(instant) : instant);
+}
+
 /** Date du jour en `YYYY-MM-DD`, heure de Paris (D4) — borne pour exclure les dépenses futures du solde (4.2). */
 export function getTodayParis(): string {
   return isoDateParis.format(new Date());

@@ -1,0 +1,36 @@
+/* Écran « d'où vient l'écart » (refonte solde) — fil d'ariane + libellés du
+   centre du donut aux niveaux 2/3. Le reste (donut, légende) vient de
+   design-system/charts. */
+
+.breadcrumbItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.separator {
+  color: var(--text-secondary);
+}
+
+.breadcrumbCurrent {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  padding: 0 var(--space-1);
+}
+
+.centerLabel {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.periodLabel {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* Conteneur de l'écran : reçoit le focus programmatique au changement de
+   niveau (tabIndex -1), jamais un contrôle — pas d'anneau à dessiner. */
+.screen:focus {
+  outline: none;
+}

@@ -1,0 +1,71 @@
+/* Donut — graphique générique animé (refonte solde). Positionnement : le SVG
+   et son centre se superposent (grid 1x1), la légende suit en dessous dans
+   le flux normal. */
+
+.wrapper {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+}
+
+.svg {
+  grid-column: 1;
+  grid-row: 1;
+  display: block;
+}
+
+.center {
+  grid-column: 1;
+  grid-row: 1;
+  place-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow-wrap: break-word;
+  pointer-events: none;
+}
+
+.interactive {
+  cursor: pointer;
+}
+
+.interactive:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.static {
+  pointer-events: none;
+}
+
+.label {
+  font-size: var(--text-xs);
+  fill: var(--text-on-accent);
+  font-weight: var(--weight-medium);
+  pointer-events: none;
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}

@@ -15,14 +15,16 @@ import {
   listExpenses,
   listExpenseMonths,
   getBalance,
-  getBalanceDetail,
+  getBalanceBreakdown,
+  findPeriodStart,
   getAdminExpenseOverview,
   adminUpdateExpense,
 } from "@app/domain-expense";
 import type {
   AdminExpenseOverviewLine,
   Balance,
-  BalanceDetailLine,
+  MemberPaidBreakdown,
+  ConfirmedSettlementForPeriod,
   CreateExpenseInput,
   Expense,
   ListExpensesFilters,
@@ -146,14 +148,62 @@ export async function getBalanceAction(): Promise<ActionResult<Balance>> {
   return getCurrentBalance(ctx);
 }
 
-export async function getBalanceDetailAction(): Promise<ActionResult<BalanceDetailLine[]>> {
+/**
+ * Écran « d'où vient l'écart » (refonte solde, remplace l'ancien détail
+ * dépliable) : solde courant (via `getCurrentBalance`, T-SOLDE3 — jamais de
+ * recomposition manuelle) + décomposition « ce qui a été payé » par membre/
+ * catégorie/dépense (@app/domain-expense.getBalanceBreakdown), sur une
+ * période garantie cohérente avec ce solde (composition domain-expense ×
+ * domain-settlement, DA4 — vit ici pour la même raison que `getCurrentBalance`).
+ *
+ * `periodStart` n'est PAS simplement la date du dernier règlement confirmé :
+ * un règlement peut être partiel (D15 v0.5), auquel cas il ne remet pas le
+ * solde à zéro et une bonne partie de l'historique contribue encore au
+ * solde affiché — utiliser sa seule date romprait la cohérence avec le
+ * centre du donut (le solde y reste cumulé depuis toujours). `findPeriodStart`
+ * (domain-expense) ne retient donc que le dernier règlement confirmé qui,
+ * rejoué sur l'historique, ramène RÉELLEMENT le solde à zéro ; `null` sinon
+ * (période = depuis le début).
+ */
+export type BalanceBreakdown = {
+  balance: Balance;
+  periodStart: string | null;
+  members: MemberPaidBreakdown[];
+};
+
+export async function getBalanceBreakdownAction(): Promise<ActionResult<BalanceBreakdown>> {
   const ctx = await getCurrentContext();
-  const repo = new SupabaseExpenseRepository(ctx.supabase);
-  return getBalanceDetail(
-    repo,
-    { memberId: ctx.member.id, householdId: ctx.householdId },
-    { householdId: ctx.householdId },
-  );
+  const domainCtx = { memberId: ctx.member.id, householdId: ctx.householdId };
+
+  const balance = await getCurrentBalance(ctx);
+  if (!balance.ok) return balance;
+
+  const settlementRepo = new SupabaseSettlementRepository(ctx.supabase);
+  const confirmedSettlements = await settlementRepo.listConfirmedSettlements(ctx.householdId);
+  const settlementsForPeriod: ConfirmedSettlementForPeriod[] = confirmedSettlements
+    .filter((s): s is typeof s & { confirmedAt: string } => s.confirmedAt !== null)
+    .map((s) => ({
+      fromMemberId: s.fromMemberId,
+      toMemberId: s.toMemberId,
+      amountCents: s.amountCents,
+      confirmedAt: s.confirmedAt,
+    }));
+
+  const expenseRepo = new SupabaseExpenseRepository(ctx.supabase);
+  const periodStartResult = await findPeriodStart(expenseRepo, domainCtx, {
+    householdId: ctx.householdId,
+    settlements: settlementsForPeriod,
+  });
+  if (!periodStartResult.ok) return periodStartResult;
+  const periodStart = periodStartResult.data;
+
+  const breakdown = await getBalanceBreakdown(expenseRepo, domainCtx, {
+    householdId: ctx.householdId,
+    periodStart: periodStart ?? undefined,
+  });
+  if (!breakdown.ok) return breakdown;
+
+  return ok({ balance: balance.data, periodStart, members: breakdown.data });
 }
 
 // Réservée à /admin (T-C8.2, DA14) : revérification serveur systématique, le
@@ -255,15 +305,6 @@ export async function cancelSettlementAction(
   const ctx = await getCurrentContext();
   const repo = new SupabaseSettlementRepository(ctx.supabase);
   return cancelSettlement(repo, { memberId: ctx.member.id, householdId: ctx.householdId }, input);
-}
-
-// Historique des règlements confirmés du foyer (D15 révisé), pour le détail
-// dépliable « pourquoi ? » (fusionné avec les lignes de dépenses côté web).
-export async function getSettlementHistoryAction(): Promise<ActionResult<Settlement[]>> {
-  const ctx = await getCurrentContext();
-  const repo = new SupabaseSettlementRepository(ctx.supabase);
-  const settlements = await repo.listConfirmedSettlements(ctx.householdId);
-  return ok(settlements);
 }
 
 export async function createRecurringTemplateAction(
