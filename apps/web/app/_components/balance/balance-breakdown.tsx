@@ -21,7 +21,7 @@ import { useRouter } from "next/navigation";
 import { getBalanceBreakdownAction, type BalanceBreakdown } from "../../actions";
 import { formatAmountEUR, formatDateFr, formatDateShortFr } from "@app/shared";
 import type { Category } from "@app/domain-expense";
-import { formatBalanceMessage, memberDisplayName, type MemberShare } from "../../../lib/household";
+import { formatBalanceHeadline, memberDisplayName, type MemberShare } from "../../../lib/household";
 import { Button } from "../design-system/core";
 import { AmountDisplay, BalanceStatement } from "../design-system/balance";
 import { Dialog, Notice, useGlobalTransition } from "../design-system/feedback";
@@ -37,22 +37,6 @@ import styles from "./balance-breakdown.module.css";
 type Level = 1 | 2 | 3;
 
 const FETCH_TIMEOUT_MS = 20_000;
-
-/** Part de l'écart (par rapport au total payé sur la période) à partir de
- * laquelle le centre du donut affiche le vrai montant ; en dessous, « presque
- * étale ». Un écart nul garde la formule canonique. */
-const ALMOST_ETALE_THRESHOLD = 0.15;
-
-function level1CenterMessage(
-  balance: BalanceBreakdown["balance"],
-  periodTotal: number,
-  members: MemberShare[],
-  currentMemberId: string,
-): string {
-  const ratio = periodTotal > 0 ? balance.amountCents / periodTotal : 0;
-  if (balance.amountCents !== 0 && ratio < ALMOST_ETALE_THRESHOLD) return "presque étale";
-  return formatBalanceMessage(balance, members, currentMemberId);
-}
 
 /** Niveau 1 : le solde exprimé en « payé en plus de sa part » — exact quels
  * que soient le ratio de partage et les aides (contrairement à un écart brut
@@ -137,7 +121,7 @@ export function BalanceBreakdownScreen({
     contentRef.current?.focus({ preventScroll: true });
   }, [level]);
 
-  const message = formatBalanceMessage(data.balance, members, currentMemberId);
+  const message = formatBalanceHeadline(data.balance, members, currentMemberId);
   const periodTotal = data.members.reduce((sum, m) => sum + m.totalCents, 0);
 
   if (periodTotal === 0) {
@@ -235,7 +219,7 @@ export function BalanceBreakdownScreen({
   const centerContent =
     level === 1 ? (
       <BalanceStatement size="sm">
-        {level1CenterMessage(data.balance, periodTotal, members, currentMemberId)}
+        {formatBalanceHeadline(data.balance, members, currentMemberId)}
       </BalanceStatement>
     ) : level === 2 ? (
       <Stack gap={1}>

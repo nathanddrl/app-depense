@@ -32,6 +32,27 @@ export function formatBalanceMessage(
   return isCreditor ? `${otherName} te doit ${amount}` : `tu dois ${amount} à ${otherName}`;
 }
 
+/** Sous ce montant (exclusif, en centimes), un solde non nul se dit « presque étale ». */
+export const ALMOST_ETALE_THRESHOLD_CENTS = 2000;
+
+/**
+ * Titre du solde, règle UNIQUE partagée par la carte d'accueil et le centre du
+ * donut (jamais deux copies qui pourraient diverger) : nul → « vous êtes
+ * étale » ; non nul sous le seuil absolu → « presque étale » ; sinon le
+ * montant exact. Le montant exact reste dit ailleurs (phrase de constat de
+ * l'écran d'explication) : ce titre peut rassurer, pas cacher le chiffre.
+ */
+export function formatBalanceHeadline(
+  balance: Balance,
+  members: MemberShare[],
+  currentMemberId: string,
+): string {
+  if (balance.amountCents !== 0 && Math.abs(balance.amountCents) < ALMOST_ETALE_THRESHOLD_CENTS) {
+    return "presque étale";
+  }
+  return formatBalanceMessage(balance, members, currentMemberId);
+}
+
 export async function getDefaultShares(
   supabase: DbClient,
   householdId: string,

@@ -18,7 +18,7 @@ import { useCallback, useEffect } from "react";
 import { getBalanceAction, getCurrentSettlementAction } from "../../actions";
 import type { Balance } from "@app/domain-expense";
 import type { Settlement } from "@app/domain-settlement";
-import { formatBalanceMessage, memberDisplayName, type MemberShare } from "../../../lib/household";
+import { formatBalanceHeadline, memberDisplayName, type MemberShare } from "../../../lib/household";
 import { subscribeDataChanged } from "../data-refresh/data-refresh-bus";
 import { useServerState } from "../data-refresh/use-server-state";
 import { useVisibilityRefresh } from "../data-refresh/use-visibility-refresh";
@@ -103,7 +103,9 @@ export function BalanceCard({
       <BalanceNetworkGate>
         <Card>
           <Stack gap={2}>
-            <BalanceStatement>vous êtes étale</BalanceStatement>
+            <BalanceStatement>
+              {formatBalanceHeadline(balance, members, currentMemberId)}
+            </BalanceStatement>
             <WaterLine magnitude={0} />
             {breakdownTrigger}
             {settlementControls}
@@ -114,7 +116,7 @@ export function BalanceCard({
   }
 
   const isCreditor = to === currentMemberId;
-  const message = formatBalanceMessage(balance, members, currentMemberId);
+  const message = formatBalanceHeadline(balance, members, currentMemberId);
 
   return (
     <BalanceNetworkGate>

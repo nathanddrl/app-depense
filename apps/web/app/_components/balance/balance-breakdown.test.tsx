@@ -142,20 +142,16 @@ describe("BalanceBreakdownScreen — écran « d'où vient l'écart »", () => {
     expect(breadcrumbText()).toBe("tout");
   });
 
-  it("niveau 1, écart sous 15 % du total : « presque étale » au centre, constat en « part »", () => {
-    // 4 000 / 40 000 = 10 %. Lecteur = sam (débiteur) : c'est nathan qui a payé en trop.
-    render();
+  it("niveau 1, solde non nul sous 20 € : « presque étale » au centre, le constat garde le montant exact", () => {
+    render({ data: { ...data, balance: { from: "sam", to: "nathan", amountCents: 1500 } } });
     expect(text()).toContain("presque étale");
     expect(text()).not.toContain("tu dois");
-    expect(text()).toContain("nathan a payé 40,00 € de plus que sa part");
-    expect(text()).not.toContain("de plus que sam");
+    expect(text()).toContain("nathan a payé 15,00 € de plus que sa part");
   });
 
-  it("niveau 1, écart ≥ 15 % du total : le vrai montant au centre", () => {
-    render({
-      data: { ...data, balance: { from: "sam", to: "nathan", amountCents: 6000 } },
-    });
-    expect(text()).toContain("tu dois 60,00 € à nathan");
+  it("niveau 1, solde ≥ 20 € (seuil inclus dans « montant ») : le vrai montant au centre, quelle que soit la période", () => {
+    render({ data: { ...data, balance: { from: "sam", to: "nathan", amountCents: 2000 } } });
+    expect(text()).toContain("tu dois 20,00 € à nathan");
     expect(text()).not.toContain("presque étale");
   });
 
