@@ -19,7 +19,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { getBalanceBreakdownAction, type BalanceBreakdown } from "../../actions";
-import { formatAmountEUR, formatDateFr } from "@app/shared";
+import { formatAmountEUR, formatDateFr, formatDateShortFr } from "@app/shared";
 import type { Category } from "@app/domain-expense";
 import { formatBalanceMessage, memberDisplayName, type MemberShare } from "../../../lib/household";
 import { Button } from "../design-system/core";
@@ -38,17 +38,36 @@ type Level = 1 | 2 | 3;
 
 const FETCH_TIMEOUT_MS = 20_000;
 
-/** Niveau 1 : comparaison des montants bruts payés — distincte du solde
- * (centre du donut), jamais réduite à « qui doit quoi ». */
-function level1Phrase(data: BalanceBreakdown, members: MemberShare[]): string | null {
-  const [a, b] = data.members;
-  if (!a || !b) return null;
-  const nameA = memberDisplayName(members, a.memberId);
-  const nameB = memberDisplayName(members, b.memberId);
-  const diff = a.totalCents - b.totalCents;
-  if (diff === 0) return `${nameA} et ${nameB} ont payé autant l'un que l'autre sur cette période`;
-  const [moreName, lessName, amount] = diff > 0 ? [nameA, nameB, diff] : [nameB, nameA, -diff];
-  return `${moreName} a payé ${formatAmountEUR(amount)} de plus que ${lessName} sur cette période`;
+/** Part de l'écart (par rapport au total payé sur la période) à partir de
+ * laquelle le centre du donut affiche le vrai montant ; en dessous, « presque
+ * étale ». Un écart nul garde la formule canonique. */
+const ALMOST_ETALE_THRESHOLD = 0.15;
+
+function level1CenterMessage(
+  balance: BalanceBreakdown["balance"],
+  periodTotal: number,
+  members: MemberShare[],
+  currentMemberId: string,
+): string {
+  const ratio = periodTotal > 0 ? balance.amountCents / periodTotal : 0;
+  if (balance.amountCents !== 0 && ratio < ALMOST_ETALE_THRESHOLD) return "presque étale";
+  return formatBalanceMessage(balance, members, currentMemberId);
+}
+
+/** Niveau 1 : le solde exprimé en « payé en plus de sa part » — exact quels
+ * que soient le ratio de partage et les aides (contrairement à un écart brut
+ * entre payeurs). Solde nul : pas de constat, le centre du donut dit déjà
+ * « vous êtes étale ». */
+function level1Phrase(
+  data: BalanceBreakdown,
+  members: MemberShare[],
+  currentMemberId: string,
+): string | null {
+  const { amountCents, to } = data.balance;
+  if (amountCents === 0) return null;
+  const amount = formatAmountEUR(amountCents);
+  if (to === currentMemberId) return `tu as payé ${amount} de plus que ta part`;
+  return `${memberDisplayName(members, to)} a payé ${amount} de plus que sa part`;
 }
 
 function level2Phrase(
@@ -206,7 +225,7 @@ export function BalanceBreakdownScreen({
           }))
         : (selectedCategoryData?.expenses ?? []).map((e, i) => ({
             id: e.id,
-            label: e.label,
+            label: `${e.label}, ${formatDateShortFr(e.incurredOn)}`,
             valueCents: e.cents,
             color: getExpenseChartColorVar(selectedCategory ?? "", i),
           }));
@@ -215,7 +234,9 @@ export function BalanceBreakdownScreen({
 
   const centerContent =
     level === 1 ? (
-      <BalanceStatement size="sm">{message}</BalanceStatement>
+      <BalanceStatement size="sm">
+        {level1CenterMessage(data.balance, periodTotal, members, currentMemberId)}
+      </BalanceStatement>
     ) : level === 2 ? (
       <Stack gap={1}>
         <span className={styles.centerLabel}>{selectedMemberName}</span>
@@ -233,7 +254,7 @@ export function BalanceBreakdownScreen({
 
   const phrase =
     level === 1
-      ? level1Phrase(data, members)
+      ? level1Phrase(data, members, currentMemberId)
       : level === 2
         ? level2Phrase(selectedMember, selectedMemberName)
         : level3Phrase(selectedCategoryData, selectedMemberName);

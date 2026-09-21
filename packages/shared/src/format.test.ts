@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { formatAmountEUR, formatDateFr, getTodayParis, toDateParis } from "./index";
+import {
+  formatAmountEUR,
+  formatDateFr,
+  formatDateShortFr,
+  getTodayParis,
+  toDateParis,
+} from "./index";
 
 // Intl insère une espace fine insécable (U+202F) avant « € » selon la version
 // d'ICU. On normalise les espaces pour tester la partie signifiante sans se lier
@@ -66,5 +72,19 @@ describe("toDateParis — date métier d'un instant, en heure de Paris (D4)", ()
 
   it("accepte aussi un Date", () => {
     expect(toDateParis(new Date("2026-01-15T23:30:00Z"))).toBe("2026-01-16");
+  });
+});
+
+describe("formatDateShortFr — date courte fr, bas-de-casse", () => {
+  it("même année : jour + mois abrégé, sans année", () => {
+    expect(formatDateShortFr("2026-07-04", "2026-09-01")).toBe("4 juil.");
+  });
+
+  it("autre année : l'année est ajoutée", () => {
+    expect(formatDateShortFr("2025-12-31", "2026-09-01")).toBe("31 déc. 2025");
+  });
+
+  it("mars n'est pas abrégé et reste en bas-de-casse", () => {
+    expect(formatDateShortFr("2026-03-05", "2026-09-01")).toBe("5 mars");
   });
 });

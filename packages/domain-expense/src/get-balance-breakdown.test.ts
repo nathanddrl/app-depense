@@ -96,7 +96,7 @@ describe("getBalanceBreakdown — décomposition « ce qui a été payé » (éc
       {
         category: "loyer",
         totalCents: 80000,
-        expenses: [{ id: "1", label: "Loyer", cents: 80000 }],
+        expenses: [{ id: "1", label: "Loyer", cents: 80000, incurredOn: "2026-01-01" }],
       },
     ]);
   });

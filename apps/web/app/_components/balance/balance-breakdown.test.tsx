@@ -43,7 +43,7 @@ const data: BalanceBreakdown = {
         {
           category: "loyer",
           totalCents: 30000,
-          expenses: [{ id: "e1", label: "loyer de mars", cents: 30000 }],
+          expenses: [{ id: "e1", label: "loyer de mars", cents: 30000, incurredOn: "2026-03-01" }],
         },
       ],
     },
@@ -54,12 +54,12 @@ const data: BalanceBreakdown = {
         {
           category: "courses",
           totalCents: 6000,
-          expenses: [{ id: "e2", label: "courses", cents: 6000 }],
+          expenses: [{ id: "e2", label: "courses", cents: 6000, incurredOn: "2026-03-02" }],
         },
         {
           category: "sorties",
           totalCents: 4000,
-          expenses: [{ id: "e3", label: "ciné", cents: 4000 }],
+          expenses: [{ id: "e3", label: "ciné", cents: 4000, incurredOn: "2026-03-03" }],
         },
       ],
     },
@@ -100,6 +100,8 @@ describe("BalanceBreakdownScreen — écran « d'où vient l'écart »", () => {
     });
   }
 
+  const text = () => (container.textContent ?? "").replace(/\s/g, " ");
+
   function clickSliceByLabel(labelPrefix: string) {
     const path = [...container.querySelectorAll('path[role="button"]')].find((p) =>
       p.getAttribute("aria-label")?.startsWith(labelPrefix),
@@ -129,6 +131,7 @@ describe("BalanceBreakdownScreen — écran « d'où vient l'écart »", () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
+    vi.useRealTimers();
     reactGlobals.IS_REACT_ACT_ENVIRONMENT = false;
   });
 
@@ -137,6 +140,70 @@ describe("BalanceBreakdownScreen — écran « d'où vient l'écart »", () => {
     expect(container.querySelectorAll('path[role="button"]')).toHaveLength(2);
     expect(container.querySelector('[data-testid="settle"]')).not.toBeNull();
     expect(breadcrumbText()).toBe("tout");
+  });
+
+  it("niveau 1, écart sous 15 % du total : « presque étale » au centre, constat en « part »", () => {
+    // 4 000 / 40 000 = 10 %. Lecteur = sam (débiteur) : c'est nathan qui a payé en trop.
+    render();
+    expect(text()).toContain("presque étale");
+    expect(text()).not.toContain("tu dois");
+    expect(text()).toContain("nathan a payé 40,00 € de plus que sa part");
+    expect(text()).not.toContain("de plus que sam");
+  });
+
+  it("niveau 1, écart ≥ 15 % du total : le vrai montant au centre", () => {
+    render({
+      data: { ...data, balance: { from: "sam", to: "nathan", amountCents: 6000 } },
+    });
+    expect(text()).toContain("tu dois 60,00 € à nathan");
+    expect(text()).not.toContain("presque étale");
+  });
+
+  it("niveau 1, lecteur créditeur : « tu as payé N de plus que ta part »", () => {
+    render({
+      currentMemberId: "nathan",
+      data: { ...data, balance: { from: "sam", to: "nathan", amountCents: 6000 } },
+    });
+    expect(text()).toContain("sam te doit 60,00 €");
+    expect(text()).toContain("tu as payé 60,00 € de plus que ta part");
+  });
+
+  it("niveau 1, solde nul : formule canonique, aucun constat", () => {
+    render({ data: { ...data, balance: { from: "sam", to: "nathan", amountCents: 0 } } });
+    expect(text()).toContain("vous êtes étale");
+    expect(text()).not.toContain("presque étale");
+    expect(text()).not.toContain("de plus que");
+  });
+
+  it("niveau 3 : des dépenses de même libellé se distinguent par leur date (la légende est le canal accessible des parts feuilles)", () => {
+    const sameLabel: BalanceBreakdown = {
+      ...data,
+      members: [
+        data.members[0],
+        {
+          memberId: "sam",
+          totalCents: 20000,
+          categories: [
+            {
+              category: "loyer",
+              totalCents: 20000,
+              expenses: [
+                { id: "l1", label: "loyer", cents: 10000, incurredOn: "2026-03-05" },
+                { id: "l2", label: "loyer", cents: 10000, incurredOn: "2026-02-05" },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-06-15T10:00:00Z"));
+    render({ data: sameLabel });
+    clickSliceByLabel("sam");
+    clickSliceByLabel("loyer");
+    const legend = container.querySelector("ul")?.textContent ?? "";
+    expect(legend).toContain("loyer, 5 mars");
+    expect(legend).toContain("loyer, 5 févr.");
   });
 
   it("tap sur un membre → niveau 2 (ses catégories), solder disparaît, fil d'ariane grandit", () => {
@@ -353,7 +420,10 @@ describe("BalanceBreakdownTrigger — chargement, erreur, rechargement", () => {
   });
 
   it("le solde change pendant que l'écran est ouvert : rechargement, plus jamais un état périmé", async () => {
-    getBalanceBreakdownAction.mockResolvedValueOnce({ ok: true, data });
+    getBalanceBreakdownAction.mockResolvedValueOnce({
+      ok: true,
+      data: { ...data, balance: { from: "sam", to: "nathan", amountCents: 6000 } },
+    });
     renderTrigger("r1");
     await click("d'où vient l'écart");
     expect(getBalanceBreakdownAction).toHaveBeenCalledTimes(1);

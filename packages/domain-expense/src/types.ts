@@ -120,7 +120,7 @@ export type BalanceDetailAidLine = {
 };
 
 /** Une dépense au sein d'une catégorie, pour le niveau 3 de l'écran donut. */
-export type PaidExpenseLine = { id: string; label: string; cents: number };
+export type PaidExpenseLine = { id: string; label: string; cents: number; incurredOn: string };
 
 /** Le total payé d'un membre pour une catégorie (niveau 2 de l'écran donut). */
 export type CategoryPaidBreakdown = {

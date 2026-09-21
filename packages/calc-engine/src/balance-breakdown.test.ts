@@ -6,10 +6,38 @@ import type { PaidExpenseInput } from "./balance-breakdown";
 describe("computePaidBreakdown — décomposition « ce qui a été payé » (écran donut)", () => {
   it("regroupe par membre puis par catégorie, triés par montant décroissant", () => {
     const expenses: PaidExpenseInput[] = [
-      { id: "1", label: "Loyer", category: "loyer", grossCents: 80000, payerId: "A" },
-      { id: "2", label: "Courses", category: "courses", grossCents: 6000, payerId: "A" },
-      { id: "3", label: "Pain", category: "courses", grossCents: 300, payerId: "A" },
-      { id: "4", label: "Ciné", category: "sorties", payerId: "B", grossCents: 2000 },
+      {
+        id: "1",
+        label: "Loyer",
+        category: "loyer",
+        grossCents: 80000,
+        payerId: "A",
+        incurredOn: "2026-03-01",
+      },
+      {
+        id: "2",
+        label: "Courses",
+        category: "courses",
+        grossCents: 6000,
+        payerId: "A",
+        incurredOn: "2026-03-01",
+      },
+      {
+        id: "3",
+        label: "Pain",
+        category: "courses",
+        grossCents: 300,
+        payerId: "A",
+        incurredOn: "2026-03-01",
+      },
+      {
+        id: "4",
+        label: "Ciné",
+        category: "sorties",
+        payerId: "B",
+        grossCents: 2000,
+        incurredOn: "2026-03-01",
+      },
     ];
 
     const result = computePaidBreakdown(expenses, ["A", "B"]);
@@ -28,7 +56,7 @@ describe("computePaidBreakdown — décomposition « ce qui a été payé » (é
       {
         category: "sorties",
         totalCents: 2000,
-        expenses: [{ id: "4", label: "Ciné", cents: 2000 }],
+        expenses: [{ id: "4", label: "Ciné", cents: 2000, incurredOn: "2026-03-01" }],
       },
     ]);
   });
@@ -43,8 +71,22 @@ describe("computePaidBreakdown — décomposition « ce qui a été payé » (é
 
   it("égalité de montant départagée par libellé (déterminisme, stabilité de l'animation)", () => {
     const expenses: PaidExpenseInput[] = [
-      { id: "1", label: "Zoo", category: "sorties", grossCents: 1000, payerId: "A" },
-      { id: "2", label: "Aquarium", category: "sorties", grossCents: 1000, payerId: "A" },
+      {
+        id: "1",
+        label: "Zoo",
+        category: "sorties",
+        grossCents: 1000,
+        payerId: "A",
+        incurredOn: "2026-03-01",
+      },
+      {
+        id: "2",
+        label: "Aquarium",
+        category: "sorties",
+        grossCents: 1000,
+        payerId: "A",
+        incurredOn: "2026-03-01",
+      },
     ];
     const result = computePaidBreakdown(expenses, ["A"]);
     expect(result[0].categories[0].expenses.map((e) => e.label)).toEqual(["Aquarium", "Zoo"]);
@@ -52,7 +94,14 @@ describe("computePaidBreakdown — décomposition « ce qui a été payé » (é
 
   it("payeur hors foyer (défensif) → ignoré sans planter", () => {
     const expenses: PaidExpenseInput[] = [
-      { id: "1", label: "Fantôme", category: "autre", grossCents: 500, payerId: "X" },
+      {
+        id: "1",
+        label: "Fantôme",
+        category: "autre",
+        grossCents: 500,
+        payerId: "X",
+        incurredOn: "2026-03-01",
+      },
     ];
     const result = computePaidBreakdown(expenses, ["A", "B"]);
     expect(result.reduce((s, m) => s + m.totalCents, 0)).toBe(0);
@@ -78,6 +127,7 @@ describe("PROPERTY — invariants de computePaidBreakdown (DoD refonte solde)", 
           category: r.category,
           grossCents: r.grossCents,
           payerId: memberIds[r.payerIdx],
+          incurredOn: "2026-03-01",
         }));
 
         const result = computePaidBreakdown(expenses, memberIds);

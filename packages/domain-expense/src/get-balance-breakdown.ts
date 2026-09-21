@@ -44,6 +44,7 @@ export async function getBalanceBreakdown(
     category: row.category,
     grossCents: row.grossCents,
     payerId: row.payerId,
+    incurredOn: row.incurredOn,
   }));
 
   const breakdown = computePaidBreakdown(inputs, memberIds);

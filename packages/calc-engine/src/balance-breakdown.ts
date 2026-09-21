@@ -12,6 +12,8 @@ export interface PaidExpenseInput {
   category: string;
   grossCents: number;
   payerId: MemberId;
+  /** Date métier `YYYY-MM-DD` — distingue à l'écran des dépenses de même libellé. */
+  incurredOn: string;
 }
 
 /** Une dépense au sein d'une catégorie, triée par montant décroissant. */
@@ -19,6 +21,7 @@ export interface PaidExpenseLine {
   id: string;
   label: string;
   cents: number;
+  incurredOn: string;
 }
 
 /** Le total payé d'un membre pour une catégorie, et le détail des dépenses qui le composent. */
@@ -56,7 +59,12 @@ export function computePaidBreakdown(
     const categories = byMember.get(expense.payerId);
     if (!categories) continue; // payeur hors du foyer courant : ignoré, défensif.
     const lines = categories.get(expense.category) ?? [];
-    lines.push({ id: expense.id, label: expense.label, cents: expense.grossCents });
+    lines.push({
+      id: expense.id,
+      label: expense.label,
+      cents: expense.grossCents,
+      incurredOn: expense.incurredOn,
+    });
     categories.set(expense.category, lines);
   }
 
