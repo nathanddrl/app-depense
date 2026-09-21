@@ -44,6 +44,8 @@ describe("Donut — graphique générique animé (refonte solde)", () => {
       root.unmount();
     });
     container.remove();
+    document.documentElement.style.removeProperty("--motion-settle-duration");
+    vi.useRealTimers();
     reactGlobals.IS_REACT_ACT_ENVIRONMENT = false;
   });
 
@@ -97,6 +99,29 @@ describe("Donut — graphique générique animé (refonte solde)", () => {
     act(() => {
       path.dispatchEvent(
         new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+      );
+    });
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('touche Espace (key " ") sur une part focus appelle onSelect, et une autre touche non', () => {
+    const onSelect = vi.fn();
+    render(
+      createElement(Donut, {
+        slices: [{ ...slices[0], onSelect }, slices[1]],
+        centerContent: "étale",
+      }),
+    );
+    const path = container.querySelector('path[role="button"]') as SVGPathElement;
+    act(() => {
+      path.dispatchEvent(
+        new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }),
+      );
+    });
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    act(() => {
+      path.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "a", bubbles: true, cancelable: true }),
       );
     });
     expect(onSelect).toHaveBeenCalledTimes(1);
@@ -156,5 +181,104 @@ describe("Donut — graphique générique animé (refonte solde)", () => {
     for (const p of paths) {
       expect(p.getAttribute("d")).not.toContain("NaN");
     }
+  });
+  describe("animation (rAF) — recomposition continue, tokens de motion", () => {
+    const level1: DonutSlice[] = [
+      { id: "a", label: "nathan", valueCents: 30000, color: "var(--chart-1)", onSelect: vi.fn() },
+      { id: "b", label: "sam", valueCents: 10000, color: "var(--chart-2)", onSelect: vi.fn() },
+    ];
+    const level2: DonutSlice[] = [
+      {
+        id: "loyer",
+        label: "loyer",
+        valueCents: 20000,
+        color: "var(--chart-3)",
+        onSelect: vi.fn(),
+      },
+      {
+        id: "courses",
+        label: "courses",
+        valueCents: 10000,
+        color: "var(--chart-4)",
+        onSelect: vi.fn(),
+      },
+    ];
+
+    function tick(ms: number) {
+      act(() => {
+        vi.advanceTimersByTime(ms);
+      });
+    }
+    const pathCount = () => container.querySelectorAll("path").length;
+
+    function useFakeFrames() {
+      vi.useFakeTimers({
+        toFake: [
+          "requestAnimationFrame",
+          "cancelAnimationFrame",
+          "performance",
+          "setTimeout",
+          "clearTimeout",
+        ],
+      });
+      mockMatchMedia(false);
+    }
+
+    it("d'un niveau à l'autre : jamais un instant sans arc (pas de flash), ancien et nouveau jeu coexistent pendant la transition", () => {
+      useFakeFrames();
+      render(
+        createElement(Donut, { slices: level1, centerContent: "solde", transitionOrigin: -90 }),
+      );
+      tick(2000); // l'apparition initiale est terminée
+      expect(pathCount()).toBe(2);
+
+      render(
+        createElement(Donut, { slices: level2, centerContent: "nathan", transitionOrigin: 0 }),
+      );
+
+      const counts: number[] = [pathCount()];
+      for (let elapsed = 0; elapsed < 700; elapsed += 16) {
+        tick(16);
+        counts.push(pathCount());
+      }
+
+      expect(Math.min(...counts)).toBeGreaterThanOrEqual(2); // jamais vide
+      expect(Math.max(...counts)).toBe(4); // les 2 anciens + les 2 nouveaux, en même temps
+      expect(pathCount()).toBe(2); // réglé sur le seul nouveau jeu
+      const labels = [...container.querySelectorAll("path")].map((p) =>
+        p.getAttribute("aria-label"),
+      );
+      expect(labels.every((l) => l?.startsWith("loyer") || l?.startsWith("courses"))).toBe(true);
+    });
+
+    it("le SVG n'est pas remonté pendant la recomposition (même nœud DOM avant/après)", () => {
+      useFakeFrames();
+      render(createElement(Donut, { slices: level1, centerContent: "solde" }));
+      tick(2000);
+      const svgBefore = container.querySelector("svg");
+
+      render(
+        createElement(Donut, { slices: level2, centerContent: "nathan", transitionOrigin: 0 }),
+      );
+      tick(2000);
+
+      expect(container.querySelector("svg")).toBe(svgBefore);
+    });
+
+    it("consomme --motion-settle-duration : la transition dure exactement la durée du token", () => {
+      useFakeFrames();
+      document.documentElement.style.setProperty("--motion-settle-duration", "1000ms");
+      render(createElement(Donut, { slices: level1, centerContent: "solde" }));
+      tick(2000);
+
+      render(
+        createElement(Donut, { slices: level2, centerContent: "nathan", transitionOrigin: 0 }),
+      );
+      tick(800);
+      // Avec le repli en dur (600 ms) la transition serait déjà réglée : 2 arcs.
+      expect(pathCount()).toBe(4);
+      tick(400);
+      expect(pathCount()).toBe(2);
+    });
   });
 });

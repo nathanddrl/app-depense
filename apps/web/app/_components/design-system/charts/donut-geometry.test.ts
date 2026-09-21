@@ -5,6 +5,8 @@ import {
   annularSectorPath,
   labelRotation,
   cubicBezierEase,
+  parseDurationMs,
+  parseCubicBezier,
   MIN_SLICE_FRACTION,
 } from "./donut-geometry";
 
@@ -31,14 +33,13 @@ describe("computeSliceAngles", () => {
     expect(widthB).toBeCloseTo(90, 5);
   });
 
-  it("part sous 2 % remontée au plancher, l'excédent repris sur les autres", () => {
+  it("part sous le plancher (3,5 %) remontée au plancher, l'excédent repris sur les autres", () => {
     const slices = computeSliceAngles([
       { id: "big1", valueCents: 4900 },
       { id: "big2", valueCents: 4900 },
-      { id: "tiny", valueCents: 200 }, // 2% pile — pas de plancher nécessaire
+      { id: "tiny", valueCents: 200 }, // 2 % : sous le plancher de 3,5 %
     ]);
     const widths = slices.map((s) => s.endAngle - s.startAngle);
-    // 200/10000 = 2% exactement → pas de plancher déclenché ici.
     expect(widths[2]).toBeCloseTo(MIN_SLICE_FRACTION * 360, 1);
 
     const withReallyTiny = computeSliceAngles([
@@ -61,6 +62,16 @@ describe("computeSliceAngles", () => {
     const widthB = slices[1].endAngle - slices[1].startAngle;
     expect(widthB).toBeCloseTo(MIN_SLICE_FRACTION * 360, 1);
     expect(widthB).toBeGreaterThan(0);
+  });
+
+  it("le plancher garantit une cible tactile d'au moins 24 px sur un donut de 240 px", () => {
+    const outerRadius = 240 / 2 - 4;
+    const [tiny] = computeSliceAngles([
+      { id: "tiny", valueCents: 1 },
+      { id: "big", valueCents: 100000 },
+    ]);
+    const arcPx = ((tiny.endAngle - tiny.startAngle) * Math.PI * outerRadius) / 180;
+    expect(arcPx).toBeGreaterThanOrEqual(24);
   });
 
   it("liste vide → aucune part, ne plante pas", () => {
@@ -150,5 +161,29 @@ describe("cubicBezierEase — même algorithme que --motion-settle-easing (CSS)"
       expect(y).toBeGreaterThanOrEqual(previous - 1e-9);
       previous = y;
     }
+  });
+});
+
+describe("lecture des tokens de motion (--motion-settle-*)", () => {
+  it("parseDurationMs lit les ms et les s", () => {
+    expect(parseDurationMs("600ms")).toBe(600);
+    expect(parseDurationMs(" 0.6s ")).toBe(600);
+    expect(parseDurationMs("1200ms")).toBe(1200);
+  });
+
+  it("parseDurationMs rejette une valeur illisible", () => {
+    expect(parseDurationMs("")).toBeNull();
+    expect(parseDurationMs("vite")).toBeNull();
+    expect(parseDurationMs("600")).toBeNull();
+  });
+
+  it("parseCubicBezier lit le token d'easing tel qu'écrit dans motion.css", () => {
+    expect(parseCubicBezier("cubic-bezier(0.16, 1, 0.3, 1)")).toEqual([0.16, 1, 0.3, 1]);
+  });
+
+  it("parseCubicBezier rejette un easing qui n'est pas une cubic-bezier à 4 points", () => {
+    expect(parseCubicBezier("ease-out")).toBeNull();
+    expect(parseCubicBezier("cubic-bezier(0.16, 1, 0.3)")).toBeNull();
+    expect(parseCubicBezier("cubic-bezier(a, b, c, d)")).toBeNull();
   });
 });

@@ -27,6 +27,11 @@ export function formatDateFr(date: Date): string {
   return dateFr.format(date);
 }
 
+/** Date métier `YYYY-MM-DD` (heure de Paris, D4) d'un instant — ex. un `confirmed_at` ISO : comparable à `incurred_on`. */
+export function toDateParis(instant: string | Date): string {
+  return isoDateParis.format(typeof instant === "string" ? new Date(instant) : instant);
+}
+
 /** Date du jour en `YYYY-MM-DD`, heure de Paris (D4) — borne pour exclure les dépenses futures du solde (4.2). */
 export function getTodayParis(): string {
   return isoDateParis.format(new Date());

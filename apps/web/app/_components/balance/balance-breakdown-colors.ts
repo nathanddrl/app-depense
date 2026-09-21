@@ -20,17 +20,33 @@ function chartColorVar(index: number): string {
   return `var(--chart-${(index % CHART_TOKEN_COUNT) + 1})`;
 }
 
-/** Niveau 1 (membres) : deux teintes aux antipodes du cercle chromatique — le
- * plus grand contraste possible entre les deux seules parts de ce niveau.
+/** Niveau 1 (membres) : ardoise et sarcelle — deux tons de la même famille
+ * froide, distingués par la saturation. DESIGN.md interdit deux teintes
+ * OPPOSÉES pour « les deux côtés » d'un écart (anti-réflexe Tricount) : ce
+ * niveau représente les deux membres, jamais deux camps. Le nom sur l'arc et
+ * la légende portent l'identification, pas l'opposition de couleur.
  * Assignation par ordre stable (ordre de `members`, jamais aléatoire). */
 export function getMemberChartColorVar(memberIndex: number): string {
-  return memberIndex % 2 === 0 ? chartColorVar(4) : chartColorVar(0);
+  return memberIndex % 2 === 0 ? chartColorVar(7) : chartColorVar(3);
 }
 
-/** Niveau 2 (catégories d'un membre) : hash déterministe sur le nom, même
- * principe que `getCategoryColorVar` mais palette propre à ce graphique. */
-export function getCategoryChartColorVar(category: string): string {
-  return chartColorVar(hashChartIndex(category));
+/** Niveau 2 (catégories d'un membre) : couleur préférée = hash déterministe du
+ * nom (même catégorie, même couleur d'un écran à l'autre), décalée sur la
+ * suivante si une autre part du MÊME donut l'a déjà prise — un hash seul
+ * fait collisionner 5 des 11 catégories (ex. charges/autre, courses/
+ * abonnements), donc deux parts voisines indiscernables. Sans collision
+ * jusqu'à 8 parts (la palette) ; au-delà, réutilisation inévitable.
+ * `categories` est déjà trié de façon déterministe par le calc-engine. */
+export function assignCategoryChartColors(categories: string[]): string[] {
+  const taken = new Set<number>();
+  return categories.map((category) => {
+    let index = hashChartIndex(category);
+    for (let step = 0; step < CHART_TOKEN_COUNT && taken.has(index); step++) {
+      index = (index + 1) % CHART_TOKEN_COUNT;
+    }
+    taken.add(index);
+    return chartColorVar(index);
+  });
 }
 
 /** Niveau 3 (dépenses d'une catégorie) : cycle sur la palette, décalé par un

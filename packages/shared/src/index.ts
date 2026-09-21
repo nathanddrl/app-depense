@@ -5,7 +5,7 @@
 export type { ActionResult, AppError, AppWarning, ErrorCode, WarningCode } from "./contract";
 export { ok, err } from "./contract";
 
-export { formatAmountEUR, formatDateFr, getTodayParis } from "./format";
+export { formatAmountEUR, formatDateFr, getTodayParis, toDateParis } from "./format";
 
 export {
   validateAmountCents,

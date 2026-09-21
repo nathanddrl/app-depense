@@ -16,7 +16,7 @@
 // changement de niveau, jamais d'un id-matching entre membres/catégories/
 // dépenses (namespaces disjoints par construction).
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { getBalanceBreakdownAction, type BalanceBreakdown } from "../../actions";
 import { formatAmountEUR, formatDateFr } from "@app/shared";
@@ -29,12 +29,14 @@ import { Stack } from "../design-system/layout";
 import { Donut, computeSliceAngles, sliceMidAngle, type DonutSlice } from "../design-system/charts";
 import {
   getMemberChartColorVar,
-  getCategoryChartColorVar,
+  assignCategoryChartColors,
   getExpenseChartColorVar,
 } from "./balance-breakdown-colors";
 import styles from "./balance-breakdown.module.css";
 
 type Level = 1 | 2 | 3;
+
+const FETCH_TIMEOUT_MS = 20_000;
 
 /** Niveau 1 : comparaison des montants bruts payés — distincte du solde
  * (centre du donut), jamais réduite à « qui doit quoi ». */
@@ -103,6 +105,19 @@ export function BalanceBreakdownScreen({
   const [categoryOrigin, setCategoryOrigin] = useState(-90);
   const [transitionOrigin, setTransitionOrigin] = useState(-90);
 
+  // Le contrôle qui vient d'être activé (arc du donut, item du fil d'ariane)
+  // disparaît du DOM au changement de niveau : sans ça le focus retomberait
+  // sur <body> et le prochain Tab partirait derrière l'écran. Le conteneur
+  // (stable, jamais démonté) reprend le focus ; Tab enchaîne ensuite sur le
+  // fil d'ariane puis sur les arcs du nouveau niveau.
+  const contentRef = useRef<HTMLDivElement>(null);
+  const previousLevel = useRef<Level>(1);
+  useEffect(() => {
+    if (previousLevel.current === level) return;
+    previousLevel.current = level;
+    contentRef.current?.focus({ preventScroll: true });
+  }, [level]);
+
   const message = formatBalanceMessage(data.balance, members, currentMemberId);
   const periodTotal = data.members.reduce((sum, m) => sum + m.totalCents, 0);
 
@@ -168,6 +183,10 @@ export function BalanceBreakdownScreen({
   );
   const selectedMemberName = selectedMemberId ? memberDisplayName(members, selectedMemberId) : "";
 
+  const categoryColors = assignCategoryChartColors(
+    (selectedMember?.categories ?? []).map((c) => c.category),
+  );
+
   const slices: DonutSlice[] =
     level === 1
       ? data.members.map((m, i) => ({
@@ -178,11 +197,11 @@ export function BalanceBreakdownScreen({
           onSelect: () => selectMember(m.memberId),
         }))
       : level === 2
-        ? (selectedMember?.categories ?? []).map((c) => ({
+        ? (selectedMember?.categories ?? []).map((c, i) => ({
             id: c.category,
             label: c.category,
             valueCents: c.totalCents,
-            color: getCategoryChartColorVar(c.category),
+            color: categoryColors[i],
             onSelect: () => selectedMember && selectCategory(selectedMember, c.category),
           }))
         : (selectedCategoryData?.expenses ?? []).map((e, i) => ({
@@ -200,12 +219,15 @@ export function BalanceBreakdownScreen({
     ) : level === 2 ? (
       <Stack gap={1}>
         <span className={styles.centerLabel}>{selectedMemberName}</span>
-        <AmountDisplay value={formatAmountEUR(selectedMember?.totalCents ?? 0)} size="lg" />
+        <AmountDisplay value={formatAmountEUR(selectedMember?.totalCents ?? 0)} weight="medium" />
       </Stack>
     ) : (
       <Stack gap={1}>
         <span className={styles.centerLabel}>{selectedCategory}</span>
-        <AmountDisplay value={formatAmountEUR(selectedCategoryData?.totalCents ?? 0)} size="lg" />
+        <AmountDisplay
+          value={formatAmountEUR(selectedCategoryData?.totalCents ?? 0)}
+          weight="medium"
+        />
       </Stack>
     );
 
@@ -225,40 +247,46 @@ export function BalanceBreakdownScreen({
   ];
 
   return (
-    <Stack gap={3}>
-      <Stack direction="row" gap={1} wrap>
-        {breadcrumb.map((item, i) => (
-          <span key={`${item.label}-${i}`} className={styles.breadcrumbItem}>
-            {i > 0 ? (
-              <span aria-hidden="true" className={styles.separator}>
-                ›
-              </span>
-            ) : null}
-            {item.onClick ? (
-              <Button variant="ghost" size="sm" onClick={item.onClick}>
-                {item.label}
-              </Button>
-            ) : (
-              <span className={styles.breadcrumbCurrent}>{item.label}</span>
-            )}
-          </span>
-        ))}
+    <div ref={contentRef} tabIndex={-1} className={styles.screen}>
+      <Stack gap={3}>
+        <Stack direction="row" gap={1} wrap>
+          {breadcrumb.map((item, i) => (
+            <span key={`${item.label}-${i}`} className={styles.breadcrumbItem}>
+              {i > 0 ? (
+                <span aria-hidden="true" className={styles.separator}>
+                  ›
+                </span>
+              ) : null}
+              {item.onClick ? (
+                <Button variant="ghost" size="sm" onClick={item.onClick}>
+                  {item.label}
+                </Button>
+              ) : (
+                <span className={styles.breadcrumbCurrent}>{item.label}</span>
+              )}
+            </span>
+          ))}
+        </Stack>
+
+        <p className={styles.periodLabel}>{periodLabel(data.periodStart)}</p>
+
+        {nestedEmpty ? (
+          <Notice>
+            {selectedMemberName} n&apos;a rien payé {periodLabel(data.periodStart)}
+          </Notice>
+        ) : (
+          <Donut
+            slices={slices}
+            centerContent={centerContent}
+            transitionOrigin={transitionOrigin}
+          />
+        )}
+
+        {phrase ? <Notice tone="neutral">{phrase}</Notice> : null}
+
+        {level === 1 ? settlementControls : null}
       </Stack>
-
-      <p className={styles.periodLabel}>{periodLabel(data.periodStart)}</p>
-
-      {nestedEmpty ? (
-        <Notice>
-          {selectedMemberName} n&apos;a rien payé {periodLabel(data.periodStart)}
-        </Notice>
-      ) : (
-        <Donut slices={slices} centerContent={centerContent} transitionOrigin={transitionOrigin} />
-      )}
-
-      {phrase ? <Notice tone="neutral">{phrase}</Notice> : null}
-
-      {level === 1 ? settlementControls : null}
-    </Stack>
+    </div>
   );
 }
 
@@ -266,29 +294,78 @@ type TriggerProps = {
   currentMemberId: string;
   members: MemberShare[];
   settlementControls: ReactNode;
+  /** Change dès que le solde ou la régularisation courante changent (calculé
+   * par BalanceCard) : l'écran ouvert se recharge, pour ne jamais afficher un
+   * état périmé (ex. le créancier confirme « j'ai reçu » depuis cet écran). */
+  revision: string;
 };
 
 export function BalanceBreakdownTrigger({
   currentMemberId,
   members,
   settlementControls,
+  revision,
 }: TriggerProps) {
   const [open, setOpen] = useState(false);
   const [openCount, setOpenCount] = useState(0);
   const [data, setData] = useState<BalanceBreakdown | null>(null);
-  const [loadError, setLoadError] = useState(false);
-  const [isPending, startTransition] = useGlobalTransition();
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const openerRef = useRef<HTMLElement | null>(null);
+
+  // Chargement à l'ouverture, au réessai et à chaque changement de `revision`.
+  // Une Server Action qui LÈVE (base injoignable, réseau) est traitée comme un
+  // échec, au même titre qu'un `ok: false` — sans ça l'écran resterait sur
+  // « calcul en cours… » pour toujours.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    // Backend qui ne répond pas (timeout amont de 60 s) : au-delà de ce délai,
+    // l'écran passe en erreur plutôt que de rester sur « calcul en cours… ».
+    // Une réponse tardive rétablit tout de même l'écran (ci-dessous).
+    const timer = setTimeout(() => {
+      if (!cancelled) setFailed(true);
+    }, FETCH_TIMEOUT_MS);
+    getBalanceBreakdownAction()
+      .then((res) => {
+        if (cancelled) return;
+        clearTimeout(timer);
+        if (res.ok) {
+          setData(res.data);
+          setFailed(false);
+        } else {
+          setFailed(true);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        clearTimeout(timer);
+        setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [open, attempt, revision]);
 
   function handleOpen() {
-    setOpen(true);
+    openerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setData(null);
-    setLoadError(false);
+    setFailed(false);
     setOpenCount((c) => c + 1);
-    startTransition(async () => {
-      const res = await getBalanceBreakdownAction();
-      if (res.ok) setData(res.data);
-      else setLoadError(true);
-    });
+    setOpen(true);
+  }
+
+  // Fermeture (Échap, « annuler », CTA) : le focus revient au déclencheur.
+  function closeScreen() {
+    setOpen(false);
+    openerRef.current?.focus();
+  }
+
+  function retry() {
+    setFailed(false);
+    setAttempt((a) => a + 1);
   }
 
   return (
@@ -296,20 +373,30 @@ export function BalanceBreakdownTrigger({
       <Button variant="ghost" onClick={handleOpen}>
         d&apos;où vient l&apos;écart
       </Button>
-      <Dialog open={open} onClose={() => setOpen(false)} fullscreen title="d'où vient l'écart">
-        {loadError ? (
-          <Notice tone="error">le calcul a échoué, réessaie dans un instant</Notice>
-        ) : isPending || data === null ? (
-          <Notice tone="neutral">calcul en cours…</Notice>
+      <Dialog open={open} onClose={closeScreen} fullscreen title="d'où vient l'écart">
+        {data ? (
+          <Stack gap={3}>
+            {failed ? (
+              <Notice tone="error">les chiffres n&apos;ont pas pu être actualisés</Notice>
+            ) : null}
+            <BalanceBreakdownScreen
+              key={openCount}
+              data={data}
+              currentMemberId={currentMemberId}
+              members={members}
+              settlementControls={settlementControls}
+              onClose={closeScreen}
+            />
+          </Stack>
+        ) : failed ? (
+          <Stack gap={2}>
+            <Notice tone="error">le calcul ne répond pas pour le moment</Notice>
+            <Button variant="secondary" onClick={retry}>
+              réessayer
+            </Button>
+          </Stack>
         ) : (
-          <BalanceBreakdownScreen
-            key={openCount}
-            data={data}
-            currentMemberId={currentMemberId}
-            members={members}
-            settlementControls={settlementControls}
-            onClose={() => setOpen(false)}
-          />
+          <Notice tone="neutral">calcul en cours…</Notice>
         )}
       </Dialog>
     </>

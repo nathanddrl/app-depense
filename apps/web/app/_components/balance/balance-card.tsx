@@ -94,6 +94,7 @@ export function BalanceCard({
       currentMemberId={currentMemberId}
       members={members}
       settlementControls={settlementControls}
+      revision={`${from}:${to}:${amountCents}:${settlement?.id ?? ""}:${settlement?.status ?? ""}`}
     />
   );
 

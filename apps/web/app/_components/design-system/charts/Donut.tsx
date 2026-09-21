@@ -28,6 +28,8 @@ import {
   pointOnRing,
   labelRotation,
   cubicBezierEase,
+  parseDurationMs,
+  parseCubicBezier,
 } from "./donut-geometry";
 import styles from "./Donut.module.css";
 
@@ -52,15 +54,32 @@ type Props = {
   size?: number;
 };
 
-const DURATION_MS = 600; // --motion-settle-duration
-const EASE = cubicBezierEase(0.16, 1, 0.3, 1); // --motion-settle-easing
+// Repli si les tokens sont illisibles (hors navigateur, variable absente) —
+// mêmes valeurs que motion.css, jamais une autre courbe.
+const FALLBACK_DURATION_MS = 600;
+const FALLBACK_EASING: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const LABEL_MIN_ANGLE_DEG = 24;
+const INNER_RADIUS_RATIO = 0.7;
+const HOLE_CONTENT_RATIO = 0.82;
 const PX_PER_CHAR = 6.2;
 
 function reducedMotionPreferred(): boolean {
   return (
     typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
   );
+}
+
+/** Lit --motion-settle-duration/-easing sur la racine : l'animation JS suit les
+ * MÊMES tokens que le reste de l'app (jamais une copie qui pourrait diverger). */
+function readMotionTokens(): { durationMs: number; ease: (t: number) => number } {
+  const styles =
+    typeof document !== "undefined" ? getComputedStyle(document.documentElement) : null;
+  const durationMs =
+    parseDurationMs(styles?.getPropertyValue("--motion-settle-duration") ?? "") ??
+    FALLBACK_DURATION_MS;
+  const bezier =
+    parseCubicBezier(styles?.getPropertyValue("--motion-settle-easing") ?? "") ?? FALLBACK_EASING;
+  return { durationMs, ease: cubicBezierEase(...bezier) };
 }
 
 function toAnimatedSlices(
@@ -133,10 +152,11 @@ export function Donut({ slices, centerContent, transitionOrigin = -90, size = 24
       return;
     }
 
+    const { durationMs, ease } = readMotionTokens();
     const startTime = performance.now();
     function frame(now: number) {
-      const t = Math.min(1, (now - startTime) / DURATION_MS);
-      const eased = EASE(t);
+      const t = Math.min(1, (now - startTime) / durationMs);
+      const eased = ease(t);
       const merged = new Map<string, Angle>();
       for (const id of unionIds) {
         const f = from.get(id)!;
@@ -175,7 +195,10 @@ export function Donut({ slices, centerContent, transitionOrigin = -90, size = 24
   const cx = size / 2;
   const cy = size / 2;
   const outerRadius = size / 2 - 4;
-  const innerRadius = outerRadius * 0.55;
+  // Trou assez large pour y loger le contenu central (solde, total) sans qu'il
+  // ne mord sur l'anneau — la zone centrale est bornée à son contour.
+  const innerRadius = outerRadius * INNER_RADIUS_RATIO;
+  const holeSide = innerRadius * 2 * HOLE_CONTENT_RATIO;
   const labelRadius = (outerRadius + innerRadius) / 2;
 
   return (
@@ -250,7 +273,7 @@ export function Donut({ slices, centerContent, transitionOrigin = -90, size = 24
           );
         })}
       </svg>
-      <div className={styles.center} style={{ width: size, height: size }}>
+      <div className={styles.center} style={{ width: holeSide, height: holeSide }}>
         {centerContent}
       </div>
       <ul className={styles.legend}>
@@ -258,7 +281,7 @@ export function Donut({ slices, centerContent, transitionOrigin = -90, size = 24
           <li key={s.id} className={styles.legendItem}>
             <span className={styles.swatch} style={{ background: s.color }} aria-hidden="true" />
             <span>
-              {s.label}, {formatAmountEUR(s.valueCents)}
+              {s.label}, <span className="tabular-nums">{formatAmountEUR(s.valueCents)}</span>
             </span>
           </li>
         ))}

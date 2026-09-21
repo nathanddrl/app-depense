@@ -188,6 +188,28 @@ describe("findPeriodStart — borne de période cohérente avec le solde (refont
     expect(res.data).toBe("2026-02-15");
   });
 
+  it("règlement confirmé juste après minuit à Paris : la borne est la date de Paris, pas la date UTC", async () => {
+    // 22:30 UTC le 15 janvier = 23:30 à Paris (hiver, UTC+1) → toujours le 15.
+    // 23:30 UTC le 15 janvier = 00:30 à Paris le 16 : la dépense du 16 (jour de
+    // Paris) est alors DÉJÀ engagée quand le règlement de 5000 est confirmé.
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [expense({ id: "1", incurredOn: "2026-01-16" })],
+    );
+    const settlements: ConfirmedSettlementForPeriod[] = [
+      {
+        fromMemberId: "B",
+        toMemberId: "A",
+        amountCents: 5000,
+        confirmedAt: "2026-01-15T23:30:00.000Z",
+      },
+    ];
+    const res = await findPeriodStart(repo, ctx, { householdId: HOUSEHOLD, settlements });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data).toBe("2026-01-16");
+  });
+
   it("foyer non autorisé (mismatch seam) → FORBIDDEN", async () => {
     const repo = new FakeExpenseRepository(["A", "B"], []);
     const res = await findPeriodStart(repo, ctx, { householdId: "AUTRE", settlements: [] });

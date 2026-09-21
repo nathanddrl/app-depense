@@ -10,10 +10,15 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { GlobalProgressProvider } from "../design-system/feedback";
-import { BalanceBreakdownScreen } from "./balance-breakdown";
+import { BalanceBreakdownScreen, BalanceBreakdownTrigger } from "./balance-breakdown";
 import styles from "./balance-breakdown.module.css";
 import type { BalanceBreakdown } from "../../actions";
 import type { MemberShare } from "../../../lib/household";
+
+const getBalanceBreakdownAction = vi.fn();
+vi.mock("../../actions", () => ({
+  getBalanceBreakdownAction: (...args: unknown[]) => getBalanceBreakdownAction(...args),
+}));
 
 const pushMock = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -172,6 +177,18 @@ describe("BalanceBreakdownScreen — écran « d'où vient l'écart »", () => {
     expect(container.querySelector('[data-testid="settle"]')).not.toBeNull();
   });
 
+  it("changement de niveau : le focus revient au conteneur de l'écran (jamais perdu sur <body>)", () => {
+    render();
+    const slice = [...container.querySelectorAll('path[role="button"]')].find((p) =>
+      p.getAttribute("aria-label")?.startsWith("sam"),
+    ) as SVGPathElement;
+    slice.focus();
+    clickSliceByLabel("sam");
+    const content = container.querySelector('[tabindex="-1"]');
+    expect(content).not.toBeNull();
+    expect(document.activeElement).toBe(content);
+  });
+
   it("période sans dépense : état vide orienté action, jamais un donut vide", () => {
     const emptyData: BalanceBreakdown = {
       balance: { from: "sam", to: "nathan", amountCents: 0 },
@@ -204,5 +221,277 @@ describe("BalanceBreakdownScreen — écran « d'où vient l'écart »", () => {
     render({ data: zeroBalanceData, settlementControls: null });
     expect(container.querySelectorAll('path[role="button"]')).toHaveLength(2);
     expect(container.querySelector('[data-testid="settle"]')).toBeNull();
+  });
+});
+
+describe("BalanceBreakdownTrigger — chargement, erreur, rechargement", () => {
+  let container: HTMLDivElement;
+  let root: Root;
+
+  function renderTrigger(revision = "r1") {
+    act(() => {
+      root.render(
+        createElement(
+          GlobalProgressProvider,
+          null,
+          createElement(BalanceBreakdownTrigger, {
+            currentMemberId: "sam",
+            members,
+            settlementControls: createElement("div", { "data-testid": "settle" }, "solder-marker"),
+            revision,
+          }),
+        ),
+      );
+    });
+  }
+
+  async function flush() {
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
+
+  function buttonByText(text: string): HTMLButtonElement {
+    const btn = [...container.querySelectorAll("button")].find(
+      (b) => b.textContent?.trim() === text,
+    );
+    if (!btn) throw new Error(`bouton "${text}" introuvable`);
+    return btn;
+  }
+
+  async function click(text: string) {
+    await act(async () => {
+      buttonByText(text).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flush();
+  }
+
+  const dialogText = () => container.querySelector('[role="dialog"]')?.textContent ?? "";
+  const hasTrigger = () =>
+    [...container.querySelectorAll("button")].some(
+      (b) => b.textContent?.trim() === "d'où vient l'écart",
+    );
+
+  beforeEach(() => {
+    reactGlobals.IS_REACT_ACT_ENVIRONMENT = true;
+    mockMatchMedia(true);
+    getBalanceBreakdownAction.mockReset();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+    reactGlobals.IS_REACT_ACT_ENVIRONMENT = false;
+  });
+
+  it("le déclencheur est un texte explicite, écran fermé par défaut", () => {
+    renderTrigger();
+    expect(hasTrigger()).toBe(true);
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(getBalanceBreakdownAction).not.toHaveBeenCalled();
+  });
+
+  it("ouverture : « calcul en cours… » tant que la Server Action n'a pas répondu, puis l'écran", async () => {
+    let resolve!: (value: unknown) => void;
+    getBalanceBreakdownAction.mockReturnValue(new Promise((r) => (resolve = r)));
+    renderTrigger();
+    await click("d'où vient l'écart");
+    expect(dialogText()).toContain("calcul en cours");
+
+    await act(async () => resolve({ ok: true, data }));
+    expect(dialogText()).not.toContain("calcul en cours");
+    expect(container.querySelectorAll('path[role="button"]')).toHaveLength(2);
+  });
+
+  it("erreur métier (ok: false) : état d'erreur avec réessai, jamais bloqué sur le chargement", async () => {
+    getBalanceBreakdownAction.mockResolvedValue({
+      ok: false,
+      error: { code: "FORBIDDEN", message: "Foyer non autorisé." },
+    });
+    renderTrigger();
+    await click("d'où vient l'écart");
+
+    expect(dialogText()).toContain("le calcul ne répond pas pour le moment");
+    expect(dialogText()).not.toContain("calcul en cours");
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    expect(() => buttonByText("réessayer")).not.toThrow();
+  });
+
+  it("Server Action qui LÈVE (base injoignable) : même état d'erreur, pas de chargement infini", async () => {
+    getBalanceBreakdownAction.mockRejectedValue(new Error("fetch failed"));
+    renderTrigger();
+    await click("d'où vient l'écart");
+
+    expect(dialogText()).toContain("le calcul ne répond pas pour le moment");
+    expect(dialogText()).not.toContain("calcul en cours");
+  });
+
+  it("« réessayer » relance la Server Action et affiche l'écran au succès", async () => {
+    getBalanceBreakdownAction.mockRejectedValueOnce(new Error("fetch failed"));
+    getBalanceBreakdownAction.mockResolvedValueOnce({ ok: true, data });
+    renderTrigger();
+    await click("d'où vient l'écart");
+    expect(dialogText()).toContain("ne répond pas");
+
+    await click("réessayer");
+    expect(getBalanceBreakdownAction).toHaveBeenCalledTimes(2);
+    expect(dialogText()).not.toContain("ne répond pas");
+    expect(container.querySelectorAll('path[role="button"]')).toHaveLength(2);
+  });
+
+  it("copy d'erreur : déclarative, sans impératif ni point d'exclamation ni mot banni", async () => {
+    getBalanceBreakdownAction.mockRejectedValue(new Error("boom"));
+    renderTrigger();
+    await click("d'où vient l'écart");
+    const text = dialogText();
+    expect(text).not.toMatch(/réessaie\b|essaie\b|patiente|veuillez/i);
+    expect(text).not.toContain("!");
+    expect(text).not.toMatch(/rembours/i);
+  });
+
+  it("le solde change pendant que l'écran est ouvert : rechargement, plus jamais un état périmé", async () => {
+    getBalanceBreakdownAction.mockResolvedValueOnce({ ok: true, data });
+    renderTrigger("r1");
+    await click("d'où vient l'écart");
+    expect(getBalanceBreakdownAction).toHaveBeenCalledTimes(1);
+    expect(dialogText()).toContain("tu dois");
+
+    getBalanceBreakdownAction.mockResolvedValueOnce({
+      ok: true,
+      data: { ...data, balance: { from: "sam", to: "nathan", amountCents: 0 } },
+    });
+    renderTrigger("r2"); // BalanceCard a rafraîchi son solde (ex. règlement confirmé)
+    await flush();
+
+    expect(getBalanceBreakdownAction).toHaveBeenCalledTimes(2);
+    expect(dialogText()).toContain("vous êtes étale");
+    expect(dialogText()).not.toContain("tu dois");
+  });
+
+  it("échec d'un rechargement alors que des chiffres sont déjà affichés : on les garde, en le disant", async () => {
+    getBalanceBreakdownAction.mockResolvedValueOnce({ ok: true, data });
+    renderTrigger("r1");
+    await click("d'où vient l'écart");
+
+    getBalanceBreakdownAction.mockRejectedValueOnce(new Error("réseau"));
+    renderTrigger("r2");
+    await flush();
+
+    expect(container.querySelectorAll('path[role="button"]')).toHaveLength(2);
+    expect(dialogText()).toContain("n'ont pas pu être actualisés");
+  });
+
+  it("fermeture puis réouverture : nouvelle requête, retour au niveau 1", async () => {
+    getBalanceBreakdownAction.mockResolvedValue({ ok: true, data });
+    renderTrigger();
+    await click("d'où vient l'écart");
+
+    const memberPath = [...container.querySelectorAll('path[role="button"]')].find((p) =>
+      p.getAttribute("aria-label")?.startsWith("sam"),
+    );
+    await act(async () => {
+      memberPath?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(dialogText()).toContain("courses"); // niveau 2
+
+    await click("annuler");
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+
+    await click("d'où vient l'écart");
+    expect(getBalanceBreakdownAction).toHaveBeenCalledTimes(2);
+    expect(container.querySelectorAll('path[role="button"]')).toHaveLength(2);
+    expect(dialogText()).toContain("nathan"); // niveau 1 : les deux membres
+  });
+});
+
+describe("BalanceBreakdownTrigger — focus et délai maximal", () => {
+  let container: HTMLDivElement;
+  let root: Root;
+
+  function renderTrigger() {
+    act(() => {
+      root.render(
+        createElement(
+          GlobalProgressProvider,
+          null,
+          createElement(BalanceBreakdownTrigger, {
+            currentMemberId: "sam",
+            members,
+            settlementControls: null,
+            revision: "r1",
+          }),
+        ),
+      );
+    });
+  }
+
+  const dialogText = () => container.querySelector('[role="dialog"]')?.textContent ?? "";
+  const button = (text: string) =>
+    [...container.querySelectorAll("button")].find((b) => b.textContent?.trim() === text)!;
+
+  beforeEach(() => {
+    reactGlobals.IS_REACT_ACT_ENVIRONMENT = true;
+    mockMatchMedia(true);
+    getBalanceBreakdownAction.mockReset();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+    vi.useRealTimers();
+    reactGlobals.IS_REACT_ACT_ENVIRONMENT = false;
+  });
+
+  it("à la fermeture (Échap ou « annuler »), le focus revient au déclencheur", async () => {
+    getBalanceBreakdownAction.mockResolvedValue({ ok: true, data });
+    renderTrigger();
+    const trigger = button("d'où vient l'écart");
+    trigger.focus();
+    await act(async () => {
+      trigger.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+
+    (document.activeElement as HTMLElement)?.blur();
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("backend qui ne répond pas : après 20 s, état d'erreur (pas de chargement indéfini), et une réponse tardive rétablit l'écran", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    let resolve!: (value: unknown) => void;
+    getBalanceBreakdownAction.mockReturnValue(new Promise((r) => (resolve = r)));
+    renderTrigger();
+    await act(async () => {
+      button("d'où vient l'écart").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(dialogText()).toContain("calcul en cours");
+
+    await act(async () => {
+      vi.advanceTimersByTime(19_000);
+    });
+    expect(dialogText()).toContain("calcul en cours");
+
+    await act(async () => {
+      vi.advanceTimersByTime(1_500);
+    });
+    expect(dialogText()).toContain("le calcul ne répond pas pour le moment");
+    expect(dialogText()).not.toContain("calcul en cours");
+
+    await act(async () => resolve({ ok: true, data }));
+    expect(dialogText()).not.toContain("ne répond pas");
+    expect(container.querySelectorAll('path[role="button"]')).toHaveLength(2);
   });
 });

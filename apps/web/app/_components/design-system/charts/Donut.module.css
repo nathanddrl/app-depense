@@ -17,11 +17,12 @@
 .center {
   grid-column: 1;
   grid-row: 1;
+  place-self: center;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: var(--space-2);
+  overflow-wrap: break-word;
   pointer-events: none;
 }
 

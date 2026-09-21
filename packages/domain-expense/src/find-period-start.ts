@@ -11,7 +11,7 @@
 
 import { computeExpense, computeBalance } from "@app/calc-engine";
 import type { BalanceExpense, SettlementForBalance } from "@app/calc-engine";
-import { err, ok } from "@app/shared";
+import { err, ok, toDateParis } from "@app/shared";
 import type { ActionResult } from "@app/shared";
 import type { ExpenseRepository } from "./repository";
 import type { ConfirmedSettlementForPeriod, ExpenseContext } from "./types";
@@ -37,7 +37,8 @@ export async function findPeriodStart(
 
   let lastZeroingDate: string | null = null;
   for (const settlement of sorted) {
-    const cutoff = settlement.confirmedAt.slice(0, 10);
+    // Date métier de Paris (D4), comparable à `incurred_on` — pas la date UTC.
+    const cutoff = toDateParis(settlement.confirmedAt);
 
     const settlementsUpToHere: SettlementForBalance[] = sorted
       .filter((s) => s.confirmedAt <= settlement.confirmedAt)

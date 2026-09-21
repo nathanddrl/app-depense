@@ -10,13 +10,16 @@ const FULL_CIRCLE = 360;
 const START_ANGLE = -90; // 12h, comme un cadran — le donut se lit dans le sens horaire.
 
 /**
- * Largeur angulaire minimale d'une part non nulle (spec refonte solde : « une
- * part de très faible valeur, moins de 2 % du total » reste visible/tapable).
+ * Largeur angulaire minimale d'une part (spec refonte solde : « une part de
+ * très faible valeur, moins de 2 % du total » reste visible ET tapable).
  * Choix documenté (compte-rendu) : largeur minimale plutôt que regroupement —
  * un regroupement briserait l'invariant « chaque part reste navigable » au
  * niveau 2 (vers quelle catégorie une part « autres » descendrait-elle ?).
+ * 3,5 % et non 2 % : à 2 % la part ne fait que ~15 px de large sur un donut
+ * de 240 px, trop étroit pour un doigt ; 3,5 % donne ~25 px (cible tactile
+ * AA WCAG 2.2 : 24 px). Toute part sous ce seuil — y compris 0 — est remontée.
  */
-export const MIN_SLICE_FRACTION = 0.02;
+export const MIN_SLICE_FRACTION = 0.035;
 
 /**
  * Angles de chaque part, proportionnels à `value`, avec plancher minimal
@@ -194,4 +197,21 @@ export function cubicBezierEase(
     if (t >= 1) return 1;
     return sampleY(solveCurveX(t));
   };
+}
+
+/** `"600ms"` / `"0.6s"` → millisecondes ; `null` si illisible. */
+export function parseDurationMs(raw: string): number | null {
+  const match = /^\s*(-?\d*\.?\d+)\s*(ms|s)\s*$/.exec(raw);
+  if (!match) return null;
+  const value = Number(match[1]) * (match[2] === "s" ? 1000 : 1);
+  return value >= 0 ? value : null;
+}
+
+/** `"cubic-bezier(0.16, 1, 0.3, 1)"` → ses 4 points de contrôle ; `null` si illisible. */
+export function parseCubicBezier(raw: string): [number, number, number, number] | null {
+  const match = /^\s*cubic-bezier\(([^)]*)\)\s*$/.exec(raw);
+  if (!match) return null;
+  const parts = match[1].split(",").map((part) => Number(part.trim()));
+  if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) return null;
+  return [parts[0], parts[1], parts[2], parts[3]];
 }
