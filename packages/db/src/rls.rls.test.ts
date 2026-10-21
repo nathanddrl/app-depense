@@ -44,6 +44,7 @@ const cleanupSql = `
   delete from recurring_occurrence where template_id in ('${TA}','${TB}');
   delete from recurring_aid       where template_id in ('${TA}','${TB}');
   delete from recurring_template  where id in ('${TA}','${TB}');
+  delete from expense_revision    where expense_id in ('${EA}','${EB}');
   delete from aid                 where expense_id in ('${EA}','${EB}');
   delete from expense_share       where expense_id in ('${EA}','${EB}');
   delete from expense             where id in ('${EA}','${EB}');
@@ -237,5 +238,66 @@ describe("RLS — les DEUX membres du foyer A (Alice & Amir) accèdent à leurs 
     expect(await visibleCount(UA1, "expense", `id = '${EB}'`)).toBe(0);
     expect(await visibleCount(UA1, "household", `id = '${HB}'`)).toBe(0);
     expect(await visibleCount(UA1, "expense_share", `id = '${SHB}'`)).toBe(0);
+  });
+});
+
+// Historique des dépenses (`expense_revision`, append-only) : chaque membre du
+// foyer fige l'état de SES dépenses via `snapshot_expense`, ne voit que celles
+// de son foyer, et personne ne peut réécrire ni effacer l'historique.
+describe("RLS — historique des dépenses (expense_revision)", () => {
+  /** Fige la dépense puis compte les révisions visibles, dans la même transaction. */
+  async function snapshotThenCount(authUid: string, expenseId: string): Promise<number> {
+    const res = (await queryAs(
+      authUid,
+      `select public.snapshot_expense('${expenseId}');
+       select count(*)::int as c from expense_revision where expense_id = '${expenseId}';`,
+    )) as unknown as pkg.QueryResult[];
+    return res[1].rows[0].c as number;
+  }
+
+  it("Alice fige une dépense de son foyer et voit la révision (parts et aides incluses)", async () => {
+    expect(await snapshotThenCount(UA1, EA)).toBe(1);
+  });
+
+  it("Bob ne peut PAS figer une dépense du foyer A (rien n'est inséré)", async () => {
+    const res = (await queryAs(
+      UB1,
+      `select public.snapshot_expense('${EA}');
+       select count(*)::int as c from expense_revision where expense_id = '${EA}';`,
+    )) as unknown as pkg.QueryResult[];
+    expect(res[1].rows[0].c).toBe(0);
+    // Vérification en superuser : aucune ligne n'a fuité malgré l'appel.
+    const raw = await client.query(
+      `select count(*)::int as c from expense_revision where expense_id = '${EA}'`,
+    );
+    expect(raw.rows[0].c).toBe(0);
+  });
+
+  it("Bob ne peut PAS insérer directement une révision sur une dépense du foyer A", async () => {
+    await expect(
+      queryAs(
+        UB1,
+        `insert into expense_revision (expense_id, label, category, gross_amount_cents,
+           payer_member_id, incurred_on, shares, aids)
+         values ('${EA}','pirate','autre',100,'${MB1}','2026-07-01','[]','[]')`,
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("append-only : même Alice ne peut ni modifier ni effacer une révision (refusé)", async () => {
+    await expect(
+      queryAs(
+        UA1,
+        `select public.snapshot_expense('${EA}');
+         update expense_revision set gross_amount_cents = 1 where expense_id = '${EA}';`,
+      ),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      queryAs(
+        UA1,
+        `select public.snapshot_expense('${EA}');
+         delete from expense_revision where expense_id = '${EA}';`,
+      ),
+    ).rejects.toThrow(/permission denied/);
   });
 });

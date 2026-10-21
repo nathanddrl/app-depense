@@ -10,6 +10,8 @@ export { listExpenseMonths } from "./list-expense-months";
 export { getBalance } from "./get-balance";
 export { getBalanceBreakdown } from "./get-balance-breakdown";
 export { findPeriodStart } from "./find-period-start";
+export { getSettlementCorrections } from "./get-settlement-corrections";
+export { findCoveringSettlement } from "./find-covering-settlement";
 export { getAdminExpenseOverview } from "./get-admin-expense-overview";
 export { adminUpdateExpense } from "./admin-update-expense";
 
@@ -28,6 +30,7 @@ export type {
   Expense,
   ExpenseShareDTO,
   ExpenseAidDTO,
+  ExpenseRevision,
   ShareInput,
   ExpenseContext,
   ExpenseSource,
@@ -41,5 +44,8 @@ export type {
   CategoryPaidBreakdown,
   MemberPaidBreakdown,
   ConfirmedSettlementForPeriod,
+  PeriodStart,
+  SettlementCorrectionKind,
+  SettlementCorrectionLine,
   AdminExpenseOverviewLine,
 } from "./types";

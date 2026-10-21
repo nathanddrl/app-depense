@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { computeExpense, contribution, computeBalance, reduceBalanceTwoMembers } from "./index";
+import {
+  computeExpense,
+  contribution,
+  computeBalance,
+  computeBalanceDelta,
+  reduceBalanceTwoMembers,
+} from "./index";
 import type { BalanceExpense, ExpenseInput, SettlementForBalance } from "./index";
 
 const ratio5050 = [
@@ -202,5 +208,36 @@ describe("reduceBalanceTwoMembers", () => {
       to: "B",
       amountCents: 300,
     });
+  });
+});
+
+describe("computeBalanceDelta — effet d'une correction sur le solde", () => {
+  const loyer: ExpenseInput = { grossCents: 75000, payerId: "A", ratio: ratio5050 };
+
+  it("dépense ajoutée (avant = null) → sa contribution entière", () => {
+    expect(computeBalanceDelta(null, balanceExpense(loyer), ["A", "B"])).toEqual({
+      A: 37500,
+      B: -37500,
+    });
+  });
+
+  it("dépense supprimée (après = null) → l'opposé de sa contribution", () => {
+    expect(computeBalanceDelta(balanceExpense(loyer), null, ["A", "B"])).toEqual({
+      A: -37500,
+      B: 37500,
+    });
+  });
+
+  it("aide perçue par le payeur → sa créance baisse de la moitié de l'aide", () => {
+    const after = balanceExpense({ ...loyer, aids: [{ beneficiaryId: "A", amountCents: 36900 }] });
+    expect(computeBalanceDelta(balanceExpense(loyer), after, ["A", "B"])).toEqual({
+      A: -18450,
+      B: 18450,
+    });
+  });
+
+  it("somme des deltas toujours nulle, et dépense soft-deletée ignorée", () => {
+    const deleted = balanceExpense(loyer, { deletedAt: "2026-10-21T00:00:00Z" });
+    expect(computeBalanceDelta(deleted, null, ["A", "B"])).toEqual({ A: 0, B: 0 });
   });
 });

@@ -34,3 +34,38 @@
 .screen:focus {
   outline: none;
 }
+
+/* Corrections postérieures au dernier règlement (niveau 1) : liste sobre,
+   sans pastille ni couleur d'alerte — un constat, pas un avertissement. */
+.corrections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.correctionsTitle {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: inherit;
+  color: var(--text-secondary);
+}
+
+.correctionsList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.correction {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--text-sm);
+}
+
+.correctionEffect {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}

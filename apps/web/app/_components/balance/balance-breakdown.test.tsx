@@ -35,6 +35,7 @@ const members: MemberShare[] = [
 const data: BalanceBreakdown = {
   balance: { from: "sam", to: "nathan", amountCents: 4000 },
   periodStart: null,
+  corrections: [],
   members: [
     {
       memberId: "nathan",
@@ -256,6 +257,7 @@ describe("BalanceBreakdownScreen — écran « d'où vient l'écart »", () => {
     const emptyData: BalanceBreakdown = {
       balance: { from: "sam", to: "nathan", amountCents: 0 },
       periodStart: null,
+      corrections: [],
       members: [
         { memberId: "nathan", totalCents: 0, categories: [] },
         { memberId: "sam", totalCents: 0, categories: [] },
@@ -284,6 +286,56 @@ describe("BalanceBreakdownScreen — écran « d'où vient l'écart »", () => {
     render({ data: zeroBalanceData, settlementControls: null });
     expect(container.querySelectorAll('path[role="button"]')).toHaveLength(2);
     expect(container.querySelector('[data-testid="settle"]')).toBeNull();
+  });
+
+  it("corrections après le dernier règlement : listées au niveau 1, avec vers qui penche l'écart", () => {
+    const withCorrections: BalanceBreakdown = {
+      ...data,
+      periodStart: "2026-10-04",
+      corrections: [
+        {
+          expenseId: "box",
+          label: "Box internet",
+          incurredOn: "2026-10-03",
+          kind: "deleted",
+          amountCents: 2300,
+          balanceDelta: { nathan: -1150, sam: 1150 },
+        },
+        {
+          expenseId: "loyer",
+          label: "Loyer",
+          incurredOn: "2026-10-04",
+          kind: "aid-added",
+          amountCents: 36900,
+          balanceDelta: { nathan: 18450, sam: -18450 },
+        },
+        {
+          expenseId: "courses",
+          label: "Courses",
+          incurredOn: "2026-10-02",
+          kind: "modified",
+          amountCents: 6000,
+          previousAmountCents: 4000,
+          balanceDelta: { nathan: -1000, sam: 1000 },
+        },
+      ],
+    };
+    render({ data: withCorrections });
+    const t = text();
+    expect(t).toContain("changé après le règlement du 4 oct., sur des dépenses d'avant");
+    expect(t).toContain("Box internet, 3 oct. : retirée après coup");
+    expect(t).toMatch(/l'écart penche de 11,50 € de plus vers toi/);
+    expect(t).toMatch(/aide de 369,00 € ajoutée après coup/);
+    expect(t).toMatch(/l'écart penche de 184,50 € de plus vers nathan/);
+    expect(t).toContain("Courses, 2 oct. : modifiée après coup, de 40,00 € à 60,00 €");
+
+    clickSliceByLabel("nathan");
+    expect(text()).not.toContain("changé après le règlement");
+  });
+
+  it("sans correction : aucune section dédiée", () => {
+    render();
+    expect(text()).not.toContain("changé après le règlement");
   });
 });
 

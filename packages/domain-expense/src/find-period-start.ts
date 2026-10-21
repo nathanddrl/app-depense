@@ -8,13 +8,21 @@
 // ne retient donc que le DERNIER règlement confirmé qui, rejoué sur
 // l'historique jusqu'à sa date, ramène RÉELLEMENT le solde à zéro — sinon,
 // la période repart depuis le début (`null`).
+//
+// Le rejeu se fait sur les dépenses TELLES QU'ELLES ÉTAIENT CONNUES à la
+// confirmation (`expenseKnownAt`), pas sur leur état actuel : une correction
+// ultérieure d'une dépense déjà couverte (doublon supprimé, aide ajoutée,
+// occurrence générée en retard) ne doit pas disqualifier le règlement — sinon
+// l'écran retombe en silence sur une période bien trop large. Ces corrections
+// sont restituées à part (`getSettlementCorrections`).
 
-import { computeExpense, computeBalance } from "@app/calc-engine";
-import type { BalanceExpense, SettlementForBalance } from "@app/calc-engine";
+import { computeBalance } from "@app/calc-engine";
+import type { SettlementForBalance } from "@app/calc-engine";
 import { err, ok, toDateParis } from "@app/shared";
 import type { ActionResult } from "@app/shared";
-import type { ExpenseRepository } from "./repository";
-import type { ConfirmedSettlementForPeriod, ExpenseContext } from "./types";
+import { expenseKnownAt, toBalanceExpense } from "./internal";
+import type { ExpenseRepository, StoredExpense } from "./repository";
+import type { ConfirmedSettlementForPeriod, ExpenseContext, PeriodStart } from "./types";
 
 export async function findPeriodStart(
   repo: ExpenseRepository,
@@ -23,25 +31,27 @@ export async function findPeriodStart(
     householdId,
     settlements,
   }: { householdId: string; settlements: ConfirmedSettlementForPeriod[] },
-): Promise<ActionResult<string | null>> {
+): Promise<ActionResult<PeriodStart | null>> {
   if (householdId !== ctx.householdId) {
     return err("FORBIDDEN", "Foyer non autorisé.");
   }
 
   const [memberIds, expenses] = await Promise.all([
     repo.getHouseholdMemberIds(householdId),
-    repo.listExpenses(householdId, {}),
+    repo.listAllExpensesForAdmin(householdId),
   ]);
 
-  const sorted = [...settlements].sort((a, b) => a.confirmedAt.localeCompare(b.confirmedAt));
+  const sorted = [...settlements].sort(
+    (a, b) => Date.parse(a.confirmedAt) - Date.parse(b.confirmedAt),
+  );
 
-  let lastZeroingDate: string | null = null;
+  let lastZeroing: PeriodStart | null = null;
   for (const settlement of sorted) {
     // Date métier de Paris (D4), comparable à `incurred_on` — pas la date UTC.
     const cutoff = toDateParis(settlement.confirmedAt);
 
     const settlementsUpToHere: SettlementForBalance[] = sorted
-      .filter((s) => s.confirmedAt <= settlement.confirmedAt)
+      .filter((s) => Date.parse(s.confirmedAt) <= Date.parse(settlement.confirmedAt))
       .map((s) => ({
         fromMemberId: s.fromMemberId,
         toMemberId: s.toMemberId,
@@ -49,28 +59,18 @@ export async function findPeriodStart(
         status: "confirmed",
       }));
 
-    const balanceExpenses: BalanceExpense[] = expenses
-      .filter((e) => e.incurredOn <= cutoff)
-      .map((e) => {
-        const { effectiveAids } = computeExpense({
-          grossCents: e.grossCents,
-          payerId: e.payerId,
-          ratio: e.shares.map((s) => ({ memberId: s.memberId, pct: s.pctSnapshot })),
-          aids: e.aids,
-        });
-        return {
-          grossCents: e.grossCents,
-          payerId: e.payerId,
-          shares: e.shares.map((s) => ({ memberId: s.memberId, cents: s.cents })),
-          effectiveAids,
-        };
-      });
+    // Filtre de date APRÈS reconstitution : c'est la date connue à l'époque
+    // qui compte (une dépense a pu être redatée depuis).
+    const balanceExpenses = expenses
+      .map((e) => expenseKnownAt(e, settlement.confirmedAt))
+      .filter((e): e is StoredExpense => e !== null && e.incurredOn <= cutoff)
+      .map(toBalanceExpense);
 
     const balances = computeBalance(balanceExpenses, memberIds, settlementsUpToHere);
     if (Object.values(balances).every((amount) => amount === 0)) {
-      lastZeroingDate = cutoff;
+      lastZeroing = { date: cutoff, settledAt: settlement.confirmedAt };
     }
   }
 
-  return ok(lastZeroingDate);
+  return ok(lastZeroing);
 }

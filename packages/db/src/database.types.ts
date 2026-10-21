@@ -138,6 +138,70 @@ export type Database = {
           },
         ]
       }
+      expense_revision: {
+        Row: {
+          aids: Json
+          category: Database["public"]["Enums"]["expense_category"]
+          expense_id: string
+          gross_amount_cents: number
+          id: string
+          incurred_on: string
+          label: string
+          payer_member_id: string
+          replaced_at: string
+          replaced_by: string | null
+          shares: Json
+        }
+        Insert: {
+          aids: Json
+          category: Database["public"]["Enums"]["expense_category"]
+          expense_id: string
+          gross_amount_cents: number
+          id?: string
+          incurred_on: string
+          label: string
+          payer_member_id: string
+          replaced_at?: string
+          replaced_by?: string | null
+          shares: Json
+        }
+        Update: {
+          aids?: Json
+          category?: Database["public"]["Enums"]["expense_category"]
+          expense_id?: string
+          gross_amount_cents?: number
+          id?: string
+          incurred_on?: string
+          label?: string
+          payer_member_id?: string
+          replaced_at?: string
+          replaced_by?: string | null
+          shares?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_revision_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expense"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_revision_payer_member_id_fkey"
+            columns: ["payer_member_id"]
+            isOneToOne: false
+            referencedRelation: "member"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_revision_replaced_by_fkey"
+            columns: ["replaced_by"]
+            isOneToOne: false
+            referencedRelation: "member"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_share: {
         Row: {
           expense_id: string
@@ -502,6 +566,7 @@ export type Database = {
         }
         Returns: Json
       }
+      snapshot_expense: { Args: { p_expense_id: string }; Returns: undefined }
     }
     Enums: {
       expense_category:

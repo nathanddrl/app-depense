@@ -26,11 +26,15 @@ import { notifyDataChanged } from "../data-refresh/data-refresh-bus";
 const listExpensesAction = vi.fn();
 const deleteExpenseAction = vi.fn();
 const updateExpenseAction = vi.fn();
+const getExpenseCoverageAction = vi.fn((..._args: unknown[]) =>
+  Promise.resolve({ ok: true, data: null }),
+);
 
 vi.mock("../../actions", () => ({
   listExpensesAction: (...args: unknown[]) => listExpensesAction(...args),
   deleteExpenseAction: (...args: unknown[]) => deleteExpenseAction(...args),
   updateExpenseAction: (...args: unknown[]) => updateExpenseAction(...args),
+  getExpenseCoverageAction: (...args: unknown[]) => getExpenseCoverageAction(...args),
 }));
 
 const reactGlobals = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
@@ -132,6 +136,31 @@ describe("MovementsList — suppression progressive jusqu'à 0 (aperçu accueil)
     container.remove();
     vi.useRealTimers();
     reactGlobals.IS_REACT_ACT_ENVIRONMENT = false;
+  });
+
+  it("dépense déjà couverte par le dernier règlement : avertit à l'ouverture, sans bloquer", async () => {
+    getExpenseCoverageAction.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        data: { date: "2026-06-12", settledAt: "2026-06-12T10:00:00Z" },
+      } as never),
+    );
+    renderList([makeExpense("e1")]);
+    await openEditFormOn("Courses Lidl");
+
+    expect(getExpenseCoverageAction).toHaveBeenCalledWith("e1");
+    expect(container.textContent).toContain(
+      "déjà comptée dans le règlement du 12 juin : la modifier ou la supprimer fera bouger l'écart",
+    );
+    // Avertir, jamais bloquer : enregistrer et supprimer restent disponibles.
+    expect(buttons().some((b) => b.textContent?.trim() === "enregistrer")).toBe(true);
+    expect(buttons().some((b) => b.textContent?.trim() === "supprimer")).toBe(true);
+  });
+
+  it("dépense non couverte : aucun avertissement", async () => {
+    renderList([makeExpense("e1")]);
+    await openEditFormOn("Courses Lidl");
+    expect(container.textContent).not.toContain("déjà comptée");
   });
 
   it("n'appelle PAS onEmptyChange pendant l'effacement ni si l'utilisateur annule", async () => {

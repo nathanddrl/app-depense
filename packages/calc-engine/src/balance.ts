@@ -76,6 +76,26 @@ export function computeBalance(
 }
 
 /**
+ * Effet sur le solde de chaque membre d'un changement apporté à UNE dépense
+ * (avant → après ; `null` = dépense absente de ce côté : ajoutée ou supprimée).
+ * Sert à expliquer les corrections faites après une régularisation sur des
+ * dépenses qu'elle couvrait déjà : `contribution(après) − contribution(avant)`.
+ */
+export function computeBalanceDelta(
+  before: BalanceExpense | null,
+  after: BalanceExpense | null,
+  memberIds: MemberId[],
+): Record<MemberId, number> {
+  const delta: Record<MemberId, number> = {};
+  for (const id of memberIds) {
+    const was = before && countsInBalance(before) ? contribution(before, id) : 0;
+    const is = after && countsInBalance(after) ? contribution(after, id) : 0;
+    delta[id] = is - was;
+  }
+  return delta;
+}
+
+/**
  * Réduction d'affichage pour un foyer à 2 membres (spec 4.2) : « X doit |solde| à Y ».
  * Retourne `null` si le solde est nul (rien à régulariser).
  * `from` = débiteur (solde négatif), `to` = créancier (solde positif).

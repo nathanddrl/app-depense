@@ -24,12 +24,19 @@
 // Suppression : ex-`ExpenseActionSheet` (menu séparé, retiré — devenu
 // redondant). Le bouton « supprimer » ici délègue tout le flux (toast
 // d'annulation 3 s) au parent via `onDelete`, sans confirmation locale.
+//
+// Dépense déjà couverte par le dernier règlement (`getExpenseCoverageAction`,
+// lue à l'ouverture) : avertissement en tête du formulaire, jamais un blocage
+// (choix produit) — la modifier ou la supprimer fera bouger l'écart, et la
+// correction apparaîtra à part dans « d'où vient l'écart ». Échec de lecture
+// = pas d'avertissement (le formulaire reste utilisable).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Category, Expense } from "@app/domain-expense";
 import type { MemberShare } from "../../../lib/household";
 import { parseAmountToCents } from "../../../lib/amount";
-import { updateExpenseAction } from "../../actions";
+import { getExpenseCoverageAction, updateExpenseAction } from "../../actions";
+import { formatDateShortFr } from "@app/shared";
 import { CategorySelect } from "./category-select";
 import { Button, Input } from "../design-system/core";
 import { Dialog, Notice, useGlobalTransition } from "../design-system/feedback";
@@ -63,6 +70,19 @@ export function ExpenseEditForm({
   const [payerPct, setPayerPct] = useState(initialPayerPct);
   const [formError, setFormError] = useState<string | null>(null);
   const [isPending, startTransition] = useGlobalTransition();
+  const [coveredOn, setCoveredOn] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getExpenseCoverageAction(expense.id)
+      .then((res) => {
+        if (!cancelled && res.ok && res.data) setCoveredOn(res.data.date);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [expense.id]);
 
   function handleSubmit() {
     setFormError(null);
@@ -104,6 +124,12 @@ export function ExpenseEditForm({
         }}
       >
         <Stack gap={3}>
+          {coveredOn ? (
+            <Notice tone="neutral">
+              déjà comptée dans le règlement du {formatDateShortFr(coveredOn)} : la modifier ou la
+              supprimer fera bouger l&apos;écart
+            </Notice>
+          ) : null}
           <Input label="libellé" value={label} onChange={(e) => setLabel(e.target.value)} />
           <Input
             label="montant"
