@@ -74,3 +74,19 @@ guide de marque `uiuix-guide/` et des tokens réels (`app/styles/tokens/*.css`).
 - **ESLint reste en v9** (pas v10) : `eslint-plugin-react` (via `eslint-config-next`)
   n'est pas compatible ESLint 10. Vérifier avant tout bump.
 - Priorité tests (DA11) : `calc-engine` + RLS en P1, `domain-settlement` en P2.
+
+## Migrations Supabase (prod)
+
+- Les migrations (`packages/db/supabase/migrations/`) sont appliquées sur
+  `etale-prod` **automatiquement** au merge sur `main` par
+  `.github/workflows/migrate-prod.yml` (aussi lançable à la main via
+  `workflow_dispatch`). Plus de `supabase db push` manuel.
+- **Vercel déploie `main` en parallèle** de ce workflow : l'ordre migration → code
+  n'est pas garanti. Une migration doit donc rester **compatible avec le code déjà
+  en ligne** : ajouter avant d'utiliser, retirer après. Concrètement, une colonne,
+  table ou fonction nouvelle arrive dans une PR, le code qui s'en sert dans la
+  suivante (ou la même si l'ancien code l'ignore sans casser) ; une suppression ou
+  un renommage se fait en deux temps (le code cesse de l'utiliser, puis la
+  migration la retire).
+- La CI (`ci.yml`, job `migrations`) applique toutes les migrations + le seed sur
+  un Supabase local et lance `test:rls` sur chaque PR.
