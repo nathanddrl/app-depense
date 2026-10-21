@@ -25,6 +25,12 @@ export type ExpenseAidDTO = {
   beneficiaryId: string;
   label: string;
   amountCents: number;
+  /**
+   * Horodatage d'ajout de l'aide : distingue une aide ajoutée APRÈS une
+   * régularisation sur une dépense qu'elle couvrait déjà. Absent = considérée
+   * présente depuis la création de la dépense.
+   */
+  createdAt?: string;
 };
 
 /**
@@ -51,6 +57,22 @@ export type CreateExpenseInput = {
 export type UpdateExpenseInput = {
   expenseId: string;
   patch: Partial<Omit<CreateExpenseInput, "householdId">>;
+};
+
+/**
+ * État d'une dépense jusqu'à `replacedAt` (table `expense_revision`), figé
+ * avant chaque modification. Permet de rejouer la dépense telle qu'elle était
+ * connue à un règlement, montant, parts et aides compris.
+ */
+export type ExpenseRevision = {
+  replacedAt: string;
+  label: string;
+  category: Category;
+  grossCents: number;
+  payerId: string;
+  incurredOn: string;
+  shares: ExpenseShareDTO[];
+  aids: ExpenseAidDTO[];
 };
 
 /** Filtres de l'historique chronologique (6.2). */
@@ -151,6 +173,38 @@ export type ConfirmedSettlementForPeriod = {
   toMemberId: string;
   amountCents: number;
   confirmedAt: string;
+};
+
+/**
+ * Borne basse de la période de l'écran « d'où vient l'écart » : le dernier
+ * règlement confirmé qui ramenait le solde à zéro TEL QU'IL ÉTAIT CONNU à sa
+ * confirmation. `date` = jour de Paris de la confirmation (comparable à
+ * `incurredOn`), `settledAt` = instant exact (pour dater les corrections).
+ */
+export type PeriodStart = { date: string; settledAt: string };
+
+/**
+ * Nature d'une correction faite après la régularisation sur une dépense
+ * qu'elle couvrait déjà (datée au plus tard le jour de la régularisation).
+ */
+export type SettlementCorrectionKind = "added" | "deleted" | "aid-added" | "modified";
+
+/**
+ * Une correction postérieure à la régularisation. `amountCents` = montant
+ * actuel de la dépense (ou, si supprimée, celui qu'elle avait), ou total des
+ * aides ajoutées (`aid-added`) ; `previousAmountCents` = montant connu au
+ * règlement, renseigné seulement quand il a changé (`modified`) ;
+ * `balanceDelta` = effet sur le solde de chaque membre (positif = on lui doit
+ * davantage).
+ */
+export type SettlementCorrectionLine = {
+  expenseId: string;
+  label: string;
+  incurredOn: string;
+  kind: SettlementCorrectionKind;
+  amountCents: number;
+  previousAmountCents?: number;
+  balanceDelta: Record<string, number>;
 };
 
 /**

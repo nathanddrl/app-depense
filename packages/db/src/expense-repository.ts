@@ -16,6 +16,8 @@
 // jamais dans `db`.
 
 import type { DbClient } from "./client";
+import { snapshotExpense, toRevisionDTO } from "./expense-revision";
+import type { ExpenseRevisionDTO } from "./expense-revision";
 import type { Enums, Tables } from "./index";
 
 export type Category = Enums<"expense_category">;
@@ -26,6 +28,7 @@ export type ExpenseAidDTO = {
   beneficiaryId: string;
   label: string;
   amountCents: number;
+  createdAt: string;
 };
 
 export type NewExpense = {
@@ -65,7 +68,10 @@ export type Expense = {
   aids: ExpenseAidDTO[];
 };
 
-export type StoredExpense = Expense & { deletedAt: string | null };
+export type StoredExpense = Expense & {
+  deletedAt: string | null;
+  revisions?: ExpenseRevisionDTO[];
+};
 
 export type ListExpensesFilters = { month?: string; category?: Category };
 
@@ -98,6 +104,7 @@ function toAidDTO(row: AidRow): ExpenseAidDTO {
     beneficiaryId: row.beneficiary_member_id,
     label: row.label,
     amountCents: row.amount_cents,
+    createdAt: row.created_at,
   };
 }
 
@@ -189,6 +196,7 @@ export class SupabaseExpenseRepository {
     patch: ExpenseScalarPatch,
     shares: ExpenseShareDTO[],
   ): Promise<Expense> {
+    await snapshotExpense(this.supabase, expenseId);
     const update: {
       label?: string;
       category?: Category;
@@ -263,13 +271,29 @@ export class SupabaseExpenseRepository {
     if (!expenseRows || expenseRows.length === 0) return [];
 
     const ids = expenseRows.map((e) => e.id);
-    const [{ data: shareRows, error: sharesError }, { data: aidRows, error: aidsError }] =
-      await Promise.all([
-        this.supabase.from("expense_share").select("*").in("expense_id", ids),
-        this.supabase.from("aid").select("*").in("expense_id", ids),
-      ]);
+    const [
+      { data: shareRows, error: sharesError },
+      { data: aidRows, error: aidsError },
+      { data: revisionRows, error: revisionsError },
+    ] = await Promise.all([
+      this.supabase.from("expense_share").select("*").in("expense_id", ids),
+      this.supabase.from("aid").select("*").in("expense_id", ids),
+      this.supabase
+        .from("expense_revision")
+        .select("*")
+        .in("expense_id", ids)
+        .order("replaced_at", { ascending: true }),
+    ]);
     if (sharesError) throw sharesError;
     if (aidsError) throw aidsError;
+    if (revisionsError) throw revisionsError;
+
+    const revisionsByExpense = new Map<string, ExpenseRevisionDTO[]>();
+    for (const row of revisionRows ?? []) {
+      const list = revisionsByExpense.get(row.expense_id) ?? [];
+      list.push(toRevisionDTO(row));
+      revisionsByExpense.set(row.expense_id, list);
+    }
 
     const sharesByExpense = new Map<string, ExpenseShareRow[]>();
     for (const row of shareRows ?? []) {
@@ -318,13 +342,29 @@ export class SupabaseExpenseRepository {
     if (!expenseRows || expenseRows.length === 0) return [];
 
     const ids = expenseRows.map((e) => e.id);
-    const [{ data: shareRows, error: sharesError }, { data: aidRows, error: aidsError }] =
-      await Promise.all([
-        this.supabase.from("expense_share").select("*").in("expense_id", ids),
-        this.supabase.from("aid").select("*").in("expense_id", ids),
-      ]);
+    const [
+      { data: shareRows, error: sharesError },
+      { data: aidRows, error: aidsError },
+      { data: revisionRows, error: revisionsError },
+    ] = await Promise.all([
+      this.supabase.from("expense_share").select("*").in("expense_id", ids),
+      this.supabase.from("aid").select("*").in("expense_id", ids),
+      this.supabase
+        .from("expense_revision")
+        .select("*")
+        .in("expense_id", ids)
+        .order("replaced_at", { ascending: true }),
+    ]);
     if (sharesError) throw sharesError;
     if (aidsError) throw aidsError;
+    if (revisionsError) throw revisionsError;
+
+    const revisionsByExpense = new Map<string, ExpenseRevisionDTO[]>();
+    for (const row of revisionRows ?? []) {
+      const list = revisionsByExpense.get(row.expense_id) ?? [];
+      list.push(toRevisionDTO(row));
+      revisionsByExpense.set(row.expense_id, list);
+    }
 
     const sharesByExpense = new Map<string, ExpenseShareRow[]>();
     for (const row of shareRows ?? []) {
@@ -364,13 +404,29 @@ export class SupabaseExpenseRepository {
     if (!expenseRows || expenseRows.length === 0) return [];
 
     const ids = expenseRows.map((e) => e.id);
-    const [{ data: shareRows, error: sharesError }, { data: aidRows, error: aidsError }] =
-      await Promise.all([
-        this.supabase.from("expense_share").select("*").in("expense_id", ids),
-        this.supabase.from("aid").select("*").in("expense_id", ids),
-      ]);
+    const [
+      { data: shareRows, error: sharesError },
+      { data: aidRows, error: aidsError },
+      { data: revisionRows, error: revisionsError },
+    ] = await Promise.all([
+      this.supabase.from("expense_share").select("*").in("expense_id", ids),
+      this.supabase.from("aid").select("*").in("expense_id", ids),
+      this.supabase
+        .from("expense_revision")
+        .select("*")
+        .in("expense_id", ids)
+        .order("replaced_at", { ascending: true }),
+    ]);
     if (sharesError) throw sharesError;
     if (aidsError) throw aidsError;
+    if (revisionsError) throw revisionsError;
+
+    const revisionsByExpense = new Map<string, ExpenseRevisionDTO[]>();
+    for (const row of revisionRows ?? []) {
+      const list = revisionsByExpense.get(row.expense_id) ?? [];
+      list.push(toRevisionDTO(row));
+      revisionsByExpense.set(row.expense_id, list);
+    }
 
     const sharesByExpense = new Map<string, ExpenseShareRow[]>();
     for (const row of shareRows ?? []) {
@@ -385,9 +441,10 @@ export class SupabaseExpenseRepository {
       aidsByExpense.set(row.expense_id, list);
     }
 
-    return expenseRows.map((row) =>
-      toStoredExpense(row, sharesByExpense.get(row.id) ?? [], aidsByExpense.get(row.id) ?? []),
-    );
+    return expenseRows.map((row) => ({
+      ...toStoredExpense(row, sharesByExpense.get(row.id) ?? [], aidsByExpense.get(row.id) ?? []),
+      revisions: revisionsByExpense.get(row.id) ?? [],
+    }));
   }
 }
 

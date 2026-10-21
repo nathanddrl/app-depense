@@ -8,7 +8,12 @@ export { CalcPreconditionError } from "./types";
 export { computeShares } from "./shares";
 export { computeExpense } from "./expense";
 export type { ExpenseInput, ComputedExpense } from "./expense";
-export { contribution, computeBalance, reduceBalanceTwoMembers } from "./balance";
+export {
+  contribution,
+  computeBalance,
+  computeBalanceDelta,
+  reduceBalanceTwoMembers,
+} from "./balance";
 export type { BalanceExpense, TwoMemberBalance, SettlementForBalance } from "./balance";
 
 export { computeExpenseBreakdown } from "./balance-detail";

@@ -83,6 +83,63 @@ function periodLabel(periodStart: string | null): string {
   return `depuis le ${formatDateFr(new Date(periodStart))}`;
 }
 
+type Correction = BalanceBreakdown["corrections"][number];
+
+function correctionAction(c: Correction): string {
+  if (c.kind === "added") return "ajoutée après coup";
+  if (c.kind === "deleted") return "retirée après coup";
+  if (c.kind === "aid-added") return `aide de ${formatAmountEUR(c.amountCents)} ajoutée après coup`;
+  if (c.previousAmountCents !== undefined) {
+    return `modifiée après coup, de ${formatAmountEUR(c.previousAmountCents)} à ${formatAmountEUR(c.amountCents)}`;
+  }
+  return "modifiée après coup";
+}
+
+/** Vers qui la correction fait pencher l'écart (membre dont la part due augmente). */
+function correctionEffect(c: Correction, members: MemberShare[], currentMemberId: string): string {
+  const [towardId, cents] = Object.entries(c.balanceDelta).find(([, v]) => v > 0) ?? ["", 0];
+  const toward = towardId === currentMemberId ? "toi" : memberDisplayName(members, towardId);
+  return `l'écart penche de ${formatAmountEUR(cents)} de plus vers ${toward}`;
+}
+
+/**
+ * Corrections faites après le dernier règlement sur des dépenses qu'il
+ * couvrait déjà (doublon retiré, aide ajoutée, dépense saisie en retard) :
+ * absentes du donut (antérieures à la période), elles font pourtant bouger
+ * l'écart au centre — sans cette liste, il semblerait sorti de nulle part.
+ */
+function SettlementCorrections({
+  data,
+  members,
+  currentMemberId,
+}: {
+  data: BalanceBreakdown;
+  members: MemberShare[];
+  currentMemberId: string;
+}) {
+  if (data.corrections.length === 0 || !data.periodStart) return null;
+  return (
+    <section className={styles.corrections} aria-labelledby="corrections-title">
+      <h3 id="corrections-title" className={styles.correctionsTitle}>
+        changé après le règlement du {formatDateShortFr(data.periodStart)}, sur des dépenses
+        d&apos;avant
+      </h3>
+      <ul className={styles.correctionsList}>
+        {data.corrections.map((c) => (
+          <li key={`${c.expenseId}-${c.kind}`} className={styles.correction}>
+            <span>
+              {c.label}, {formatDateShortFr(c.incurredOn)} : {correctionAction(c)}
+            </span>
+            <span className={styles.correctionEffect}>
+              {correctionEffect(c, members, currentMemberId)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 type ScreenProps = {
   data: BalanceBreakdown;
   currentMemberId: string;
@@ -129,6 +186,7 @@ export function BalanceBreakdownScreen({
       <Stack gap={3}>
         <BalanceStatement>{message}</BalanceStatement>
         <Notice>aucune dépense enregistrée {periodLabel(data.periodStart)}</Notice>
+        <SettlementCorrections data={data} members={members} currentMemberId={currentMemberId} />
         <Button
           variant="primary"
           onClick={() => {
@@ -288,6 +346,10 @@ export function BalanceBreakdownScreen({
         )}
 
         {phrase ? <Notice tone="neutral">{phrase}</Notice> : null}
+
+        {level === 1 ? (
+          <SettlementCorrections data={data} members={members} currentMemberId={currentMemberId} />
+        ) : null}
 
         {level === 1 ? settlementControls : null}
       </Stack>

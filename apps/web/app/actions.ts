@@ -17,6 +17,8 @@ import {
   getBalance,
   getBalanceBreakdown,
   findPeriodStart,
+  getSettlementCorrections,
+  findCoveringSettlement,
   getAdminExpenseOverview,
   adminUpdateExpense,
 } from "@app/domain-expense";
@@ -24,6 +26,8 @@ import type {
   AdminExpenseOverviewLine,
   Balance,
   MemberPaidBreakdown,
+  SettlementCorrectionLine,
+  PeriodStart,
   ConfirmedSettlementForPeriod,
   CreateExpenseInput,
   Expense,
@@ -169,6 +173,9 @@ export type BalanceBreakdown = {
   balance: Balance;
   periodStart: string | null;
   members: MemberPaidBreakdown[];
+  /** Corrections postérieures à la régularisation `periodStart`, sur des
+   * dépenses qu'elle couvrait déjà (vide sans régularisation retenue). */
+  corrections: SettlementCorrectionLine[];
 };
 
 export async function getBalanceBreakdownAction(): Promise<ActionResult<BalanceBreakdown>> {
@@ -197,13 +204,56 @@ export async function getBalanceBreakdownAction(): Promise<ActionResult<BalanceB
   if (!periodStartResult.ok) return periodStartResult;
   const periodStart = periodStartResult.data;
 
-  const breakdown = await getBalanceBreakdown(expenseRepo, domainCtx, {
-    householdId: ctx.householdId,
-    periodStart: periodStart ?? undefined,
-  });
+  const [breakdown, corrections] = await Promise.all([
+    getBalanceBreakdown(expenseRepo, domainCtx, {
+      householdId: ctx.householdId,
+      periodStart: periodStart?.date,
+    }),
+    periodStart
+      ? getSettlementCorrections(expenseRepo, domainCtx, {
+          householdId: ctx.householdId,
+          periodStart,
+        })
+      : Promise.resolve(ok<SettlementCorrectionLine[]>([])),
+  ]);
   if (!breakdown.ok) return breakdown;
+  if (!corrections.ok) return corrections;
 
-  return ok({ balance: balance.data, periodStart, members: breakdown.data });
+  return ok({
+    balance: balance.data,
+    periodStart: periodStart?.date ?? null,
+    members: breakdown.data,
+    corrections: corrections.data,
+  });
+}
+
+/**
+ * La dépense est-elle déjà couverte par le dernier règlement confirmé ? Lue à
+ * l'ouverture du formulaire d'édition pour AVERTIR (jamais bloquer) que la
+ * modifier ou la supprimer fera bouger l'écart. Composition domain-expense ×
+ * domain-settlement (DA4), même raison que `getBalanceBreakdownAction`.
+ */
+export async function getExpenseCoverageAction(
+  expenseId: string,
+): Promise<ActionResult<PeriodStart | null>> {
+  const ctx = await getCurrentContext();
+  const settlementRepo = new SupabaseSettlementRepository(ctx.supabase);
+  const confirmedSettlements = await settlementRepo.listConfirmedSettlements(ctx.householdId);
+  return findCoveringSettlement(
+    new SupabaseExpenseRepository(ctx.supabase),
+    { memberId: ctx.member.id, householdId: ctx.householdId },
+    {
+      expenseId,
+      settlements: confirmedSettlements
+        .filter((s): s is typeof s & { confirmedAt: string } => s.confirmedAt !== null)
+        .map((s) => ({
+          fromMemberId: s.fromMemberId,
+          toMemberId: s.toMemberId,
+          amountCents: s.amountCents,
+          confirmedAt: s.confirmedAt,
+        })),
+    },
+  );
 }
 
 // Réservée à /admin (T-C8.2, DA14) : revérification serveur systématique, le

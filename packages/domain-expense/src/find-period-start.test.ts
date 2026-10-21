@@ -18,7 +18,7 @@ import type {
 class FakeExpenseRepository implements ExpenseRepository {
   constructor(
     private readonly memberIds: string[],
-    private readonly expenses: Expense[],
+    private readonly expenses: (Expense & { deletedAt?: string | null })[],
   ) {}
 
   async getHouseholdMemberIds(): Promise<string[]> {
@@ -53,14 +53,16 @@ class FakeExpenseRepository implements ExpenseRepository {
     throw new Error("non utilisé par ces tests");
   }
   async listAllExpensesForAdmin(): Promise<StoredExpense[]> {
-    throw new Error("non utilisé par ces tests");
+    return this.expenses.map((e) => ({ deletedAt: null, ...e }));
   }
 }
 
 const HOUSEHOLD = "H";
 const ctx: ExpenseContext = { memberId: "A", householdId: HOUSEHOLD };
 
-function expense(overrides: Partial<Expense> & Pick<Expense, "id" | "incurredOn">): Expense {
+function expense(
+  overrides: Partial<StoredExpense> & Pick<Expense, "id" | "incurredOn">,
+): StoredExpense {
   return {
     householdId: HOUSEHOLD,
     label: "Dépense",
@@ -76,6 +78,7 @@ function expense(overrides: Partial<Expense> & Pick<Expense, "id" | "incurredOn"
       { memberId: "B", cents: 5000, pctSnapshot: 50 },
     ],
     aids: [],
+    deletedAt: null,
     ...overrides,
   };
 }
@@ -110,7 +113,7 @@ describe("findPeriodStart — borne de période cohérente avec le solde (refont
     const res = await findPeriodStart(repo, ctx, { householdId: HOUSEHOLD, settlements });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.data).toBe("2026-01-15");
+    expect(res.data?.date).toBe("2026-01-15");
   });
 
   it("règlement PARTIEL (ne ramène pas à 0) → reste depuis le début, pas la date du règlement", async () => {
@@ -157,7 +160,7 @@ describe("findPeriodStart — borne de période cohérente avec le solde (refont
     const res = await findPeriodStart(repo, ctx, { householdId: HOUSEHOLD, settlements });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.data).toBe("2026-01-15");
+    expect(res.data?.date).toBe("2026-01-15");
   });
 
   it("deux règlements qui soldent tout chacun leur tour → garde le plus récent", async () => {
@@ -185,7 +188,7 @@ describe("findPeriodStart — borne de période cohérente avec le solde (refont
     const res = await findPeriodStart(repo, ctx, { householdId: HOUSEHOLD, settlements });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.data).toBe("2026-02-15");
+    expect(res.data?.date).toBe("2026-02-15");
   });
 
   it("règlement confirmé juste après minuit à Paris : la borne est la date de Paris, pas la date UTC", async () => {
@@ -207,7 +210,91 @@ describe("findPeriodStart — borne de période cohérente avec le solde (refont
     const res = await findPeriodStart(repo, ctx, { householdId: HOUSEHOLD, settlements });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.data).toBe("2026-01-16");
+    expect(res.data?.date).toBe("2026-01-16");
+  });
+
+  it("correction APRÈS le règlement sur une dépense couverte → le règlement reste la borne", async () => {
+    // Cas réel (prod, oct. 2026) : règlement qui solde tout, puis doublon
+    // supprimé et aide ajoutée sur des dépenses datées d'avant. Rejoué sur
+    // l'état ACTUEL, le solde n'était plus nul et la borne reculait en silence.
+    const confirmedAt = "2026-01-15T12:00:00.000Z";
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [
+        expense({ id: "1", incurredOn: "2026-01-01" }),
+        // Doublon supprimé après le règlement (il avait été compté).
+        expense({ id: "2", incurredOn: "2026-01-02", deletedAt: "2026-01-15T12:02:00.000Z" }),
+        // Occurrence générée après le règlement mais datée d'avant.
+        expense({ id: "3", incurredOn: "2026-01-10", createdAt: "2026-01-20T06:00:00.000Z" }),
+        // Aide ajoutée après le règlement sur une dépense couverte.
+        expense({
+          id: "4",
+          incurredOn: "2026-01-05",
+          grossCents: 4000,
+          shares: [
+            { memberId: "A", cents: 2000, pctSnapshot: 50 },
+            { memberId: "B", cents: 2000, pctSnapshot: 50 },
+          ],
+          aids: [
+            {
+              id: "aid-1",
+              beneficiaryId: "A",
+              label: "APL",
+              amountCents: 1000,
+              createdAt: "2026-01-18T00:00:00.000Z",
+            },
+          ],
+        }),
+      ],
+    );
+    // Connu au règlement : 10000 + 10000 + 4000 payés par A, 50/50 → B doit 12000.
+    const settlements: ConfirmedSettlementForPeriod[] = [
+      { fromMemberId: "B", toMemberId: "A", amountCents: 12000, confirmedAt },
+    ];
+    const res = await findPeriodStart(repo, ctx, { householdId: HOUSEHOLD, settlements });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data).toEqual({ date: "2026-01-15", settledAt: confirmedAt });
+  });
+
+  it("montant modifié après le règlement (historisé) → rejoué à sa valeur d'alors, borne conservée", async () => {
+    const confirmedAt = "2026-01-15T12:00:00.000Z";
+    const repo = new FakeExpenseRepository(
+      ["A", "B"],
+      [
+        expense({
+          id: "1",
+          incurredOn: "2026-01-01",
+          grossCents: 16000,
+          shares: [
+            { memberId: "A", cents: 8000, pctSnapshot: 50 },
+            { memberId: "B", cents: 8000, pctSnapshot: 50 },
+          ],
+          revisions: [
+            {
+              replacedAt: "2026-01-20T00:00:00.000Z",
+              label: "Dépense",
+              category: "autre",
+              grossCents: 10000,
+              payerId: "A",
+              incurredOn: "2026-01-01",
+              shares: [
+                { memberId: "A", cents: 5000, pctSnapshot: 50 },
+                { memberId: "B", cents: 5000, pctSnapshot: 50 },
+              ],
+              aids: [],
+            },
+          ],
+        }),
+      ],
+    );
+    const settlements: ConfirmedSettlementForPeriod[] = [
+      { fromMemberId: "B", toMemberId: "A", amountCents: 5000, confirmedAt },
+    ];
+    const res = await findPeriodStart(repo, ctx, { householdId: HOUSEHOLD, settlements });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data).toEqual({ date: "2026-01-15", settledAt: confirmedAt });
   });
 
   it("foyer non autorisé (mismatch seam) → FORBIDDEN", async () => {

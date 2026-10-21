@@ -12,6 +12,7 @@
 // delete de la ligne `aid` puis delete+insert des `expense_share`, en 2-3 appels.
 
 import type { DbClient } from "./client";
+import { snapshotExpense } from "./expense-revision";
 import type { Tables } from "./index";
 
 export type ExpenseShareDTO = { memberId: string; cents: number; pctSnapshot: number };
@@ -109,6 +110,7 @@ export class SupabaseAidRepository {
   }
 
   async addAid(newAid: NewAid, shares: ExpenseShareDTO[]): Promise<Expense> {
+    await snapshotExpense(this.supabase, newAid.expenseId);
     const { error: insertError } = await this.supabase.from("aid").insert({
       expense_id: newAid.expenseId,
       beneficiary_member_id: newAid.beneficiaryId,
@@ -129,6 +131,8 @@ export class SupabaseAidRepository {
       .maybeSingle();
     if (fetchError) throw fetchError;
     if (!aidRow) throw new Error("Aide introuvable juste avant suppression.");
+
+    await snapshotExpense(this.supabase, aidRow.expense_id);
 
     const { error: deleteError } = await this.supabase.from("aid").delete().eq("id", aidId);
     if (deleteError) throw deleteError;

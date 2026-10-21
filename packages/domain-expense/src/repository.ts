@@ -11,6 +11,7 @@ import type {
   RawBalanceExpenseRow,
   Category,
   Expense,
+  ExpenseRevision,
   ExpenseShareDTO,
   ListExpensesFilters,
 } from "./types";
@@ -43,8 +44,15 @@ export type ExpenseScalarPatch = Partial<{
   updatedBy: string;
 }>;
 
-/** Vue de lecture d'une dépense stockée, enrichie du soft-delete (verrou/scope). */
-export type StoredExpense = Expense & { deletedAt: string | null };
+/**
+ * Vue de lecture d'une dépense stockée, enrichie du soft-delete (verrou/scope)
+ * et, pour `listAllExpensesForAdmin` seulement, de son historique (états
+ * successifs avant chaque modification, du plus ancien au plus récent).
+ */
+export type StoredExpense = Expense & {
+  deletedAt: string | null;
+  revisions?: ExpenseRevision[];
+};
 
 export interface ExpenseRepository {
   /** Ids des membres du foyer (validation contextuelle : payeur/parts ∈ foyer). */
@@ -86,7 +94,9 @@ export interface ExpenseRepository {
   /**
    * TOUTES les dépenses du foyer, sans aucun filtre `deleted_at`/`settlement_id`
    * (T-C8.2, DA14 — vue admin brute). Ne réutilise pas `listExpenses` (qui exclut
-   * les soft-deleted) pour ne pas complexifier son filtre avec un flag.
+   * les soft-deleted) pour ne pas complexifier son filtre avec un flag. Sert aussi
+   * à reconstituer l'état connu à une régularisation (`findPeriodStart`,
+   * `getSettlementCorrections`) : il faut les dépenses supprimées depuis.
    */
   listAllExpensesForAdmin(householdId: string): Promise<StoredExpense[]>;
 }
