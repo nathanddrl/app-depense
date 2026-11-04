@@ -33,6 +33,7 @@ import {
   getExpenseChartColorVar,
 } from "./balance-breakdown-colors";
 import { BalanceStatementLines } from "./balance-statement";
+import { correctionAction } from "./settlement-corrections-copy";
 import styles from "./balance-breakdown.module.css";
 
 type Level = 1 | 2 | 3;
@@ -85,16 +86,6 @@ function periodLabel(periodStart: string | null): string {
 }
 
 type Correction = BalanceBreakdown["corrections"][number];
-
-function correctionAction(c: Correction): string {
-  if (c.kind === "added") return "ajoutée après coup";
-  if (c.kind === "deleted") return "retirée après coup";
-  if (c.kind === "aid-added") return `aide de ${formatAmountEUR(c.amountCents)} ajoutée après coup`;
-  if (c.previousAmountCents !== undefined) {
-    return `modifiée après coup, de ${formatAmountEUR(c.previousAmountCents)} à ${formatAmountEUR(c.amountCents)}`;
-  }
-  return "modifiée après coup";
-}
 
 /** Vers qui la correction fait pencher l'écart (membre dont la part due augmente). */
 function correctionEffect(c: Correction, members: MemberShare[], currentMemberId: string): string {

@@ -177,6 +177,36 @@ describe("BalanceStatementLines — relevé de l'écart", () => {
     expect(text()).toContain("APL, sur loyer");
   });
 
+  it("aides toutes plafonnées à 0 : pas de ligne ni de phrase tronquée", () => {
+    render({
+      ...nathanView,
+      lines: { ...nathanView.lines, aidReceivedCents: 0, aidsCents: 0 },
+      aids: [],
+    });
+    expect(text()).not.toContain("les aides");
+    expect(text()).not.toMatch(/(^|\s); une aide/);
+  });
+
+  it("aide plafonnée : montant effectif, déclaré entre parenthèses", () => {
+    render({
+      ...nathanView,
+      aids: [{ ...nathanView.aids[0], amountCents: 5000, declaredCents: 9000 }],
+    });
+    expect(text()).toContain("50,00 € touchés par toi (aide de 90,00 €, plafonnée");
+  });
+
+  it("deux versements au même instant : deux lignes distinctes", () => {
+    const s = nathanView.settlements[0];
+    render({
+      ...nathanView,
+      settlements: [
+        { ...s, id: "s1" },
+        { ...s, id: "s2" },
+      ],
+    });
+    expect(text().match(/oksana t'a versé 100,00 €/g)).toHaveLength(2);
+  });
+
   it("vocabulaire : jamais « remboursement » ni « dette »", () => {
     render(nathanView);
     expect(text()).not.toMatch(/rembours|dette|transaction/i);

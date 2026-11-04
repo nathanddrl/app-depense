@@ -17,7 +17,6 @@ import {
   getBalance,
   getBalanceBreakdown,
   findPeriodStart,
-  getSettlementCorrections,
   getBalanceStatement,
   findCoveringSettlement,
   getAdminExpenseOverview,
@@ -196,6 +195,7 @@ export async function getBalanceBreakdownAction(): Promise<ActionResult<BalanceB
   const settlementsForPeriod: ConfirmedSettlementForPeriod[] = confirmedSettlements
     .filter((s): s is typeof s & { confirmedAt: string } => s.confirmedAt !== null)
     .map((s) => ({
+      id: s.id,
       fromMemberId: s.fromMemberId,
       toMemberId: s.toMemberId,
       amountCents: s.amountCents,
@@ -210,54 +210,29 @@ export async function getBalanceBreakdownAction(): Promise<ActionResult<BalanceB
   if (!periodStartResult.ok) return periodStartResult;
   const periodStart = periodStartResult.data;
 
-  const [breakdown, corrections] = await Promise.all([
+  // Relevé + corrections (une seule lecture de l'historique) en parallèle du
+  // donut ; le garde-fou « total = solde » vit dans le domaine.
+  const [breakdown, explanation] = await Promise.all([
     getBalanceBreakdown(expenseRepo, domainCtx, {
       householdId: ctx.householdId,
       periodStart: periodStart?.date,
     }),
-    periodStart
-      ? getSettlementCorrections(expenseRepo, domainCtx, {
-          householdId: ctx.householdId,
-          periodStart,
-        })
-      : Promise.resolve(ok<SettlementCorrectionLine[]>([])),
+    getBalanceStatement(expenseRepo, domainCtx, {
+      householdId: ctx.householdId,
+      periodStart,
+      settlements: settlementsForPeriod,
+      balance: balance.data,
+    }),
   ]);
   if (!breakdown.ok) return breakdown;
-  if (!corrections.ok) return corrections;
-
-  const statement = await getBalanceStatement(expenseRepo, domainCtx, {
-    householdId: ctx.householdId,
-    periodStart,
-    settlements: settlementsForPeriod,
-    corrections: corrections.data,
-  });
-  if (!statement.ok) return statement;
-
-  // Garde-fou : le relevé doit retomber au centime sur le solde du centre.
-  const { from, to, amountCents } = balance.data;
-  const expectedTotal =
-    amountCents === 0
-      ? 0
-      : to === ctx.member.id
-        ? amountCents
-        : from === ctx.member.id
-          ? -amountCents
-          : 0;
-  const statementOk = statement.data.lines.totalCents === expectedTotal;
-  if (!statementOk) {
-    console.error("[relevé] total incohérent avec le solde", {
-      householdId: ctx.householdId,
-      statementTotal: statement.data.lines.totalCents,
-      expectedTotal,
-    });
-  }
+  if (!explanation.ok) return explanation;
 
   return ok({
     balance: balance.data,
     periodStart: periodStart?.date ?? null,
     members: breakdown.data,
-    corrections: corrections.data,
-    statement: statementOk ? statement.data : null,
+    corrections: explanation.data.corrections,
+    statement: explanation.data.statement,
   });
 }
 

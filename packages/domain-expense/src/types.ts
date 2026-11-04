@@ -170,6 +170,8 @@ export type MemberPaidBreakdown = {
  * `confirmedAt` non nul (l'appelant filtre déjà sur les règlements `confirmed`).
  */
 export type ConfirmedSettlementForPeriod = {
+  /** Id du règlement, quand l'appelant l'a (clé d'affichage stable). */
+  id?: string;
   fromMemberId: string;
   toMemberId: string;
   amountCents: number;
@@ -226,9 +228,22 @@ export type BalanceStatementView = {
     expenseLabel: string;
     incurredOn: string;
     beneficiaryId: string;
+    /** Montant effectif (post-plafond 4.4), celui que compte la ligne « aides ». */
     amountCents: number;
+    /** Montant déclaré, seulement s'il diffère (aide plafonnée). */
+    declaredCents?: number;
   }[];
   settlements: ConfirmedSettlementForPeriod[];
+};
+
+/**
+ * Résultat de `getBalanceStatement` : le relevé (`null` s'il ne retombait pas
+ * exactement sur le solde — on n'affiche jamais un relevé faux) et les
+ * corrections postérieures au règlement, calculées sur la même lecture.
+ */
+export type BalanceExplanation = {
+  statement: BalanceStatementView | null;
+  corrections: SettlementCorrectionLine[];
 };
 
 /**

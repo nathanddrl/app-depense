@@ -15,22 +15,13 @@ import { formatAmountEUR, formatDateShortFr, toDateParis } from "@app/shared";
 import type { ReactNode } from "react";
 import type { Balance, BalanceStatementView, SettlementCorrectionLine } from "@app/domain-expense";
 import { formatBalanceMessage, memberDisplayName, type MemberShare } from "../../../lib/household";
+import { correctionAction } from "./settlement-corrections-copy";
 import styles from "./balance-statement.module.css";
 
 /** Montant signé lisible : « +297,00 € », « −60,37 € », « 0,00 € ». */
 function signed(cents: number): string {
   if (cents === 0) return formatAmountEUR(0);
   return `${cents > 0 ? "+" : "−"}${formatAmountEUR(Math.abs(cents))}`;
-}
-
-function correctionAction(c: SettlementCorrectionLine): string {
-  if (c.kind === "added") return "ajoutée après coup";
-  if (c.kind === "deleted") return "retirée après coup";
-  if (c.kind === "aid-added") return `aide de ${formatAmountEUR(c.amountCents)} ajoutée après coup`;
-  if (c.previousAmountCents !== undefined) {
-    return `modifiée après coup, de ${formatAmountEUR(c.previousAmountCents)} à ${formatAmountEUR(c.amountCents)}`;
-  }
-  return "modifiée après coup";
 }
 
 function Line({ title, cents, children }: { title: string; cents: number; children?: ReactNode }) {
@@ -90,34 +81,41 @@ export function BalanceStatementLines({
           </Line>
         ) : null}
 
-        {aids.length > 0 ? (
+        {aidParts.length > 0 || lines.aidsCents !== 0 ? (
           <Line title="les aides" cents={lines.aidsCents}>
-            <p className={styles.detail}>
-              {aidParts.join(", ")} ; une aide réduit la dépense, que vous partagez ensuite
-            </p>
-            <details className={styles.disclosure}>
-              <summary>voir {aids.length > 1 ? `les ${aids.length} aides` : "l'aide"}</summary>
-              <ul className={styles.items}>
-                {aids.map((aid) => (
-                  <li key={aid.id} className={styles.item}>
-                    <span>
-                      {aid.label}, sur {aid.expenseLabel} du {formatDateShortFr(aid.incurredOn)}
-                    </span>
-                    <span className={styles.itemMeta}>
-                      {formatAmountEUR(aid.amountCents)} touchés par {name(aid.beneficiaryId)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </details>
+            {aidParts.length > 0 ? (
+              <p className={styles.detail}>
+                {aidParts.join(", ")} ; une aide réduit la dépense, que vous partagez ensuite
+              </p>
+            ) : null}
+            {aids.length > 0 ? (
+              <details className={styles.disclosure}>
+                <summary>voir {aids.length > 1 ? `les ${aids.length} aides` : "l'aide"}</summary>
+                <ul className={styles.items}>
+                  {aids.map((aid) => (
+                    <li key={aid.id} className={styles.item}>
+                      <span>
+                        {aid.label}, sur {aid.expenseLabel} du {formatDateShortFr(aid.incurredOn)}
+                      </span>
+                      <span className={styles.itemMeta}>
+                        {formatAmountEUR(aid.amountCents)} touchés par {name(aid.beneficiaryId)}
+                        {aid.declaredCents !== undefined
+                          ? ` (aide de ${formatAmountEUR(aid.declaredCents)}, plafonnée au montant de la dépense)`
+                          : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
           </Line>
         ) : null}
 
         {lines.settlementsCents !== 0 ? (
           <Line title="les versements" cents={lines.settlementsCents}>
             <ul className={styles.items}>
-              {settlements.map((s) => (
-                <li key={s.confirmedAt} className={styles.detail}>
+              {settlements.map((s, i) => (
+                <li key={s.id ?? `${s.confirmedAt}-${i}`} className={styles.detail}>
                   {s.fromMemberId === currentMemberId
                     ? `tu as versé ${formatAmountEUR(s.amountCents)} à ${name(s.toMemberId)}`
                     : `${name(s.fromMemberId)} t'a versé ${formatAmountEUR(s.amountCents)}`}{" "}

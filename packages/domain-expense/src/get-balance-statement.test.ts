@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  findPeriodStart,
-  getBalance,
-  getBalanceStatement,
-  getSettlementCorrections,
-} from "./index";
+import { findPeriodStart, getBalance, getBalanceStatement, signedBalanceFor } from "./index";
 import type {
   ExpenseRepository,
   ExpenseScalarPatch,
@@ -125,28 +120,20 @@ async function check(expenses: StoredExpense[], settlements: ConfirmedSettlement
     });
     const period = await findPeriodStart(repo, ctx, { householdId: HOUSEHOLD, settlements });
     if (!balance.ok || !period.ok) throw new Error("inattendu");
-    const corrections = period.data
-      ? await getSettlementCorrections(repo, ctx, {
-          householdId: HOUSEHOLD,
-          periodStart: period.data,
-          today: TODAY,
-        })
-      : { ok: true as const, data: [] };
-    if (!corrections.ok) throw new Error("inattendu");
-    const statement = await getBalanceStatement(repo, ctx, {
+    const res = await getBalanceStatement(repo, ctx, {
       householdId: HOUSEHOLD,
       periodStart: period.data,
       settlements,
-      corrections: corrections.data,
+      balance: balance.data,
       today: TODAY,
     });
-    if (!statement.ok) throw new Error("inattendu");
-
-    const { from, to, amountCents } = balance.data;
-    const signed =
-      amountCents === 0 ? 0 : to === memberId ? amountCents : from === memberId ? -amountCents : 0;
-    expect(statement.data.lines.totalCents).toBe(signed);
-    results.push(statement.data);
+    if (!res.ok) throw new Error("inattendu");
+    const statement = res.data.statement;
+    // Garde-fou : un relevé est toujours rendu, et son total = le solde affiché.
+    expect(statement).not.toBeNull();
+    if (!statement) throw new Error("inattendu");
+    expect(statement.lines.totalCents).toBe(signedBalanceFor(balance.data, memberId));
+    results.push(statement);
   }
   return results;
 }
@@ -168,7 +155,7 @@ describe("getBalanceStatement — total du relevé = solde affiché", () => {
     expect(a.sharePct).toBe(50);
     expect(a.aids).toEqual([
       {
-        id: "x",
+        id: "1-A",
         label: "APL",
         expenseLabel: "dépense 1",
         incurredOn: "2026-01-05",
@@ -230,6 +217,48 @@ describe("getBalanceStatement — total du relevé = solde affiché", () => {
       [],
     );
     expect(a.lines.paidCents).toBe(10000);
+  });
+
+  it("parts figées ≠ parts recalculées sur une dépense d'avant : l'arrondi rejoint les corrections", async () => {
+    // Parts figées 5001/4999 (ancienne saisie) alors que le recalcul donne
+    // 5000/5000 : le rejeu de la remise à zéro et le solde affiché divergent
+    // d'1 centime, le relevé doit quand même retomber sur le solde.
+    const [a] = await check(
+      [
+        expense("1", "2026-01-05", 10000, "A", {
+          shares: [
+            { memberId: "A", cents: 5001, pctSnapshot: 50 },
+            { memberId: "B", cents: 4999, pctSnapshot: 50 },
+          ],
+        }),
+        expense("2", "2026-02-01", 2000, "A"),
+      ],
+      [
+        {
+          fromMemberId: "B",
+          toMemberId: "A",
+          amountCents: 5000,
+          confirmedAt: "2026-01-20T10:00:00.000Z",
+        },
+      ],
+    );
+    expect(a.lines.expensesCents).toBe(1000);
+    expect(a.lines.correctionsCents).toBe(-1);
+  });
+
+  it("aide plafonnée : la liste montre le montant effectif, et le déclaré à part", async () => {
+    const [a] = await check(
+      [
+        expense("1", "2026-01-05", 5000, "A", {
+          aids: [{ id: "x", beneficiaryId: "A", label: "prime", amountCents: 9000 }],
+        }),
+      ],
+      [],
+    );
+    expect(a.aids).toEqual([
+      expect.objectContaining({ amountCents: 5000, declaredCents: 9000, label: "prime" }),
+    ]);
+    expect(a.lines.aidReceivedCents).toBe(5000);
   });
 
   it("doublon couvert supprimé après le règlement : ligne corrections", async () => {

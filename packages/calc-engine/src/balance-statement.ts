@@ -1,6 +1,6 @@
 import type { MemberId, SharePct } from "./types";
 import { computeShares } from "./shares";
-import { contribution, computeBalance } from "./balance";
+import { contribution } from "./balance";
 import type { BalanceExpense, SettlementForBalance } from "./balance";
 
 /**
@@ -43,7 +43,8 @@ export interface BalanceStatement {
  * - la part sur le brut passe par `computeShares` (même règle d'arrondi) ;
  * - la ligne « aides » est obtenue PAR DIFFÉRENCE avec `contribution()` (parts
  *   figées), ce qui garantit une somme exacte au centime, arrondis compris ;
- * - la ligne « versements » est l'effet des règlements selon `computeBalance`.
+ * - la ligne « versements » suit la convention de `computeBalance` (vérifiée
+ *   par le test d'invariant).
  */
 export function computeBalanceStatement(input: {
   memberId: MemberId;
@@ -75,8 +76,17 @@ export function computeBalanceStatement(input: {
 
   const expensesCents = paidCents - grossShareCents;
   const aidsCents = contributionCents - expensesCents;
-  // Effet des seuls règlements : solde sans aucune dépense.
-  const settlementsCents = computeBalance([], [memberId], settlements)[memberId] ?? 0;
+  // Effet des règlements confirmés, même convention que `computeBalance` :
+  // celui qui verse voit son solde monter, celui qui reçoit le voit baisser.
+  const settlementsCents = settlements
+    .filter((s) => s.status === "confirmed")
+    .reduce(
+      (sum, s) =>
+        sum +
+        (s.fromMemberId === memberId ? s.amountCents : 0) -
+        (s.toMemberId === memberId ? s.amountCents : 0),
+      0,
+    );
   const correctionsCents = corrections.reduce((sum, delta) => sum + (delta[memberId] ?? 0), 0);
 
   return {

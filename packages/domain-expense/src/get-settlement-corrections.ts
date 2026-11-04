@@ -42,7 +42,20 @@ export async function getSettlementCorrections(
     repo.getHouseholdMemberIds(householdId),
     repo.listAllExpensesForAdmin(householdId),
   ]);
+  return ok(computeSettlementCorrections(expenses, memberIds, periodStart, today));
+}
 
+/**
+ * Cœur pur de `getSettlementCorrections`, sur des dépenses déjà chargées
+ * (`listAllExpensesForAdmin`) — réutilisé par `getBalanceStatement` pour ne
+ * pas relire l'historique une seconde fois.
+ */
+export function computeSettlementCorrections(
+  expenses: StoredExpense[],
+  memberIds: string[],
+  periodStart: PeriodStart,
+  today: string,
+): SettlementCorrectionLine[] {
   const lines: SettlementCorrectionLine[] = [];
   for (const expense of expenses) {
     // « Couverte » = comptée par la régularisation (connue alors, datée au
@@ -87,7 +100,7 @@ export async function getSettlementCorrections(
 
   // Ordre chronologique de la date métier, puis par libellé (stable à l'écran).
   lines.sort((a, b) => a.incurredOn.localeCompare(b.incurredOn) || a.label.localeCompare(b.label));
-  return ok(lines);
+  return lines;
 }
 
 function correctionKind(

@@ -12,6 +12,7 @@ export { getBalanceBreakdown } from "./get-balance-breakdown";
 export { findPeriodStart } from "./find-period-start";
 export { getSettlementCorrections } from "./get-settlement-corrections";
 export { getBalanceStatement } from "./get-balance-statement";
+export { signedBalanceFor } from "./internal";
 export { findCoveringSettlement } from "./find-covering-settlement";
 export { getAdminExpenseOverview } from "./get-admin-expense-overview";
 export { adminUpdateExpense } from "./admin-update-expense";
@@ -49,5 +50,6 @@ export type {
   SettlementCorrectionKind,
   SettlementCorrectionLine,
   BalanceStatementView,
+  BalanceExplanation,
   AdminExpenseOverviewLine,
 } from "./types";
