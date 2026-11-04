@@ -206,7 +206,10 @@ export function Donut({ slices, centerContent, transitionOrigin = -90, size = 24
       <svg
         viewBox={`0 0 ${size} ${size}`}
         className={styles.svg}
-        style={{ width: size, height: size }}
+        // Fluide : `size` est une largeur MAXIMALE. Sous elle (petit écran,
+        // texte agrandi), le donut se réduit avec son conteneur au lieu de
+        // déborder ; le viewBox garde la géométrie et les libellés à l'échelle.
+        style={{ width: "100%", maxWidth: size, height: "auto", aspectRatio: "1" }}
       >
         {rendered.map((slice) => {
           const width = Math.max(0, slice.endAngle - slice.startAngle);
@@ -273,7 +276,15 @@ export function Donut({ slices, centerContent, transitionOrigin = -90, size = 24
           );
         })}
       </svg>
-      <div className={styles.center} style={{ width: holeSide, height: holeSide }}>
+      <div
+        className={styles.center}
+        // Même proportion que le trou, bornée à sa taille nominale (`%` de la
+        // colonne = de la largeur du SVG tant qu'il est plus étroit que `size`).
+        style={{
+          width: `min(${holeSide}px, ${(holeSide / size) * 100}%)`,
+          aspectRatio: "1",
+        }}
+      >
         {centerContent}
       </div>
       <ul className={styles.legend}>

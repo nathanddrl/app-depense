@@ -18,6 +18,7 @@ import {
   getBalanceBreakdown,
   findPeriodStart,
   getSettlementCorrections,
+  getBalanceStatement,
   findCoveringSettlement,
   getAdminExpenseOverview,
   adminUpdateExpense,
@@ -27,6 +28,7 @@ import type {
   Balance,
   MemberPaidBreakdown,
   SettlementCorrectionLine,
+  BalanceStatementView,
   PeriodStart,
   ConfirmedSettlementForPeriod,
   CreateExpenseInput,
@@ -176,6 +178,10 @@ export type BalanceBreakdown = {
   /** Corrections postérieures à la régularisation `periodStart`, sur des
    * dépenses qu'elle couvrait déjà (vide sans régularisation retenue). */
   corrections: SettlementCorrectionLine[];
+  /** Relevé du membre connecté (dépenses, aides, versements, corrections) dont
+   * le total = le solde affiché. `null` si, par un bug, ce total ne
+   * retombait pas exactement sur le solde : on n'affiche jamais un relevé faux. */
+  statement: BalanceStatementView | null;
 };
 
 export async function getBalanceBreakdownAction(): Promise<ActionResult<BalanceBreakdown>> {
@@ -219,11 +225,39 @@ export async function getBalanceBreakdownAction(): Promise<ActionResult<BalanceB
   if (!breakdown.ok) return breakdown;
   if (!corrections.ok) return corrections;
 
+  const statement = await getBalanceStatement(expenseRepo, domainCtx, {
+    householdId: ctx.householdId,
+    periodStart,
+    settlements: settlementsForPeriod,
+    corrections: corrections.data,
+  });
+  if (!statement.ok) return statement;
+
+  // Garde-fou : le relevé doit retomber au centime sur le solde du centre.
+  const { from, to, amountCents } = balance.data;
+  const expectedTotal =
+    amountCents === 0
+      ? 0
+      : to === ctx.member.id
+        ? amountCents
+        : from === ctx.member.id
+          ? -amountCents
+          : 0;
+  const statementOk = statement.data.lines.totalCents === expectedTotal;
+  if (!statementOk) {
+    console.error("[relevé] total incohérent avec le solde", {
+      householdId: ctx.householdId,
+      statementTotal: statement.data.lines.totalCents,
+      expectedTotal,
+    });
+  }
+
   return ok({
     balance: balance.data,
     periodStart: periodStart?.date ?? null,
     members: breakdown.data,
     corrections: corrections.data,
+    statement: statementOk ? statement.data : null,
   });
 }
 

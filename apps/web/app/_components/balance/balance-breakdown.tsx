@@ -32,6 +32,7 @@ import {
   assignCategoryChartColors,
   getExpenseChartColorVar,
 } from "./balance-breakdown-colors";
+import { BalanceStatementLines } from "./balance-statement";
 import styles from "./balance-breakdown.module.css";
 
 type Level = 1 | 2 | 3;
@@ -140,6 +141,41 @@ function SettlementCorrections({
   );
 }
 
+/**
+ * Niveau 1 : le relevé (dépenses, aides, versements, corrections → solde).
+ * Repli sur l'ancienne liste de corrections si le serveur n'a pas pu garantir
+ * un relevé exact (`statement: null`, garde-fou de `getBalanceBreakdownAction`).
+ */
+function Level1Explanation({
+  data,
+  members,
+  currentMemberId,
+}: {
+  data: BalanceBreakdown;
+  members: MemberShare[];
+  currentMemberId: string;
+}) {
+  if (!data.statement) {
+    const phrase = level1Phrase(data, members, currentMemberId);
+    return (
+      <>
+        {phrase ? <Notice tone="neutral">{phrase}</Notice> : null}
+        <SettlementCorrections data={data} members={members} currentMemberId={currentMemberId} />
+      </>
+    );
+  }
+  return (
+    <BalanceStatementLines
+      statement={data.statement}
+      balance={data.balance}
+      corrections={data.corrections}
+      periodStart={data.periodStart}
+      members={members}
+      currentMemberId={currentMemberId}
+    />
+  );
+}
+
 type ScreenProps = {
   data: BalanceBreakdown;
   currentMemberId: string;
@@ -186,7 +222,7 @@ export function BalanceBreakdownScreen({
       <Stack gap={3}>
         <BalanceStatement>{message}</BalanceStatement>
         <Notice>aucune dépense enregistrée {periodLabel(data.periodStart)}</Notice>
-        <SettlementCorrections data={data} members={members} currentMemberId={currentMemberId} />
+        <Level1Explanation data={data} members={members} currentMemberId={currentMemberId} />
         <Button
           variant="primary"
           onClick={() => {
@@ -296,7 +332,7 @@ export function BalanceBreakdownScreen({
 
   const phrase =
     level === 1
-      ? level1Phrase(data, members, currentMemberId)
+      ? null
       : level === 2
         ? level2Phrase(selectedMember, selectedMemberName)
         : level3Phrase(selectedCategoryData, selectedMemberName);
@@ -348,7 +384,7 @@ export function BalanceBreakdownScreen({
         {phrase ? <Notice tone="neutral">{phrase}</Notice> : null}
 
         {level === 1 ? (
-          <SettlementCorrections data={data} members={members} currentMemberId={currentMemberId} />
+          <Level1Explanation data={data} members={members} currentMemberId={currentMemberId} />
         ) : null}
 
         {level === 1 ? settlementControls : null}
