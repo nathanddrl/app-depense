@@ -31,3 +31,39 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+  # Applique toutes les migrations + le seed sur un Supabase local (Docker), comme
+  # le fera migrate-prod.yml sur la prod, puis lance la suite RLS (DA11, P1).
+  # Aucun secret : tout tourne en local sur le runner, sans risque sur une PR.
+  migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # Même version que migrate-prod.yml et que le CLI local.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # `supabase start` applique les migrations puis seed.sql : un échec ici
+      # signale une migration cassée avant qu'elle n'atteigne la prod. Seuls
+      # Postgres, GoTrue, PostgREST et Kong sont nécessaires aux tests RLS.
+      - name: Démarrer Supabase local (migrations + seed)
+        working-directory: packages/db
+        run: supabase start -x analytics,edge-runtime,imgproxy,inbucket,meta,realtime,storage,studio,vector
+
+      - name: Tests RLS
+        run: pnpm --filter @app/db test:rls
