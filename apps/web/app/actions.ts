@@ -17,7 +17,7 @@ import {
   getBalance,
   getBalanceBreakdown,
   findPeriodStart,
-  getSettlementCorrections,
+  getBalanceStatement,
   findCoveringSettlement,
   getAdminExpenseOverview,
   adminUpdateExpense,
@@ -27,6 +27,7 @@ import type {
   Balance,
   MemberPaidBreakdown,
   SettlementCorrectionLine,
+  BalanceStatementView,
   PeriodStart,
   ConfirmedSettlementForPeriod,
   CreateExpenseInput,
@@ -176,6 +177,10 @@ export type BalanceBreakdown = {
   /** Corrections postérieures à la régularisation `periodStart`, sur des
    * dépenses qu'elle couvrait déjà (vide sans régularisation retenue). */
   corrections: SettlementCorrectionLine[];
+  /** Relevé du membre connecté (dépenses, aides, versements, corrections) dont
+   * le total = le solde affiché. `null` si, par un bug, ce total ne
+   * retombait pas exactement sur le solde : on n'affiche jamais un relevé faux. */
+  statement: BalanceStatementView | null;
 };
 
 export async function getBalanceBreakdownAction(): Promise<ActionResult<BalanceBreakdown>> {
@@ -190,6 +195,7 @@ export async function getBalanceBreakdownAction(): Promise<ActionResult<BalanceB
   const settlementsForPeriod: ConfirmedSettlementForPeriod[] = confirmedSettlements
     .filter((s): s is typeof s & { confirmedAt: string } => s.confirmedAt !== null)
     .map((s) => ({
+      id: s.id,
       fromMemberId: s.fromMemberId,
       toMemberId: s.toMemberId,
       amountCents: s.amountCents,
@@ -204,26 +210,29 @@ export async function getBalanceBreakdownAction(): Promise<ActionResult<BalanceB
   if (!periodStartResult.ok) return periodStartResult;
   const periodStart = periodStartResult.data;
 
-  const [breakdown, corrections] = await Promise.all([
+  // Relevé + corrections (une seule lecture de l'historique) en parallèle du
+  // donut ; le garde-fou « total = solde » vit dans le domaine.
+  const [breakdown, explanation] = await Promise.all([
     getBalanceBreakdown(expenseRepo, domainCtx, {
       householdId: ctx.householdId,
       periodStart: periodStart?.date,
     }),
-    periodStart
-      ? getSettlementCorrections(expenseRepo, domainCtx, {
-          householdId: ctx.householdId,
-          periodStart,
-        })
-      : Promise.resolve(ok<SettlementCorrectionLine[]>([])),
+    getBalanceStatement(expenseRepo, domainCtx, {
+      householdId: ctx.householdId,
+      periodStart,
+      settlements: settlementsForPeriod,
+      balance: balance.data,
+    }),
   ]);
   if (!breakdown.ok) return breakdown;
-  if (!corrections.ok) return corrections;
+  if (!explanation.ok) return explanation;
 
   return ok({
     balance: balance.data,
     periodStart: periodStart?.date ?? null,
     members: breakdown.data,
-    corrections: corrections.data,
+    corrections: explanation.data.corrections,
+    statement: explanation.data.statement,
   });
 }
 

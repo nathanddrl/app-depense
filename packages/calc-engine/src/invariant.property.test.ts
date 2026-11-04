@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { computeExpense, computeBalance } from "./index";
+import { computeExpense, computeBalance, computeBalanceStatement } from "./index";
 import type { BalanceExpense, SettlementForBalance, SharePct } from "./index";
 
 // Convertit des poids entiers arbitraires en un ratio dont Σ pct = 100 exact
@@ -52,7 +52,7 @@ describe("PROPERTY — invariant produit #1 : Σ solde(m) = 0 (spec 4.2)", () =>
   it("sur des dépenses aléatoires (payeurs, ratios, aides, dépassements), Σ solde = 0 et Σ parts = net", () => {
     fc.assert(
       fc.property(householdArb, ({ ids, expenses, settlements }) => {
-        const balanceExpenses: BalanceExpense[] = expenses.map((e) => {
+        const balanceExpenses: (BalanceExpense & { ratio: SharePct[] })[] = expenses.map((e) => {
           const payerId = ids[e.payer];
           const ratio = toRatio(ids, e.weights);
           const aids = e.aids.map((a) => ({
@@ -68,6 +68,7 @@ describe("PROPERTY — invariant produit #1 : Σ solde(m) = 0 (spec 4.2)", () =>
           return {
             grossCents: e.grossCents,
             payerId,
+            ratio,
             shares: c.shares.map((s) => ({ memberId: s.memberId, cents: s.cents })),
             effectiveAids: c.effectiveAids,
             deletedAt: e.deletedAt ? new Date() : null,
@@ -86,6 +87,20 @@ describe("PROPERTY — invariant produit #1 : Σ solde(m) = 0 (spec 4.2)", () =>
         const bal = computeBalance(balanceExpenses, ids, settlementsForBalance);
         const total = ids.reduce((s, id) => s + bal[id], 0);
         expect(total).toBe(0);
+
+        // Invariant du relevé (écran « d'où vient l'écart ») : dépenses +
+        // aides + versements = solde du membre, au centime, pour chacun.
+        for (const id of ids) {
+          const statement = computeBalanceStatement({
+            memberId: id,
+            expenses: balanceExpenses,
+            settlements: settlementsForBalance,
+          });
+          expect(statement.totalCents).toBe(bal[id]);
+          expect(statement.expensesCents + statement.aidsCents + statement.settlementsCents).toBe(
+            bal[id],
+          );
+        }
       }),
       { numRuns: 2000 },
     );

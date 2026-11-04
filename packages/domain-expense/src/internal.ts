@@ -7,7 +7,7 @@ import { computeExpense } from "@app/calc-engine";
 import type { BalanceExpense } from "@app/calc-engine";
 import type { AppError } from "@app/shared";
 import type { StoredExpense } from "./repository";
-import type { ExpenseShareDTO, ShareInput } from "./types";
+import type { Balance, ExpenseShareDTO, ShareInput } from "./types";
 
 /**
  * Parts figées d'une dépense via le moteur (spec 4.1/4.3). Sans aide dans ce
@@ -110,4 +110,15 @@ export function toBalanceExpense(expense: StoredExpense): BalanceExpense {
     effectiveAids: computed.effectiveAids,
     deletedAt: expense.deletedAt,
   };
+}
+
+/**
+ * Solde signé d'un membre à partir du solde réduit (`getBalance`) : positif =
+ * on lui doit, négatif = il doit, 0 s'il n'est ni l'un ni l'autre.
+ */
+export function signedBalanceFor(balance: Balance, memberId: string): number {
+  if (balance.amountCents === 0) return 0;
+  if (balance.to === memberId) return balance.amountCents;
+  if (balance.from === memberId) return -balance.amountCents;
+  return 0;
 }

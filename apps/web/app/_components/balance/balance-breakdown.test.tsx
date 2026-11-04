@@ -36,6 +36,7 @@ const data: BalanceBreakdown = {
   balance: { from: "sam", to: "nathan", amountCents: 4000 },
   periodStart: null,
   corrections: [],
+  statement: null,
   members: [
     {
       memberId: "nathan",
@@ -165,6 +166,36 @@ describe("BalanceBreakdownScreen — écran « d'où vient l'écart »", () => {
     expect(text()).toContain("tu as payé 60,00 € de plus que ta part");
   });
 
+  it("niveau 1 avec relevé : le relevé remplace le constat, et disparaît en descendant", () => {
+    render({
+      data: {
+        ...data,
+        statement: {
+          memberId: "sam",
+          lines: {
+            paidCents: 10000,
+            grossShareCents: 14000,
+            expensesCents: -4000,
+            aidReceivedCents: 0,
+            aidOtherCents: 0,
+            aidsCents: 0,
+            settlementsCents: 0,
+            correctionsCents: 0,
+            totalCents: -4000,
+          },
+          sharePct: 50,
+          aids: [],
+          settlements: [],
+        },
+      },
+    });
+    expect(text()).toContain("comment on arrive à ce montant");
+    expect(text()).toContain("= tu dois 40,00 € à nathan");
+    expect(text()).not.toContain("de plus que sa part");
+    clickSliceByLabel("sam");
+    expect(text()).not.toContain("comment on arrive à ce montant");
+  });
+
   it("niveau 1, solde nul : formule canonique, aucun constat", () => {
     render({ data: { ...data, balance: { from: "sam", to: "nathan", amountCents: 0 } } });
     expect(text()).toContain("vous êtes étale");
@@ -258,6 +289,7 @@ describe("BalanceBreakdownScreen — écran « d'où vient l'écart »", () => {
       balance: { from: "sam", to: "nathan", amountCents: 0 },
       periodStart: null,
       corrections: [],
+      statement: null,
       members: [
         { memberId: "nathan", totalCents: 0, categories: [] },
         { memberId: "sam", totalCents: 0, categories: [] },

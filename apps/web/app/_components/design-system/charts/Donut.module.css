@@ -4,6 +4,9 @@
 
 .wrapper {
   display: grid;
+  /* Colonne bornée au conteneur : rien (SVG, légende) ne peut l'élargir. */
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
   justify-items: center;
   gap: var(--space-2);
 }
@@ -68,4 +71,10 @@
   width: 12px;
   height: 12px;
   flex-shrink: 0;
+}
+
+/* Libellé de légende : passe à la ligne plutôt que d'élargir la colonne. */
+.legendItem > span:last-child {
+  min-width: 0;
+  overflow-wrap: break-word;
 }

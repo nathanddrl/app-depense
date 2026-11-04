@@ -4,6 +4,7 @@
 // un import de TYPE uniquement (domain→db autorisé, aucun runtime db ici).
 
 import type { Enums } from "@app/db";
+import type { BalanceStatement } from "@app/calc-engine";
 
 /** Catégorie figée (enum DB, D18) : 'loyer'|'courses'|'charges'|'sorties'|'autre'. */
 export type Category = Enums<"expense_category">;
@@ -169,6 +170,8 @@ export type MemberPaidBreakdown = {
  * `confirmedAt` non nul (l'appelant filtre déjà sur les règlements `confirmed`).
  */
 export type ConfirmedSettlementForPeriod = {
+  /** Id du règlement, quand l'appelant l'a (clé d'affichage stable). */
+  id?: string;
   fromMemberId: string;
   toMemberId: string;
   amountCents: number;
@@ -205,6 +208,42 @@ export type SettlementCorrectionLine = {
   amountCents: number;
   previousAmountCents?: number;
   balanceDelta: Record<string, number>;
+};
+
+/**
+ * Relevé de l'écart du point de vue du membre connecté (écran « d'où vient
+ * l'écart »). `lines` sort tel quel de `calc-engine.computeBalanceStatement` :
+ * dépenses + aides + versements + corrections = solde (signé, positif = on
+ * doit à ce membre). `sharePct` = % de part du membre s'il est le même sur
+ * toutes les dépenses de la période, sinon `null`. `aids` / `settlements` =
+ * détail des aides et des versements de la période.
+ */
+export type BalanceStatementView = {
+  memberId: string;
+  lines: BalanceStatement;
+  sharePct: number | null;
+  aids: {
+    id: string;
+    label: string;
+    expenseLabel: string;
+    incurredOn: string;
+    beneficiaryId: string;
+    /** Montant effectif (post-plafond 4.4), celui que compte la ligne « aides ». */
+    amountCents: number;
+    /** Montant déclaré, seulement s'il diffère (aide plafonnée). */
+    declaredCents?: number;
+  }[];
+  settlements: ConfirmedSettlementForPeriod[];
+};
+
+/**
+ * Résultat de `getBalanceStatement` : le relevé (`null` s'il ne retombait pas
+ * exactement sur le solde — on n'affiche jamais un relevé faux) et les
+ * corrections postérieures au règlement, calculées sur la même lecture.
+ */
+export type BalanceExplanation = {
+  statement: BalanceStatementView | null;
+  corrections: SettlementCorrectionLine[];
 };
 
 /**
